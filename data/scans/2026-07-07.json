@@ -1,5 +1,6 @@
 {
   "date": "2026-07-07",
+  "version": 1,
   "generatedAt": "2026-07-07T08:23:00Z",
   "market": {
     "bitcoin": {"label": "$61.500–63.600", "context": "Erholt nach Short-Squeeze, $221,7 Mio. ETF-Nettozufluss am 3.7."},
