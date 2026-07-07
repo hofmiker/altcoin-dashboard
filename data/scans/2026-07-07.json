@@ -1,0 +1,47 @@
+{
+  "date": "2026-07-07",
+  "generatedAt": "2026-07-07T08:23:00Z",
+  "market": {
+    "bitcoin": {"label": "$61.500–63.600", "context": "Erholt nach Short-Squeeze, $221,7 Mio. ETF-Nettozufluss am 3.7."},
+    "altcoinSeasonIndex": {"value": 37, "max": 100, "context": "Bitcoin-Season-Territorium (Altseason ab 75)"},
+    "btcDominance": {"label": "~55–60%", "context": "Quellen uneinheitlich — Markt bleibt klar BTC-getrieben"}
+  },
+  "coins": [
+    {
+      "ticker": "MPLX", "name": "Metaplex", "status": "good", "statusLabel": "Watchlist", "score": 4,
+      "coingeckoId": "metaplex",
+      "signals": [["Frisches Upbit-Listing (3. Jul, BTC/USDT)", "+3"], ["DAO-Buyback bindet 23% Supply", "+1"]],
+      "flag": null,
+      "note": "Bereits +100% seit Listing gelaufen — Nachkaufrisiko, enger Stop empfohlen."
+    },
+    {
+      "ticker": "SYN", "name": "Synapse", "status": "caution", "statusLabel": "Unter Schwelle", "score": 2,
+      "coingeckoId": null,
+      "signals": [["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)", "+2"]],
+      "flag": "Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar.",
+      "note": "Interessante KOL-Story, aber Score bleibt unter Watchlist-Schwelle."
+    },
+    {
+      "ticker": "BDAG", "name": "BlockDAG", "status": "critical", "statusLabel": "Scam-Verdacht", "score": -1,
+      "coingeckoId": null,
+      "signals": [["Eigene Exchange „BlockDAG X“ angekündigt", "+1"]],
+      "flag": "ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits deckten nur Vesting-Contracts ab.",
+      "note": "Trotz Hype in Top-Gainer-Listen: klar meiden."
+    },
+    {
+      "ticker": "ASTER", "name": "Aster (BNB Chain Perp-DEX)", "status": "neutral", "statusLabel": "Kein frisches Signal", "score": null,
+      "coingeckoId": "aster-2",
+      "signals": [["CZ-Endorsement + Exchange-Listings", "bereits eingepreist"]],
+      "flag": null,
+      "note": "Rally und CZ-Story sind Monate alt — kein aktueller Katalysator, daher nicht gescort."
+    },
+    {
+      "ticker": "SAHARA", "name": "Sahara AI", "status": "neutral", "statusLabel": "Verblasster Hype", "score": 2,
+      "coingeckoId": "sahara-ai",
+      "signals": [["Aktives KI-Narrativ (Sorin AI Copilot)", "+2"]],
+      "flag": null,
+      "note": "AI-Narrativ vorhanden, aber Abwärtstrend dominiert."
+    }
+  ],
+  "sources": []
+}
