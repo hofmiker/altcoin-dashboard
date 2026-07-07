@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pump-Signal Dashboard — 07.07.2026</title>
+<style>
+  :root{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a;
+    --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+      --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+      --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+      --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+    --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+    --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+    --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{
+    background:var(--bg); color:var(--ink); min-height:100%;
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:28px;}
+  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; font-variant-numeric:tabular-nums;}
+
+  /* header */
+  header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
+  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
+  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:60ch; line-height:1.5;}
+  .table-toggle{
+    border:1px solid var(--border); background:var(--card); color:var(--ink-2);
+    font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer;
+    white-space:nowrap;
+  }
+  .table-toggle:hover{color:var(--ink); border-color:var(--ink-3);}
+  .table-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  /* market strip */
+  .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow);}
+  .stat .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
+  .stat .value{font-size:24px; font-weight:700; margin-top:6px;}
+  .stat .ctx{font-size:12.5px; color:var(--ink-2); margin-top:4px; line-height:1.4;}
+  .gauge{height:6px; border-radius:3px; background:var(--border); margin-top:10px; overflow:hidden; position:relative;}
+  .gauge > i{display:block; height:100%; background:var(--neutral); border-radius:3px;}
+  .gauge .thresh{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink-3);}
+
+  /* legend */
+  .legend{display:flex; gap:10px; flex-wrap:wrap;}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
+  .chip i{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .chip.good{color:var(--good); background:var(--good-bg); border-color:var(--good-bg);} .chip.good i{background:var(--good);}
+  .chip.caution{color:var(--caution); background:var(--caution-bg); border-color:var(--caution-bg);} .chip.caution i{background:var(--caution);}
+  .chip.critical{color:var(--critical); background:var(--critical-bg); border-color:var(--critical-bg);} .chip.critical i{background:var(--critical);}
+  .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
+
+  /* grid of cards */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 18px 16px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow);
+    position:relative;
+  }
+  .card.critical{box-shadow:var(--shadow), inset 0 0 0 1.5px var(--critical-bg);}
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .ticker-block .ticker{font-size:19px; font-weight:800; letter-spacing:.01em;}
+  .ticker-block .name{font-size:12.5px; color:var(--ink-3); margin-top:1px;}
+
+  .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:96px;}
+  .score-num{font-size:13px; font-weight:700;}
+  .score-num .of{color:var(--ink-3); font-weight:600;}
+  .meter{display:flex; gap:2px;}
+  .meter i{width:5px; height:14px; border-radius:1.5px; background:var(--border); display:block;}
+
+  .card-note{font-size:12.8px; line-height:1.5; color:var(--ink-2);}
+  .card-note b{color:var(--ink); font-weight:700;}
+  .flag-box{
+    font-size:12.3px; line-height:1.5; color:var(--critical); background:var(--critical-bg);
+    border-radius:8px; padding:9px 11px; display:flex; gap:8px; align-items:flex-start;
+  }
+  .flag-box svg{flex:none; margin-top:1px;}
+
+  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:10px 12px 6px;}
+  .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+  .chart-cap{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:2px;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(2,1fr); gap:8px 14px;}
+  .stat-row div{display:flex; flex-direction:column; gap:1px;}
+  .stat-row .k{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600;}
+  .stat-row .v{font-size:13.5px; font-weight:700;}
+
+  .signals{display:flex; flex-direction:column; gap:5px;}
+  .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4;}
+  .signal-row .pts{font-weight:700; color:var(--ink); flex:none;}
+
+  /* tooltip */
+  .tip{
+    position:absolute; pointer-events:none; background:var(--ink); color:var(--bg);
+    font-size:11.5px; padding:5px 8px; border-radius:6px; transform:translate(-50%,-115%);
+    white-space:nowrap; opacity:0; transition:opacity .08s ease; z-index:5; font-weight:600;
+  }
+  :root[data-theme="dark"] .tip, @media (prefers-color-scheme:dark){.tip{background:var(--ink); color:var(--bg);}}
+  .tip.show{opacity:1;}
+
+  /* table view */
+  .table-view{display:none; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; box-shadow:var(--shadow);}
+  .table-view.show{display:block;}
+  table{border-collapse:collapse; width:100%; min-width:720px; font-size:13px;}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:700;}
+  td.note{white-space:normal; color:var(--ink-2); min-width:260px;}
+  tr:last-child td{border-bottom:none;}
+
+  footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="wrap">
+
+    <header>
+      <div>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026</p>
+        <h1>Kandidaten-Dashboard</h1>
+        <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert (keine Live-Tick-Daten) — für Richtung/Kontext, nicht für exakte Einstiegspunkte.</p>
+      </div>
+      <button class="table-toggle" id="toggleTable" aria-expanded="false">Tabellenansicht anzeigen</button>
+    </header>
+
+    <div class="legend">
+      <span class="chip good"><i></i>Watchlist — Score ≥ 4, keine Red Flags</span>
+      <span class="chip caution"><i></i>Risiko — unter Schwelle / Red-Flag-Verdacht</span>
+      <span class="chip critical"><i></i>Kritisch — Scam-Verdacht, meiden</span>
+      <span class="chip neutral"><i></i>Kontext — kein frisches Signal heute</span>
+    </div>
+
+    <section class="strip">
+      <div class="stat">
+        <div class="label">Bitcoin</div>
+        <div class="value mono">$61.500–63.600</div>
+        <div class="ctx">Erholt nach Short-Squeeze, $221,7 Mio. ETF-Nettozufluss am 3.7.</div>
+      </div>
+      <div class="stat">
+        <div class="label">Altcoin Season Index</div>
+        <div class="value mono">37 / 100</div>
+        <div class="ctx">Bitcoin-Season-Territorium (Altseason ab 75)</div>
+        <div class="gauge"><i style="width:37%"></i><span class="thresh" style="left:75%"></span></div>
+      </div>
+      <div class="stat">
+        <div class="label">BTC-Dominanz</div>
+        <div class="value mono">~55–60%</div>
+        <div class="ctx">Quellen uneinheitlich — Markt bleibt klar BTC-getrieben</div>
+      </div>
+    </section>
+
+    <section class="grid" id="cardGrid"></section>
+
+    <div class="table-view" id="tableView">
+      <table>
+        <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <footer>
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CoinMarketCap, Upbit-Ankündigung, ZachXBT-Recherche, Presseberichte) vom 29.6.–6.7.2026, keine Live-Marktdaten. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+    </footer>
+
+  </div>
+</div>
+<script>
+(function(){
+  const coins = [
+    {
+      ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4,
+      chartType:"line", unit:"$",
+      series:[
+        {label:"30. Jun", value:0.019},
+        {label:"1. Jul", value:0.020},
+        {label:"2. Jul", value:0.0317},
+        {label:"3. Jul", value:0.035},
+        {label:"4. Jul", value:0.038},
+        {label:"5. Jul", value:0.040}
+      ],
+      stats:[
+        {k:"Preis",v:"$0,040"},
+        {k:"Market Cap",v:"$20,8 Mio."},
+        {k:"24h Vol.",v:"$19,25 Mio."},
+        {k:"Holder",v:"24.090"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (3. Jul, BTC/USDT)","+3"],
+        ["DAO-Buyback bindet 23% Supply","+1"]
+      ],
+      flag:null,
+      note:"Bereits <b>+100% seit Listing</b> gelaufen — Nachkaufrisiko, enger Stop empfohlen."
+    },
+    {
+      ticker:"SYN", name:"Synapse", status:"caution", statusLabel:"Unter Schwelle", score:2,
+      chartType:"line", unit:"$",
+      series:[
+        {label:"1. Jun", value:6},
+        {label:"10. Jun", value:20},
+        {label:"20. Jun", value:40},
+        {label:"28. Jun", value:55},
+        {label:"29. Jun", value:67},
+        {label:"1. Jul", value:94},
+        {label:"6. Jul", value:150}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$150 Mio."},
+        {k:"24h Vol.",v:"$213 Mio."},
+        {k:"Juni-Rally",v:"+1.000%"},
+        {k:"Katalysator",v:"Hayes-Kauf"}
+      ],
+      signals:[
+        ["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)","+2"]
+      ],
+      flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben.",
+      note:"Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — nur für sehr risikofreudige Trader."
+    },
+    {
+      ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1,
+      chartType:"bar", unit:"$Mio.",
+      series:[
+        {label:"Website-Behauptung", value:442},
+        {label:"CEO-Aussage", value:200},
+        {label:"On-Chain verifiziert*", value:95}
+      ],
+      stats:[
+        {k:"Bewertungssprung",v:"+$500 Mio."},
+        {k:"Katalysator",v:"„BlockDAG X“ Vorregistrierung"},
+        {k:"Vorwurf",v:"ZachXBT: >$300 Mio."},
+        {k:"Audit-Umfang",v:"nur Vesting-Contracts"}
+      ],
+      signals:[
+        ["Eigene Exchange „BlockDAG X“ angekündigt","+1"]
+      ],
+      flag:"ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits (Halborn/CertiK) deckten nur Vesting-Contracts ab, nicht den Mainnet-Code; Whitepaper-Plagiatsvorwürfe; unbezahlte Gehälter (Dez. 2025).",
+      note:"Trotz Hype in „Top Gainer“-Listen: <b>klar meiden.</b> *On-Chain-Schätzung laut ZachXBT-Recherche."
+    },
+    {
+      ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null,
+      chartType:"line", unit:"$",
+      series:[
+        {label:"17. Sep '25", value:0.08},
+        {label:"24. Sep '25", value:1.20},
+        {label:"Jan '26", value:1.80},
+        {label:"Mär '26", value:2.10},
+        {label:"Jul '26", value:2.42}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$4 Mrd."},
+        {k:"Seit Launch",v:"+2.900%"},
+        {k:"Unterstützt von",v:"CZ / YZi Labs"},
+        {k:"Segment",v:"Hyperliquid-Rivale"}
+      ],
+      signals:[
+        ["CZ-Endorsement + Exchange-Listings","bereits eingepreist"]
+      ],
+      flag:null,
+      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort."
+    },
+    {
+      ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2,
+      chartType:"line", unit:"$",
+      series:[
+        {label:"ATH '25", value:0.1605},
+        {label:"Q4 '25", value:0.090},
+        {label:"Q1 '26", value:0.050},
+        {label:"Q2 '26", value:0.025},
+        {label:"6. Jul '26", value:0.0103}
+      ],
+      stats:[
+        {k:"Preis",v:"$0,0103"},
+        {k:"Market Cap",v:"$36,1 Mio."},
+        {k:"Vom ATH",v:"−92,7%"},
+        {k:"Narrativ",v:"AI-Copilot / DeFi"}
+      ],
+      signals:[
+        ["Aktives KI-Narrativ (Sorin AI Copilot)","+2"]
+      ],
+      flag:null,
+      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung."
+    }
+  ];
+
+  const NS = "http://www.w3.org/2000/svg";
+  const grid = document.getElementById("cardGrid");
+  const tableBody = document.getElementById("tableBody");
+  const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral"};
+
+  function fmt(n, unit){
+    if(unit === "$" ){
+      if(n < 1) return "$" + n.toFixed(4).replace(/0+$/,"").replace(/\.$/,"");
+      return "$" + n.toLocaleString("de-DE",{maximumFractionDigits:2});
+    }
+    return n + " " + unit;
+  }
+
+  function buildChart(coin){
+    const w = 300, h = 118, padL = 6, padR = 6, padT = 10, padB = 18;
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label", coin.ticker + " Chart");
+
+    const color = `var(${statusColorVar[coin.status]})`;
+    const gradId = "grad-" + coin.ticker;
+
+    const defs = document.createElementNS(NS,"defs");
+    const grad = document.createElementNS(NS,"linearGradient");
+    grad.setAttribute("id", gradId);
+    grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","0"); grad.setAttribute("y2","1");
+    grad.innerHTML = `<stop offset="0%" stop-color="${color}" stop-opacity="0.35"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>`;
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    const vals = coin.series.map(d=>d.value);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const range = (max - min) || 1;
+
+    // baseline
+    const base = document.createElementNS(NS,"line");
+    base.setAttribute("x1",padL); base.setAttribute("x2", w-padR);
+    base.setAttribute("y1", h-padB); base.setAttribute("y2", h-padB);
+    base.setAttribute("stroke","var(--border)"); base.setAttribute("stroke-width","1");
+    svg.appendChild(base);
+
+    const tip = document.createElement("div");
+    tip.className = "tip";
+
+    if(coin.chartType === "line"){
+      const n = coin.series.length;
+      const stepX = (w - padL - padR) / (n - 1);
+      const pts = coin.series.map((d,i)=>{
+        const x = padL + i*stepX;
+        const y = padT + (1 - (d.value - min)/range) * (h - padT - padB);
+        return {x,y,...d};
+      });
+
+      const path = "M" + pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+      const areaPath = path + ` L${pts[pts.length-1].x.toFixed(1)},${h-padB} L${pts[0].x.toFixed(1)},${h-padB} Z`;
+
+      const area = document.createElementNS(NS,"path");
+      area.setAttribute("d", areaPath);
+      area.setAttribute("fill", `url(#${gradId})`);
+      svg.appendChild(area);
+
+      const line = document.createElementNS(NS,"path");
+      line.setAttribute("d", path);
+      line.setAttribute("fill","none");
+      line.setAttribute("stroke", color);
+      line.setAttribute("stroke-width","2");
+      line.setAttribute("stroke-linecap","round");
+      line.setAttribute("stroke-linejoin","round");
+      svg.appendChild(line);
+
+      // endpoint emphasis
+      const last = pts[pts.length-1];
+      const ring = document.createElementNS(NS,"circle");
+      ring.setAttribute("cx", last.x); ring.setAttribute("cy", last.y); ring.setAttribute("r","5");
+      ring.setAttribute("fill","var(--card)"); ring.setAttribute("stroke", color); ring.setAttribute("stroke-width","2");
+      svg.appendChild(ring);
+
+      pts.forEach(p=>{
+        const hit = document.createElementNS(NS,"circle");
+        hit.setAttribute("cx",p.x); hit.setAttribute("cy",p.y); hit.setAttribute("r","10");
+        hit.setAttribute("fill","transparent");
+        hit.style.cursor = "crosshair";
+        hit.addEventListener("mouseenter", (e)=>showTip(e, wrap, tip, `${p.label}: ${fmt(p.value, coin.unit)}`, p, w, h));
+        hit.addEventListener("mouseleave", ()=> tip.classList.remove("show"));
+        svg.appendChild(hit);
+      });
+
+      var capLeft = coin.series[0].label, capRight = coin.series[coin.series.length-1].label;
+    } else {
+      // bar chart
+      const n = coin.series.length;
+      const gap = 14;
+      const barW = (w - padL - padR - gap*(n-1)) / n;
+      coin.series.forEach((d,i)=>{
+        const x = padL + i*(barW+gap);
+        const bh = (d.value - 0)/ (max||1) * (h - padT - padB - 14);
+        const y = h - padB - bh;
+        const bar = document.createElementNS(NS,"rect");
+        bar.setAttribute("x",x); bar.setAttribute("y",y);
+        bar.setAttribute("width",barW); bar.setAttribute("height",bh);
+        bar.setAttribute("rx","4");
+        bar.setAttribute("fill", color);
+        bar.setAttribute("fill-opacity", (1 - i*0.22).toFixed(2));
+        svg.appendChild(bar);
+
+        const label = document.createElementNS(NS,"text");
+        label.setAttribute("x", x + barW/2); label.setAttribute("y", y - 6);
+        label.setAttribute("text-anchor","middle");
+        label.setAttribute("font-size","9.5");
+        label.setAttribute("font-weight","700");
+        label.setAttribute("fill","var(--ink-2)");
+        label.setAttribute("class","mono");
+        label.textContent = "$" + d.value + "M";
+        svg.appendChild(label);
+
+        const hit = document.createElementNS(NS,"rect");
+        hit.setAttribute("x",x); hit.setAttribute("y",padT); hit.setAttribute("width",barW); hit.setAttribute("height", h-padT-padB);
+        hit.setAttribute("fill","transparent");
+        hit.style.cursor="crosshair";
+        hit.addEventListener("mouseenter",(e)=>showTip(e, wrap, tip, `${d.label}: $${d.value} Mio.`, {x:x+barW/2,y}, w, h));
+        hit.addEventListener("mouseleave", ()=> tip.classList.remove("show"));
+        svg.appendChild(hit);
+      });
+      var capLeft = coin.series[0].label, capRight = coin.series[coin.series.length-1].label;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    wrap.appendChild(tip);
+    const cap = document.createElement("div");
+    cap.className = "chart-cap";
+    cap.innerHTML = `<span>${capLeft}</span><span>${capRight}</span>`;
+    wrap.appendChild(cap);
+    return wrap;
+  }
+
+  function showTip(e, wrap, tip, text, p, w, h){
+    const rect = wrap.getBoundingClientRect();
+    const scaleX = rect.width / w;
+    tip.style.left = (p.x*scaleX) + "px";
+    tip.style.top = (p.y*(rect.height/h)) + "px";
+    tip.textContent = text;
+    tip.classList.add("show");
+  }
+
+  function buildCard(coin){
+    const card = document.createElement("article");
+    card.className = "card" + (coin.status === "critical" ? " critical" : "");
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+    head.innerHTML = `
+      <div class="ticker-block">
+        <div class="ticker mono">${coin.ticker}</div>
+        <div class="name">${coin.name}</div>
+      </div>
+    `;
+    const scoreBlock = document.createElement("div");
+    scoreBlock.className = "score-block";
+    const scoreLabel = coin.score === null ? "—" : coin.score + '<span class="of"> /12</span>';
+    const filled = coin.score === null ? 0 : Math.max(0, coin.score);
+    let ticks = "";
+    for(let i=0;i<12;i++){
+      ticks += `<i style="${i<filled ? `background:var(${statusColorVar[coin.status]})` : ""}"></i>`;
+    }
+    scoreBlock.innerHTML = `
+      <span class="chip ${coin.status}"><i></i>${coin.statusLabel}</span>
+      <span class="score-num mono">${scoreLabel}</span>
+      <span class="meter">${ticks}</span>
+    `;
+    head.appendChild(scoreBlock);
+    card.appendChild(head);
+
+    card.appendChild(buildChart(coin));
+
+    const statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.innerHTML = coin.stats.map(s=>`<div><span class="k">${s.k}</span><span class="v mono">${s.v}</span></div>`).join("");
+    card.appendChild(statRow);
+
+    const sig = document.createElement("div");
+    sig.className = "signals";
+    sig.innerHTML = coin.signals.map(([label,pts])=>`<div class="signal-row"><span>${label}</span><span class="pts mono">${pts}</span></div>`).join("");
+    card.appendChild(sig);
+
+    if(coin.flag){
+      const fb = document.createElement("div");
+      fb.className = "flag-box";
+      fb.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg><span>${coin.flag}</span>`;
+      card.appendChild(fb);
+    }
+
+    const note = document.createElement("p");
+    note.className = "card-note";
+    note.innerHTML = coin.note;
+    card.appendChild(note);
+
+    return card;
+  }
+
+  coins.forEach(c=>{
+    grid.appendChild(buildCard(c));
+    const tr = document.createElement("tr");
+    const key = c.stats[0];
+    tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td>`;
+    tableBody.appendChild(tr);
+  });
+
+  const toggleBtn = document.getElementById("toggleTable");
+  const tableView = document.getElementById("tableView");
+  toggleBtn.addEventListener("click", ()=>{
+    const show = !tableView.classList.contains("show");
+    tableView.classList.toggle("show", show);
+    toggleBtn.textContent = show ? "Tabellenansicht ausblenden" : "Tabellenansicht anzeigen";
+    toggleBtn.setAttribute("aria-expanded", show);
+  });
+})();
+</script>
+</body>
+</html>
