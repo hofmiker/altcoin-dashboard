@@ -49,13 +49,19 @@
   .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
   h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
   .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:64ch; line-height:1.5;}
+  /* Pure-CSS toggle (checkbox + label) so the table view can never break due to JS timing/errors. */
+  .table-toggle-checkbox{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
   .table-toggle{
+    display:inline-block;
     border:1px solid var(--border); background:var(--card); color:var(--ink-2);
     font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer;
-    white-space:nowrap;
+    white-space:nowrap; transition:border-color .15s ease, color .15s ease, transform .15s ease;
   }
-  .table-toggle:hover{color:var(--ink); border-color:var(--ink-3);}
-  .table-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .table-toggle:hover{color:var(--ink); border-color:var(--ink-3); transform:translateY(-1px);}
+  .table-toggle .label-active{display:none;}
+  .table-toggle-checkbox:checked ~ header .table-toggle .label-default{display:none;}
+  .table-toggle-checkbox:checked ~ header .table-toggle .label-active{display:inline;}
+  .table-toggle-checkbox:focus-visible ~ header .table-toggle{outline:2px solid var(--accent); outline-offset:2px;}
 
   /* market strip */
   .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
@@ -81,18 +87,21 @@
   .card{
     background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:18px 18px 16px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow);
-    position:relative;
+    position:relative; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
+  .card:hover{transform:translateY(-4px); border-color:var(--ink-3); box-shadow:0 4px 10px rgba(20,24,34,.08), 0 16px 36px rgba(20,24,34,.10);}
   .card.critical{box-shadow:var(--shadow), inset 0 0 0 1.5px var(--critical-bg);}
+  .card.critical:hover{box-shadow:0 4px 10px rgba(20,24,34,.08), 0 16px 36px rgba(20,24,34,.10), inset 0 0 0 1.5px var(--critical-bg);}
   .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
   .ticker-block{display:flex; align-items:center; gap:10px;}
   .ticker-block .ticker{font-size:19px; font-weight:800; letter-spacing:.01em;}
   .ticker-block .name{font-size:12.5px; color:var(--ink-3); margin-top:1px;}
 
-  .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--inset); border:1px solid var(--border); flex:none; display:block;}
+  .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--inset); border:1px solid var(--border); flex:none; display:block; transition:transform .18s ease;}
+  .card:hover .avatar, .card:hover .avatar-fallback{transform:scale(1.08);}
   .avatar-fallback{
     width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:11px; font-weight:800; color:#fff; flex:none; letter-spacing:.02em;
+    font-size:11px; font-weight:800; color:#fff; flex:none; letter-spacing:.02em; transition:transform .18s ease;
   }
 
   .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:96px;}
@@ -131,17 +140,21 @@
   .chart-cap{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:2px;}
 
   .stat-row{display:grid; grid-template-columns:repeat(2,1fr); gap:8px 14px;}
-  .stat-row div{display:flex; flex-direction:column; gap:1px;}
+  .stat-row div{display:flex; flex-direction:column; gap:1px; padding:4px 6px; margin:-4px -6px; border-radius:6px; transition:background .15s ease;}
+  .stat-row div:hover{background:var(--inset);}
   .stat-row .k{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600;}
   .stat-row .v{font-size:13.5px; font-weight:700;}
 
   .signals{display:flex; flex-direction:column; gap:5px;}
-  .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4;}
+  .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4; padding:3px 6px; margin:-3px -6px; border-radius:6px; transition:background .15s ease;}
+  .signal-row:hover{background:var(--inset);}
   .signal-row .pts{font-weight:700; color:var(--ink); flex:none;}
 
+  .score-block .chip, .score-num, .meter{cursor:help;}
+
   .card-link{font-size:12px;}
-  .card-link a{color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600;}
-  .card-link a:hover{text-decoration:underline;}
+  .card-link a{color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600; transition:gap .15s ease;}
+  .card-link a:hover{text-decoration:underline; gap:6px;}
   .card-link svg{flex:none;}
 
   .card-sources{font-size:11px; color:var(--ink-3);}
@@ -159,7 +172,7 @@
 
   /* table view */
   .table-view{display:none; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; box-shadow:var(--shadow);}
-  .table-view.show{display:block;}
+  .table-toggle-checkbox:checked ~ .table-view{display:block;}
   table{border-collapse:collapse; width:100%; min-width:720px; font-size:13px;}
   th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap;}
   th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:700;}
@@ -189,13 +202,18 @@
 <div class="page">
   <div class="wrap">
 
+    <input type="checkbox" id="tableToggleCheckbox" class="table-toggle-checkbox">
+
     <header>
       <div>
         <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
         <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M) direkt im Browser nach.</p>
       </div>
-      <button class="table-toggle" id="toggleTable" aria-expanded="false">Tabellenansicht anzeigen</button>
+      <label for="tableToggleCheckbox" class="table-toggle" aria-controls="tableView">
+        <span class="label-default">Tabellenansicht anzeigen</span>
+        <span class="label-active">Tabellenansicht ausblenden</span>
+      </label>
     </header>
 
     <div class="legend">
@@ -399,18 +417,9 @@
   const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral"};
   const liveCache = new Map();
 
-  // Wire up global UI first so it keeps working even if a single coin entry below fails to render.
+  // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
   const versionTag = document.getElementById("versionTag");
   if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
-
-  const toggleBtn = document.getElementById("toggleTable");
-  const tableView = document.getElementById("tableView");
-  toggleBtn.addEventListener("click", ()=>{
-    const show = !tableView.classList.contains("show");
-    tableView.classList.toggle("show", show);
-    toggleBtn.textContent = show ? "Tabellenansicht ausblenden" : "Tabellenansicht anzeigen";
-    toggleBtn.setAttribute("aria-expanded", show);
-  });
 
   function fmt(n, unit){
     if(unit === "$" ){
@@ -622,8 +631,12 @@
   }
 
   function resolveCoinLink(coin){
-    if(coin.link) return coin.link;
-    if(coin.coingeckoId) return `https://www.coingecko.com/en/coins/${encodeURIComponent(coin.coingeckoId)}`;
+    if(coin.link){
+      return {url: coin.link, label: /coingecko\.com/i.test(coin.link) ? "Zur CoinGecko-Seite" : "Zur Hauptquelle"};
+    }
+    if(coin.coingeckoId){
+      return {url: `https://www.coingecko.com/en/coins/${encodeURIComponent(coin.coingeckoId)}`, label: "Zur CoinGecko-Seite"};
+    }
     return null;
   }
 
@@ -641,6 +654,13 @@
     tickerBlock.appendChild(tickerText);
     head.appendChild(tickerBlock);
 
+    const statusHint = {
+      good: "Score ≥ 4 und keine Red Flags → Watchlist",
+      caution: "Unter der Watchlist-Schwelle oder Red-Flag-Verdacht → Risiko",
+      critical: "Klarer Scam-/Betrugsverdacht → meiden",
+      neutral: "Kein frisches Signal im heutigen Scan → nur Kontext"
+    }[coin.status] || "";
+
     const scoreBlock = document.createElement("div");
     scoreBlock.className = "score-block";
     const scoreLabel = coin.score === null ? "—" : coin.score + '<span class="of"> /12</span>';
@@ -650,9 +670,9 @@
       ticks += `<i style="${i<filled ? `background:var(${statusColorVar[coin.status]})` : ""}"></i>`;
     }
     scoreBlock.innerHTML = `
-      <span class="chip ${coin.status}"><i></i>${coin.statusLabel}</span>
-      <span class="score-num mono">${scoreLabel}</span>
-      <span class="meter">${ticks}</span>
+      <span class="chip ${coin.status}" title="${statusHint}"><i></i>${coin.statusLabel}</span>
+      <span class="score-num mono" title="Pump-Signal-Score, siehe Score-Erklärung unten">${scoreLabel}</span>
+      <span class="meter" title="${coin.score === null ? "Nicht gescort" : coin.score + " von max. 12 Punkten"}">${ticks}</span>
     `;
     head.appendChild(scoreBlock);
     card.appendChild(head);
@@ -677,7 +697,7 @@
     if(coin.chartType === "line" && coin.coingeckoId){
       const btnRow = document.createElement("div");
       btnRow.className = "range-btns";
-      const ranges = [{key:"1",label:"1T"},{key:"7",label:"1W"},{key:"30",label:"1M"}];
+      const ranges = [{key:"1",label:"1T",title:"Letzte 24 Stunden"},{key:"7",label:"1W",title:"Letzte 7 Tage"},{key:"30",label:"1M",title:"Letzte 30 Tage"}];
       function loadRange(days){
         [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
         chartHost.classList.add("loading");
@@ -694,6 +714,7 @@
         b.type = "button";
         b.className = "range-btn" + (r.key === "7" ? " active" : "");
         b.textContent = r.label;
+        b.title = r.title;
         b.dataset.range = r.key;
         b.addEventListener("click", ()=> loadRange(r.key));
         btnRow.appendChild(b);
@@ -711,14 +732,6 @@
     sig.className = "signals";
     sig.innerHTML = coin.signals.map(([label,pts])=>`<div class="signal-row"><span>${label}</span><span class="pts mono">${pts}</span></div>`).join("");
     card.appendChild(sig);
-
-    const link = resolveCoinLink(coin);
-    if(link){
-      const linkEl = document.createElement("div");
-      linkEl.className = "card-link";
-      linkEl.innerHTML = `<a href="${link}" target="_blank" rel="noopener">Zur Hauptquelle<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
-      card.appendChild(linkEl);
-    }
 
     if(coin.flag){
       const fb = document.createElement("div");
@@ -739,6 +752,14 @@
       card.appendChild(src);
     }
 
+    const link = resolveCoinLink(coin);
+    if(link){
+      const linkEl = document.createElement("div");
+      linkEl.className = "card-link";
+      linkEl.innerHTML = `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
+      card.appendChild(linkEl);
+    }
+
     return card;
   }
 
@@ -756,7 +777,7 @@
       const tr = document.createElement("tr");
       const key = c.stats[0] || {k:"—",v:"—"};
       const link = resolveCoinLink(c);
-      const linkCell = link ? `<a href="${link}" target="_blank" rel="noopener">Quelle ↗</a>` : "—";
+      const linkCell = link ? `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label.replace("Zur ", "")} ↗</a>` : "—";
       tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td><td>${linkCell}</td>`;
       tableBody.appendChild(tr);
     } catch(err){
