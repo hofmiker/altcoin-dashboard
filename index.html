@@ -48,7 +48,7 @@
   header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
   .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
   h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
-  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:60ch; line-height:1.5;}
+  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:64ch; line-height:1.5;}
   .table-toggle{
     border:1px solid var(--border); background:var(--card); color:var(--ink-2);
     font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer;
@@ -85,14 +85,37 @@
   }
   .card.critical{box-shadow:var(--shadow), inset 0 0 0 1.5px var(--critical-bg);}
   .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .ticker-block{display:flex; align-items:center; gap:10px;}
   .ticker-block .ticker{font-size:19px; font-weight:800; letter-spacing:.01em;}
   .ticker-block .name{font-size:12.5px; color:var(--ink-3); margin-top:1px;}
+
+  .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--inset); border:1px solid var(--border); flex:none; display:block;}
+  .avatar-fallback{
+    width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#fff; flex:none; letter-spacing:.02em;
+  }
 
   .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:96px;}
   .score-num{font-size:13px; font-weight:700;}
   .score-num .of{color:var(--ink-3); font-weight:600;}
   .meter{display:flex; gap:2px;}
   .meter i{width:5px; height:14px; border-radius:1.5px; background:var(--border); display:block;}
+
+  .price-head{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .price-head .cur{font-size:20px; font-weight:800;}
+  .price-head .chg{font-size:12px; font-weight:700; padding:2px 8px; border-radius:100px;}
+  .price-head .chg.up{color:var(--good); background:var(--good-bg);}
+  .price-head .chg.down{color:var(--critical); background:var(--critical-bg);}
+  .price-head .chg.flat{color:var(--ink-3); background:var(--border);}
+  .price-head .range-note{font-size:10.5px; color:var(--ink-3); margin-left:auto;}
+
+  .range-btns{display:flex; gap:6px; margin-top:-4px;}
+  .range-btn{
+    font-size:11px; font-weight:700; padding:4px 11px; border-radius:100px;
+    border:1px solid var(--border); background:transparent; color:var(--ink-2); cursor:pointer;
+  }
+  .range-btn.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .range-btn:hover:not(.active){border-color:var(--ink-3); color:var(--ink);}
 
   .card-note{font-size:12.8px; line-height:1.5; color:var(--ink-2);}
   .card-note b{color:var(--ink); font-weight:700;}
@@ -102,7 +125,8 @@
   }
   .flag-box svg{flex:none; margin-top:1px;}
 
-  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:10px 12px 6px;}
+  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:10px 12px 6px; transition:opacity .15s ease;}
+  .chart-wrap.loading{opacity:.4;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-cap{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:2px;}
 
@@ -114,6 +138,13 @@
   .signals{display:flex; flex-direction:column; gap:5px;}
   .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4;}
   .signal-row .pts{font-weight:700; color:var(--ink); flex:none;}
+
+  .calc{font-size:11.3px; line-height:1.5; color:var(--ink-2); background:var(--inset); border-radius:8px; padding:7px 10px;}
+  .calc .calc-label{font-weight:700; color:var(--ink-2); margin-right:4px; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+
+  .card-sources{font-size:11px; color:var(--ink-3);}
+  .card-sources a{color:var(--accent); text-decoration:none;}
+  .card-sources a:hover{text-decoration:underline;}
 
   /* tooltip */
   .tip{
@@ -133,6 +164,20 @@
   td.note{white-space:normal; color:var(--ink-2); min-width:260px;}
   tr:last-child td{border-bottom:none;}
 
+  /* methodology + sources */
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;}
+  .panel h2{font-size:16px; margin:0; font-weight:700;}
+  .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
+  .method-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  .method-list li{display:flex; justify-content:space-between; gap:12px; font-size:13px; color:var(--ink-2); padding:6px 10px; background:var(--inset); border-radius:8px;}
+  .method-list li b{color:var(--good); font-weight:700; flex:none;}
+  .method-list.flags li b{color:var(--critical);}
+  .method-note{font-size:12px; color:var(--ink-3); font-style:italic;}
+  .sources ol{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:5px;}
+  .sources li{font-size:12.8px; color:var(--ink-2);}
+  .sources a{color:var(--accent); text-decoration:none; word-break:break-word;}
+  .sources a:hover{text-decoration:underline;}
+
   footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
 
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
@@ -146,7 +191,7 @@
       <div>
         <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026</p>
         <h1>Kandidaten-Dashboard</h1>
-        <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert (keine Live-Tick-Daten) — für Richtung/Kontext, nicht für exakte Einstiegspunkte.</p>
+        <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M) direkt im Browser nach.</p>
       </div>
       <button class="table-toggle" id="toggleTable" aria-expanded="false">Tabellenansicht anzeigen</button>
     </header>
@@ -186,8 +231,36 @@
       </table>
     </div>
 
+    <section class="panel" id="methodology">
+      <h2>Wie wird der Score berechnet?</h2>
+      <p>Jeder Kandidat startet bei 0 Punkten (Maximum 12). Punkte gibt es für folgende Signale:</p>
+      <ul class="method-list">
+        <li><span>Exchange-Listing (Upbit/Binance/Coinbase), neu oder frisch angekündigt</span><b>+3</b></li>
+        <li><span>KOL-/Whale-Kauf on-chain sichtbar (z. B. CZ, Arthur Hayes, bekannte Wallets)</span><b>+2</b></li>
+        <li><span>Aktives KI- oder Agentic-DeFi-Narrativ</span><b>+2</b></li>
+        <li><span>Short-Squeeze-Setup (hohes Open Interest, neutrale/bearishe Funding Rate)</span><b>+2</b></li>
+        <li><span>Neues Feature / Produkt-Launch in den letzten 48 Stunden</span><b>+1</b></li>
+        <li><span>Token-Burn oder Supply-Shock-Event</span><b>+1</b></li>
+        <li><span>Aktive bezahlte Social-Media-Kampagne (z. B. Kaito Yap-to-Earn)</span><b>+1</b></li>
+      </ul>
+      <p>Red Flags ziehen Punkte ab oder disqualifizieren den Kandidaten direkt:</p>
+      <ul class="method-list flags">
+        <li><span>Top-10-Holder halten &gt;60 % des Supply</span><b>Disqualifikation</b></li>
+        <li><span>Market Cap &gt;$300 Mio. bei TVL &lt;$1 Mio.</span><b>Disqualifikation</b></li>
+        <li><span>RSI &gt;92</span><b>Disqualifikation</b></li>
+        <li><span>Kein Whitepaper oder kein Audit auffindbar</span><b>Disqualifikation</b></li>
+      </ul>
+      <p><b>Status-Einordnung:</b> Score ≥4 ohne Red-Flag-Verdacht → <b>Watchlist</b>. Unter 4 oder Red-Flag-Verdacht → <b>Risiko</b>. Klarer Scam-/Betrugsverdacht → <b>Kritisch</b> (Score kann negativ sein). Kein frisches Signal heute → <b>Kontext</b>, nicht gescort.</p>
+      <p class="method-note">Der konkrete Rechenweg (Basis + Signale ± Abzüge = Score) steht direkt unter den Signalen jeder Coin-Kachel.</p>
+    </section>
+
+    <section class="panel sources" id="sourcesSection" style="display:none">
+      <h2>Quellen</h2>
+      <ol id="sourcesList"></ol>
+    </section>
+
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CoinMarketCap, Upbit-Ankündigung, ZachXBT-Recherche, Presseberichte) vom 29.6.–6.7.2026, keine Live-Marktdaten. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CoinMarketCap, Upbit-Ankündigung, ZachXBT-Recherche, Presseberichte) vom 29.6.–6.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -197,7 +270,7 @@
   const coins = [
     {
       ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4,
-      chartType:"line", unit:"$",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"metaplex",
       series:[
         {label:"30. Jun", value:0.019},
         {label:"1. Jul", value:0.020},
@@ -207,7 +280,6 @@
         {label:"5. Jul", value:0.040}
       ],
       stats:[
-        {k:"Preis",v:"$0,040"},
         {k:"Market Cap",v:"$20,8 Mio."},
         {k:"24h Vol.",v:"$19,25 Mio."},
         {k:"Holder",v:"24.090"}
@@ -217,11 +289,12 @@
         ["DAO-Buyback bindet 23% Supply","+1"]
       ],
       flag:null,
-      note:"Bereits <b>+100% seit Listing</b> gelaufen — Nachkaufrisiko, enger Stop empfohlen."
+      note:"Bereits <b>+100% seit Listing</b> gelaufen — Nachkaufrisiko, enger Stop empfohlen.",
+      sourceRefs:[]
     },
     {
       ticker:"SYN", name:"Synapse", status:"caution", statusLabel:"Unter Schwelle", score:2,
-      chartType:"line", unit:"$",
+      chartType:"line", unit:"$", logo:null, coingeckoId:null,
       series:[
         {label:"1. Jun", value:6},
         {label:"10. Jun", value:20},
@@ -241,11 +314,12 @@
         ["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)","+2"]
       ],
       flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben.",
-      note:"Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — nur für sehr risikofreudige Trader."
+      note:"Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — nur für sehr risikofreudige Trader.",
+      sourceRefs:[]
     },
     {
       ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1,
-      chartType:"bar", unit:"$Mio.",
+      chartType:"bar", unit:"$Mio.", logo:null, coingeckoId:null,
       series:[
         {label:"Website-Behauptung", value:442},
         {label:"CEO-Aussage", value:200},
@@ -261,11 +335,12 @@
         ["Eigene Exchange „BlockDAG X“ angekündigt","+1"]
       ],
       flag:"ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits (Halborn/CertiK) deckten nur Vesting-Contracts ab, nicht den Mainnet-Code; Whitepaper-Plagiatsvorwürfe; unbezahlte Gehälter (Dez. 2025).",
-      note:"Trotz Hype in „Top Gainer“-Listen: <b>klar meiden.</b> *On-Chain-Schätzung laut ZachXBT-Recherche."
+      note:"Trotz Hype in „Top Gainer“-Listen: <b>klar meiden.</b> *On-Chain-Schätzung laut ZachXBT-Recherche.",
+      sourceRefs:[]
     },
     {
       ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null,
-      chartType:"line", unit:"$",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2",
       series:[
         {label:"17. Sep '25", value:0.08},
         {label:"24. Sep '25", value:1.20},
@@ -283,11 +358,12 @@
         ["CZ-Endorsement + Exchange-Listings","bereits eingepreist"]
       ],
       flag:null,
-      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort."
+      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort.",
+      sourceRefs:[]
     },
     {
       ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2,
-      chartType:"line", unit:"$",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai",
       series:[
         {label:"ATH '25", value:0.1605},
         {label:"Q4 '25", value:0.090},
@@ -296,7 +372,6 @@
         {label:"6. Jul '26", value:0.0103}
       ],
       stats:[
-        {k:"Preis",v:"$0,0103"},
         {k:"Market Cap",v:"$36,1 Mio."},
         {k:"Vom ATH",v:"−92,7%"},
         {k:"Narrativ",v:"AI-Copilot / DeFi"}
@@ -305,24 +380,85 @@
         ["Aktives KI-Narrativ (Sorin AI Copilot)","+2"]
       ],
       flag:null,
-      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung."
+      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung.",
+      sourceRefs:[]
     }
   ];
+
+  // Numbered footnote sources for today's research. Populated by the daily scan; empty = section hidden.
+  const sources = [];
 
   const NS = "http://www.w3.org/2000/svg";
   const grid = document.getElementById("cardGrid");
   const tableBody = document.getElementById("tableBody");
   const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral"};
+  const liveCache = new Map();
 
   function fmt(n, unit){
     if(unit === "$" ){
-      if(n < 1) return "$" + n.toFixed(4).replace(/0+$/,"").replace(/\.$/,"");
+      if(Math.abs(n) < 1) return "$" + n.toFixed(4).replace(/0+$/,"").replace(/\.$/,"");
       return "$" + n.toLocaleString("de-DE",{maximumFractionDigits:2});
     }
     return n + " " + unit;
   }
 
-  function buildChart(coin){
+  function monogramColor(ticker){
+    let hash = 0;
+    for(const ch of ticker) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return `hsl(${hash % 360} 55% 42%)`;
+  }
+
+  function buildAvatar(coin){
+    const wrap = document.createElement("div");
+    if(coin.logo){
+      const img = document.createElement("img");
+      img.className = "avatar";
+      img.loading = "lazy";
+      img.alt = coin.ticker + " Logo";
+      img.src = coin.logo;
+      img.addEventListener("error", ()=>{ wrap.replaceChildren(buildMonogram(coin)); }, {once:true});
+      wrap.appendChild(img);
+    } else {
+      wrap.appendChild(buildMonogram(coin));
+    }
+    return wrap;
+  }
+
+  function buildMonogram(coin){
+    const div = document.createElement("div");
+    div.className = "avatar-fallback";
+    div.style.background = monogramColor(coin.ticker);
+    div.textContent = coin.ticker.slice(0,2).toUpperCase();
+    return div;
+  }
+
+  function formatTs(ts, days){
+    const d = new Date(ts);
+    if(days === "1"){
+      return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    }
+    const month = d.toLocaleDateString("de-DE",{month:"short"}).replace(/\.$/,"");
+    return d.getDate() + ". " + month;
+  }
+
+  function fetchLiveSeries(id, days){
+    const key = id + ":" + days;
+    if(liveCache.has(key)) return liveCache.get(key);
+    const p = fetch(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${days}`)
+      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(data=>{
+        const prices = data.prices || [];
+        if(!prices.length) throw new Error("empty");
+        const step = Math.max(1, Math.floor(prices.length / 60));
+        const sampled = prices.filter((_,i)=> i % step === 0 || i === prices.length - 1);
+        return sampled.map(([ts,value])=>({label: formatTs(ts, days), value}));
+      });
+    liveCache.set(key, p);
+    p.catch(()=> liveCache.delete(key));
+    return p;
+  }
+
+  function buildChart(coin, series){
     const w = 300, h = 118, padL = 6, padR = 6, padT = 10, padB = 18;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -330,7 +466,7 @@
     svg.setAttribute("aria-label", coin.ticker + " Chart");
 
     const color = `var(${statusColorVar[coin.status]})`;
-    const gradId = "grad-" + coin.ticker;
+    const gradId = "grad-" + coin.ticker + "-" + Math.random().toString(36).slice(2,8);
 
     const defs = document.createElementNS(NS,"defs");
     const grad = document.createElementNS(NS,"linearGradient");
@@ -340,7 +476,7 @@
     defs.appendChild(grad);
     svg.appendChild(defs);
 
-    const vals = coin.series.map(d=>d.value);
+    const vals = series.map(d=>d.value);
     const min = Math.min(...vals), max = Math.max(...vals);
     const range = (max - min) || 1;
 
@@ -354,10 +490,12 @@
     const tip = document.createElement("div");
     tip.className = "tip";
 
+    let capLeft, capRight;
+
     if(coin.chartType === "line"){
-      const n = coin.series.length;
+      const n = series.length;
       const stepX = (w - padL - padR) / (n - 1);
-      const pts = coin.series.map((d,i)=>{
+      const pts = series.map((d,i)=>{
         const x = padL + i*stepX;
         const y = padT + (1 - (d.value - min)/range) * (h - padT - padB);
         return {x,y,...d};
@@ -397,13 +535,13 @@
         svg.appendChild(hit);
       });
 
-      var capLeft = coin.series[0].label, capRight = coin.series[coin.series.length-1].label;
+      capLeft = series[0].label; capRight = series[series.length-1].label;
     } else {
       // bar chart
-      const n = coin.series.length;
+      const n = series.length;
       const gap = 14;
       const barW = (w - padL - padR - gap*(n-1)) / n;
-      coin.series.forEach((d,i)=>{
+      series.forEach((d,i)=>{
         const x = padL + i*(barW+gap);
         const bh = (d.value - 0)/ (max||1) * (h - padT - padB - 14);
         const y = h - padB - bh;
@@ -433,7 +571,7 @@
         hit.addEventListener("mouseleave", ()=> tip.classList.remove("show"));
         svg.appendChild(hit);
       });
-      var capLeft = coin.series[0].label, capRight = coin.series[coin.series.length-1].label;
+      capLeft = series[0].label; capRight = series[series.length-1].label;
     }
 
     const wrap = document.createElement("div");
@@ -456,18 +594,42 @@
     tip.classList.add("show");
   }
 
+  function updatePriceHead(el, series, unit, sourceLabel){
+    if(!series || series.length < 2){ el.innerHTML = ""; return; }
+    const first = series[0].value, last = series[series.length-1].value;
+    const pct = first ? ((last - first) / Math.abs(first) * 100) : 0;
+    const dir = pct > 0.05 ? "up" : pct < -0.05 ? "down" : "flat";
+    const sign = pct > 0 ? "+" : "";
+    el.innerHTML = `<span class="cur mono">${fmt(last, unit)}</span><span class="chg ${dir} mono">${sign}${pct.toFixed(1)}%</span><span class="range-note">${sourceLabel}</span>`;
+  }
+
+  function buildCalc(coin){
+    if(coin.score === null) return null;
+    const numeric = coin.signals.filter(([,p])=> /^[+-]?\d+$/.test(String(p).trim()));
+    const parts = numeric.map(([,p])=> parseInt(p,10));
+    const sum = parts.reduce((a,p)=>a+p, 0);
+    const diff = coin.score - sum;
+    let formula = "0";
+    parts.forEach(p=>{ formula += (p >= 0 ? ` + ${p}` : ` − ${Math.abs(p)}`); });
+    if(diff !== 0){ formula += (diff > 0 ? ` + ${diff} (Bonus)` : ` − ${Math.abs(diff)} (Red Flags)`); }
+    formula += ` = ${coin.score} / 12`;
+    return formula;
+  }
+
   function buildCard(coin){
     const card = document.createElement("article");
     card.className = "card" + (coin.status === "critical" ? " critical" : "");
 
     const head = document.createElement("div");
     head.className = "card-head";
-    head.innerHTML = `
-      <div class="ticker-block">
-        <div class="ticker mono">${coin.ticker}</div>
-        <div class="name">${coin.name}</div>
-      </div>
-    `;
+    const tickerBlock = document.createElement("div");
+    tickerBlock.className = "ticker-block";
+    tickerBlock.appendChild(buildAvatar(coin));
+    const tickerText = document.createElement("div");
+    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>`;
+    tickerBlock.appendChild(tickerText);
+    head.appendChild(tickerBlock);
+
     const scoreBlock = document.createElement("div");
     scoreBlock.className = "score-block";
     const scoreLabel = coin.score === null ? "—" : coin.score + '<span class="of"> /12</span>';
@@ -484,7 +646,50 @@
     head.appendChild(scoreBlock);
     card.appendChild(head);
 
-    card.appendChild(buildChart(coin));
+    let priceHost = null;
+    if(coin.chartType === "line"){
+      priceHost = document.createElement("div");
+      priceHost.className = "price-head";
+      card.appendChild(priceHost);
+    }
+
+    const chartHost = document.createElement("div");
+    card.appendChild(chartHost);
+
+    function renderSeries(series, sourceLabel){
+      chartHost.replaceChildren(buildChart(coin, series));
+      if(priceHost) updatePriceHead(priceHost, series, coin.unit, sourceLabel);
+    }
+
+    renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
+
+    if(coin.chartType === "line" && coin.coingeckoId){
+      const btnRow = document.createElement("div");
+      btnRow.className = "range-btns";
+      const ranges = [{key:"1",label:"1T"},{key:"7",label:"1W"},{key:"30",label:"1M"}];
+      function loadRange(days){
+        [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
+        chartHost.classList.add("loading");
+        fetchLiveSeries(coin.coingeckoId, days).then(series=>{
+          chartHost.classList.remove("loading");
+          renderSeries(series, "Live · CoinGecko");
+        }).catch(()=>{
+          chartHost.classList.remove("loading");
+          renderSeries(coin.series, "Live nicht verfügbar · Research-Daten");
+        });
+      }
+      ranges.forEach(r=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "range-btn" + (r.key === "7" ? " active" : "");
+        b.textContent = r.label;
+        b.dataset.range = r.key;
+        b.addEventListener("click", ()=> loadRange(r.key));
+        btnRow.appendChild(b);
+      });
+      card.appendChild(btnRow);
+      loadRange("7");
+    }
 
     const statRow = document.createElement("div");
     statRow.className = "stat-row";
@@ -495,6 +700,14 @@
     sig.className = "signals";
     sig.innerHTML = coin.signals.map(([label,pts])=>`<div class="signal-row"><span>${label}</span><span class="pts mono">${pts}</span></div>`).join("");
     card.appendChild(sig);
+
+    const calc = buildCalc(coin);
+    if(calc){
+      const calcEl = document.createElement("div");
+      calcEl.className = "calc mono";
+      calcEl.innerHTML = `<span class="calc-label">Rechenweg:</span>${calc}`;
+      card.appendChild(calcEl);
+    }
 
     if(coin.flag){
       const fb = document.createElement("div");
@@ -508,7 +721,22 @@
     note.innerHTML = coin.note;
     card.appendChild(note);
 
+    if(coin.sourceRefs && coin.sourceRefs.length){
+      const src = document.createElement("div");
+      src.className = "card-sources";
+      src.innerHTML = "Quellen: " + coin.sourceRefs.map(n=>`<a href="#source-${n}">[${n}]</a>`).join(" ");
+      card.appendChild(src);
+    }
+
     return card;
+  }
+
+  function renderSources(){
+    const section = document.getElementById("sourcesSection");
+    const list = document.getElementById("sourcesList");
+    if(!sources.length){ section.style.display = "none"; return; }
+    section.style.display = "";
+    list.innerHTML = sources.map(s=>`<li id="source-${s.n}"><a href="${s.url}" target="_blank" rel="noopener">${s.label}</a></li>`).join("");
   }
 
   coins.forEach(c=>{
@@ -518,6 +746,8 @@
     tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td>`;
     tableBody.appendChild(tr);
   });
+
+  renderSources();
 
   const toggleBtn = document.getElementById("toggleTable");
   const tableView = document.getElementById("tableView");
