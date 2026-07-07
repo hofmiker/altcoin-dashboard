@@ -191,7 +191,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026</p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
         <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M) direkt im Browser nach.</p>
       </div>
@@ -269,6 +269,9 @@
 </div>
 <script>
 (function(){
+  // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
+  const DASHBOARD_VERSION = 1;
+
   const coins = [
     {
       ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4,
@@ -397,6 +400,9 @@
   const liveCache = new Map();
 
   // Wire up global UI first so it keeps working even if a single coin entry below fails to render.
+  const versionTag = document.getElementById("versionTag");
+  if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
+
   const toggleBtn = document.getElementById("toggleTable");
   const tableView = document.getElementById("tableView");
   toggleBtn.addEventListener("click", ()=>{
