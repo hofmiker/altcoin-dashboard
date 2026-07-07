@@ -139,8 +139,10 @@
   .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4;}
   .signal-row .pts{font-weight:700; color:var(--ink); flex:none;}
 
-  .calc{font-size:11.3px; line-height:1.5; color:var(--ink-2); background:var(--inset); border-radius:8px; padding:7px 10px;}
-  .calc .calc-label{font-weight:700; color:var(--ink-2); margin-right:4px; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .card-link{font-size:12px;}
+  .card-link a{color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600;}
+  .card-link a:hover{text-decoration:underline;}
+  .card-link svg{flex:none;}
 
   .card-sources{font-size:11px; color:var(--ink-3);}
   .card-sources a{color:var(--accent); text-decoration:none;}
@@ -226,7 +228,7 @@
 
     <div class="table-view" id="tableView">
       <table>
-        <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th></tr></thead>
+        <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th><th>Quelle</th></tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
     </div>
@@ -270,7 +272,7 @@
   const coins = [
     {
       ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"metaplex",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"metaplex", link:null,
       series:[
         {label:"30. Jun", value:0.019},
         {label:"1. Jul", value:0.020},
@@ -294,7 +296,7 @@
     },
     {
       ticker:"SYN", name:"Synapse", status:"caution", statusLabel:"Unter Schwelle", score:2,
-      chartType:"line", unit:"$", logo:null, coingeckoId:null,
+      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:null,
       series:[
         {label:"1. Jun", value:6},
         {label:"10. Jun", value:20},
@@ -319,7 +321,7 @@
     },
     {
       ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1,
-      chartType:"bar", unit:"$Mio.", logo:null, coingeckoId:null,
+      chartType:"bar", unit:"$Mio.", logo:null, coingeckoId:null, link:null,
       series:[
         {label:"Website-Behauptung", value:442},
         {label:"CEO-Aussage", value:200},
@@ -340,7 +342,7 @@
     },
     {
       ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2", link:null,
       series:[
         {label:"17. Sep '25", value:0.08},
         {label:"24. Sep '25", value:1.20},
@@ -363,7 +365,7 @@
     },
     {
       ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai", link:null,
       series:[
         {label:"ATH '25", value:0.1605},
         {label:"Q4 '25", value:0.090},
@@ -393,6 +395,16 @@
   const tableBody = document.getElementById("tableBody");
   const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral"};
   const liveCache = new Map();
+
+  // Wire up global UI first so it keeps working even if a single coin entry below fails to render.
+  const toggleBtn = document.getElementById("toggleTable");
+  const tableView = document.getElementById("tableView");
+  toggleBtn.addEventListener("click", ()=>{
+    const show = !tableView.classList.contains("show");
+    tableView.classList.toggle("show", show);
+    toggleBtn.textContent = show ? "Tabellenansicht ausblenden" : "Tabellenansicht anzeigen";
+    toggleBtn.setAttribute("aria-expanded", show);
+  });
 
   function fmt(n, unit){
     if(unit === "$" ){
@@ -603,17 +615,10 @@
     el.innerHTML = `<span class="cur mono">${fmt(last, unit)}</span><span class="chg ${dir} mono">${sign}${pct.toFixed(1)}%</span><span class="range-note">${sourceLabel}</span>`;
   }
 
-  function buildCalc(coin){
-    if(coin.score === null) return null;
-    const numeric = coin.signals.filter(([,p])=> /^[+-]?\d+$/.test(String(p).trim()));
-    const parts = numeric.map(([,p])=> parseInt(p,10));
-    const sum = parts.reduce((a,p)=>a+p, 0);
-    const diff = coin.score - sum;
-    let formula = "0";
-    parts.forEach(p=>{ formula += (p >= 0 ? ` + ${p}` : ` − ${Math.abs(p)}`); });
-    if(diff !== 0){ formula += (diff > 0 ? ` + ${diff} (Bonus)` : ` − ${Math.abs(diff)} (Red Flags)`); }
-    formula += ` = ${coin.score} / 12`;
-    return formula;
+  function resolveCoinLink(coin){
+    if(coin.link) return coin.link;
+    if(coin.coingeckoId) return `https://www.coingecko.com/en/coins/${encodeURIComponent(coin.coingeckoId)}`;
+    return null;
   }
 
   function buildCard(coin){
@@ -701,12 +706,12 @@
     sig.innerHTML = coin.signals.map(([label,pts])=>`<div class="signal-row"><span>${label}</span><span class="pts mono">${pts}</span></div>`).join("");
     card.appendChild(sig);
 
-    const calc = buildCalc(coin);
-    if(calc){
-      const calcEl = document.createElement("div");
-      calcEl.className = "calc mono";
-      calcEl.innerHTML = `<span class="calc-label">Rechenweg:</span>${calc}`;
-      card.appendChild(calcEl);
+    const link = resolveCoinLink(coin);
+    if(link){
+      const linkEl = document.createElement("div");
+      linkEl.className = "card-link";
+      linkEl.innerHTML = `<a href="${link}" target="_blank" rel="noopener">Zur Hauptquelle<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
+      card.appendChild(linkEl);
     }
 
     if(coin.flag){
@@ -740,23 +745,20 @@
   }
 
   coins.forEach(c=>{
-    grid.appendChild(buildCard(c));
-    const tr = document.createElement("tr");
-    const key = c.stats[0];
-    tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td>`;
-    tableBody.appendChild(tr);
+    try{
+      grid.appendChild(buildCard(c));
+      const tr = document.createElement("tr");
+      const key = c.stats[0] || {k:"—",v:"—"};
+      const link = resolveCoinLink(c);
+      const linkCell = link ? `<a href="${link}" target="_blank" rel="noopener">Quelle ↗</a>` : "—";
+      tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td><td>${linkCell}</td>`;
+      tableBody.appendChild(tr);
+    } catch(err){
+      console.error("Konnte Coin nicht rendern:", c && c.ticker, err);
+    }
   });
 
   renderSources();
-
-  const toggleBtn = document.getElementById("toggleTable");
-  const tableView = document.getElementById("tableView");
-  toggleBtn.addEventListener("click", ()=>{
-    const show = !tableView.classList.contains("show");
-    tableView.classList.toggle("show", show);
-    toggleBtn.textContent = show ? "Tabellenansicht ausblenden" : "Tabellenansicht anzeigen";
-    toggleBtn.setAttribute("aria-expanded", show);
-  });
 })();
 </script>
 </body>
