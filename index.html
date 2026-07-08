@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 07.07.2026</title>
+<title>Pump-Signal Dashboard — 08.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -216,7 +216,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 08.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
         <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M) direkt im Browser nach.</p>
       </div>
@@ -243,19 +243,19 @@
     <section class="strip">
       <div class="stat">
         <div class="label">Bitcoin</div>
-        <div class="value mono">$61.500–63.600</div>
-        <div class="ctx">Erholt nach Short-Squeeze, $221,7 Mio. ETF-Nettozufluss am 3.7.</div>
+        <div class="value mono">$64.000–64.500</div>
+        <div class="ctx">Short-Squeeze: &gt;$500 Mio. Shorts in 24h liquidiert, ETF-Flows weiterhin schwach</div>
       </div>
       <div class="stat">
         <div class="label">Altcoin Season Index</div>
-        <div class="value mono">37 / 100</div>
-        <div class="ctx">Bitcoin-Season-Territorium (Altseason ab 75)</div>
-        <div class="gauge"><i style="width:37%"></i><span class="thresh" style="left:75%"></span></div>
+        <div class="value mono">46 / 100</div>
+        <div class="ctx">Leichte Rotation Richtung Altcoins, aber weiterhin Bitcoin-Season-Territorium</div>
+        <div class="gauge"><i style="width:46%"></i><span class="thresh" style="left:75%"></span></div>
       </div>
       <div class="stat">
         <div class="label">BTC-Dominanz</div>
-        <div class="value mono">~55–60%</div>
-        <div class="ctx">Quellen uneinheitlich — Markt bleibt klar BTC-getrieben</div>
+        <div class="value mono">~54–58%</div>
+        <div class="ctx">Fällt leicht, Kapital rotiert u.a. in Solana-Infra &amp; Yield-Token</div>
       </div>
     </section>
 
@@ -290,7 +290,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CoinMarketCap, Upbit-Ankündigung, ZachXBT-Recherche, Presseberichte) vom 29.6.–6.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–8.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -298,128 +298,42 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 1;
+  const DASHBOARD_VERSION = 2;
 
   const coins = [
     {
-      ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"metaplex", link:null,
+      ticker:"OPG", name:"OpenGradient", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3,
+      chartType:"line", unit:"$", logo:null, coingeckoId:"opengradient", link:"https://cryptobriefing.com/upbit-opg-krw-listing-july/",
       series:[
-        {label:"30. Jun", value:0.019},
-        {label:"1. Jul", value:0.020},
-        {label:"2. Jul", value:0.0317},
-        {label:"3. Jul", value:0.035},
-        {label:"4. Jul", value:0.038},
-        {label:"5. Jul", value:0.040}
+        {label:"1. Jul", value:0.133},
+        {label:"3. Jul", value:0.121},
+        {label:"5. Jul", value:0.118},
+        {label:"6. Jul", value:0.127},
+        {label:"7. Jul", value:0.132},
+        {label:"8. Jul", value:0.1509}
       ],
       stats:[
-        {k:"Market Cap",v:"$20,8 Mio."},
-        {k:"24h Vol.",v:"$19,25 Mio."},
-        {k:"Holder",v:"24.090"}
+        {k:"Market Cap",v:"$28,6 Mio."},
+        {k:"24h Vol.",v:"$65,7 Mio."},
+        {k:"FDV",v:"$150,7 Mio."},
+        {k:"Top-10-Holder",v:"~97%"}
       ],
       signals:[
-        ["Frisches Upbit-Listing (3. Jul, BTC/USDT)","+3"],
-        ["DAO-Buyback bindet 23% Supply","+1"]
+        ["Frisches Upbit-KRW-Listing (7. Jul, zusätzlich zu BTC/USDT seit 15. Jun)","+3"],
+        ["Aktives KI-Infrastruktur-Narrativ (verifizierbare AI-Ausführung, CertiK 4.3★)","+2"]
       ],
-      flag:null,
-      note:"Bereits <b>+100% seit Listing</b> gelaufen — Nachkaufrisiko, enger Stop empfohlen.",
-      sourceRefs:[]
-    },
-    {
-      ticker:"SYN", name:"Synapse", status:"caution", statusLabel:"Unter Schwelle", score:2,
-      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:null,
-      series:[
-        {label:"1. Jun", value:6},
-        {label:"10. Jun", value:20},
-        {label:"20. Jun", value:40},
-        {label:"28. Jun", value:55},
-        {label:"29. Jun", value:67},
-        {label:"1. Jul", value:94},
-        {label:"6. Jul", value:150}
-      ],
-      stats:[
-        {k:"Market Cap",v:"$150 Mio."},
-        {k:"24h Vol.",v:"$213 Mio."},
-        {k:"Juni-Rally",v:"+1.000%"},
-        {k:"Katalysator",v:"Hayes-Kauf"}
-      ],
-      signals:[
-        ["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)","+2"]
-      ],
-      flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben.",
-      note:"Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — nur für sehr risikofreudige Trader.",
-      sourceRefs:[]
-    },
-    {
-      ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1,
-      chartType:"bar", unit:"$Mio.", logo:null, coingeckoId:null, link:null,
-      series:[
-        {label:"Website-Behauptung", value:442},
-        {label:"CEO-Aussage", value:200},
-        {label:"On-Chain verifiziert*", value:95}
-      ],
-      stats:[
-        {k:"Bewertungssprung",v:"+$500 Mio."},
-        {k:"Katalysator",v:"„BlockDAG X“ Vorregistrierung"},
-        {k:"Vorwurf",v:"ZachXBT: >$300 Mio."},
-        {k:"Audit-Umfang",v:"nur Vesting-Contracts"}
-      ],
-      signals:[
-        ["Eigene Exchange „BlockDAG X“ angekündigt","+1"]
-      ],
-      flag:"ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits (Halborn/CertiK) deckten nur Vesting-Contracts ab, nicht den Mainnet-Code; Whitepaper-Plagiatsvorwürfe; unbezahlte Gehälter (Dez. 2025).",
-      note:"Trotz Hype in „Top Gainer“-Listen: <b>klar meiden.</b> *On-Chain-Schätzung laut ZachXBT-Recherche.",
-      sourceRefs:[]
-    },
-    {
-      ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2", link:null,
-      series:[
-        {label:"17. Sep '25", value:0.08},
-        {label:"24. Sep '25", value:1.20},
-        {label:"Jan '26", value:1.80},
-        {label:"Mär '26", value:2.10},
-        {label:"Jul '26", value:2.42}
-      ],
-      stats:[
-        {k:"Market Cap",v:"~$4 Mrd."},
-        {k:"Seit Launch",v:"+2.900%"},
-        {k:"Unterstützt von",v:"CZ / YZi Labs"},
-        {k:"Segment",v:"Hyperliquid-Rivale"}
-      ],
-      signals:[
-        ["CZ-Endorsement + Exchange-Listings","bereits eingepreist"]
-      ],
-      flag:null,
-      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort.",
-      sourceRefs:[]
-    },
-    {
-      ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2,
-      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai", link:null,
-      series:[
-        {label:"ATH '25", value:0.1605},
-        {label:"Q4 '25", value:0.090},
-        {label:"Q1 '26", value:0.050},
-        {label:"Q2 '26", value:0.025},
-        {label:"6. Jul '26", value:0.0103}
-      ],
-      stats:[
-        {k:"Market Cap",v:"$36,1 Mio."},
-        {k:"Vom ATH",v:"−92,7%"},
-        {k:"Narrativ",v:"AI-Copilot / DeFi"}
-      ],
-      signals:[
-        ["Aktives KI-Narrativ (Sorin AI Copilot)","+2"]
-      ],
-      flag:null,
-      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung.",
-      sourceRefs:[]
+      flag:"Top-10-Holder halten ~97% des Supply (Gini ~0,999) — laut On-Chain-Analyse aber größtenteils Vesting-/Team-/Bridge-Contracts, keine reinen Whale-Wallets. Dennoch hohes Entsperrungsrisiko und ein Red Flag nach unserem Framework (Top-10 &gt;60%).",
+      note:"Frisches AI-Infra-Listing mit <b>starkem 24h-Volumen</b> ($65,7 Mio.) — Score bleibt wegen extremer Holder-Konzentration unter der Watchlist-Schwelle. Vesting-Unlocks im Auge behalten.",
+      sourceRefs:[1,2,3]
     }
   ];
 
   // Numbered footnote sources for today's research. Populated by the daily scan; empty = section hidden.
-  const sources = [];
+  const sources = [
+    {n:1, label:"Upbit listet OpenGradient (OPG) im KRW-Markt, 7. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-opg-krw-listing-july/"},
+    {n:2, label:"OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
+    {n:3, label:"OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", url:"https://chainward.ai/decodes/opengradient-on-chain"}
+  ];
 
   const NS = "http://www.w3.org/2000/svg";
   const grid = document.getElementById("cardGrid");
