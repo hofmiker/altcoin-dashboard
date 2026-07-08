@@ -98,6 +98,7 @@
   .ticker-block{display:flex; align-items:center; gap:10px;}
   .ticker-block .ticker{font-size:19px; font-weight:800; letter-spacing:.01em;}
   .ticker-block .name{font-size:12.5px; color:var(--ink-3); margin-top:1px;}
+  .ticker-block .since{font-size:10.5px; color:var(--ink-3); margin-top:2px; font-style:italic;}
 
   .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--inset); border:1px solid var(--border); flex:none; display:block;}
   .avatar-fallback{
@@ -300,7 +301,7 @@
 
   const coins = [
     {
-      ticker:"OPG", name:"OpenGradient", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3,
+      ticker:"OPG", name:"OpenGradient", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3, firstSeen:"08.07.2026",
       chartType:"line", unit:"$", logo:null, coingeckoId:"opengradient", link:"https://cryptobriefing.com/upbit-opg-krw-listing-july/",
       series:[
         {label:"1. Jul", value:0.133},
@@ -434,6 +435,7 @@
     base.setAttribute("x1",padL); base.setAttribute("x2", w-padR);
     base.setAttribute("y1", h-padB); base.setAttribute("y2", h-padB);
     base.setAttribute("stroke","var(--border)"); base.setAttribute("stroke-width","1");
+    base.setAttribute("vector-effect","non-scaling-stroke");
     svg.appendChild(base);
 
     const tip = document.createElement("div");
@@ -465,6 +467,7 @@
       line.setAttribute("stroke-width","2");
       line.setAttribute("stroke-linecap","round");
       line.setAttribute("stroke-linejoin","round");
+      line.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(line);
 
       // endpoint emphasis
@@ -472,6 +475,7 @@
       const ring = document.createElementNS(NS,"circle");
       ring.setAttribute("cx", last.x); ring.setAttribute("cy", last.y); ring.setAttribute("r","5");
       ring.setAttribute("fill","var(--card)"); ring.setAttribute("stroke", color); ring.setAttribute("stroke-width","2");
+      ring.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(ring);
 
       pts.forEach(p=>{
@@ -572,7 +576,7 @@
     tickerBlock.className = "ticker-block";
     tickerBlock.appendChild(buildAvatar(coin));
     const tickerText = document.createElement("div");
-    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>`;
+    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>` + (coin.firstSeen ? `<div class="since">Auf der Liste seit ${coin.firstSeen}</div>` : "");
     tickerBlock.appendChild(tickerText);
     head.appendChild(tickerBlock);
 
@@ -693,7 +697,12 @@
     list.innerHTML = sources.map(s=>`<li id="source-${s.n}"><a href="${s.url}" target="_blank" rel="noopener">${s.label}</a></li>`).join("");
   }
 
-  coins.forEach(c=>{
+  // Rolling watchlist: highest score first (regardless of authoring order), so the
+  // most promising candidates always surface at the top. null scores (unscored /
+  // context entries) sink to the bottom.
+  const sortedCoins = coins.slice().sort((a,b)=> (b.score ?? -Infinity) - (a.score ?? -Infinity));
+
+  sortedCoins.forEach(c=>{
     try{
       grid.appendChild(buildCard(c));
       const tr = document.createElement("tr");
