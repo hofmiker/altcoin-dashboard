@@ -985,57 +985,103 @@
     return card;
   }
 
+  function taggedHttpError(res){
+    const err = new Error("HTTP " + res.status);
+    err.code = res.status === 429 ? "rate-limited" : res.status === 404 ? "not-found" : "network-error";
+    return err;
+  }
+
+  // Same failure vocabulary as LIVE_ERROR_MESSAGES, reworded for the summary fetches
+  // (top-10 list / global market data) rather than a single coin's chart.
+  const SUMMARY_ERROR_MESSAGES = {
+    "rate-limited": "CoinGecko ist gerade überlastet (Rate-Limit). Bitte kurz warten und erneut versuchen.",
+    "no-data": "Keine Daten erhalten. Bitte erneut versuchen.",
+    "network-error": "Verbindung zu CoinGecko fehlgeschlagen (Netzwerkfehler oder von diesem Browser aus blockiert). Bitte erneut versuchen."
+  };
+
   function fetchGlobalMarketData(){
     return coinGeckoFetch("https://api.coingecko.com/api/v3/global")
-      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
       .then(json=> json.data);
   }
 
   function fetchFearGreed(){
     return fetch("https://api.alternative.me/fng/")
-      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
       .then(json=> (json.data && json.data[0]) || null);
   }
 
   function fetchTop10Markets(){
     return coinGeckoFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
-      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); });
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); });
+  }
+
+  function buildRetryLink(label, onClick){
+    const a = document.createElement("a");
+    a.href = "#";
+    a.textContent = label;
+    a.style.marginLeft = "6px";
+    a.addEventListener("click", (e)=>{ e.preventDefault(); onClick(); });
+    return a;
   }
 
   // Live client-side tiles for the Markt tab — these are not authored by the daily scan
-  // routine, so an honest error text on failure beats showing stale/fake numbers.
-  function renderMarketTiles(){
+  // routine, so an honest error text on failure beats showing stale/fake numbers. Each
+  // tile can be retried independently without reloading the whole page.
+  function loadMarketCapTile(){
+    const valueEl = document.getElementById("mcapValue");
+    const ctxEl = document.getElementById("mcapCtx");
+    valueEl.textContent = "Lädt …";
+    ctxEl.textContent = "Live via CoinGecko";
     fetchGlobalMarketData().then(data=>{
       const mcap = data.total_market_cap && data.total_market_cap.usd;
       const chg = data.market_cap_change_percentage_24h_usd;
-      document.getElementById("mcapValue").textContent = fmtCompactUsd(mcap);
-      document.getElementById("mcapCtx").textContent = typeof chg === "number"
+      valueEl.textContent = fmtCompactUsd(mcap);
+      ctxEl.textContent = typeof chg === "number"
         ? (chg > 0 ? "+" : "") + chg.toFixed(2) + "% in 24h · Live via CoinGecko"
         : "Live via CoinGecko";
     }).catch(err=>{
       console.error("Gesamt-Marktkapitalisierung konnte nicht geladen werden:", err);
-      document.getElementById("mcapValue").textContent = "Nicht verfügbar";
-      document.getElementById("mcapCtx").textContent = "Live-Daten konnten nicht geladen werden.";
+      valueEl.textContent = "Nicht verfügbar";
+      ctxEl.textContent = "";
+      ctxEl.appendChild(document.createTextNode((SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " "));
+      ctxEl.appendChild(buildRetryLink("Erneut versuchen", loadMarketCapTile));
     });
+  }
 
+  function loadFearGreedTile(){
+    const valueEl = document.getElementById("fngValue");
+    const ctxEl = document.getElementById("fngCtx");
+    valueEl.textContent = "Lädt …";
+    ctxEl.textContent = "Live via alternative.me";
     fetchFearGreed().then(entry=>{
-      if(!entry) throw new Error("no-data");
+      if(!entry){ const err = new Error("empty"); err.code = "no-data"; throw err; }
       const value = Number(entry.value);
-      document.getElementById("fngValue").textContent = value + " / 100";
-      document.getElementById("fngCtx").textContent = (entry.value_classification || "") + " · Live via alternative.me";
+      valueEl.textContent = value + " / 100";
+      ctxEl.textContent = (entry.value_classification || "") + " · Live via alternative.me";
       const gauge = document.getElementById("fngGauge");
       gauge.style.display = "";
       gauge.querySelector("i").style.width = Math.max(0, Math.min(100, value)) + "%";
     }).catch(err=>{
       console.error("Fear & Greed Index konnte nicht geladen werden:", err);
-      document.getElementById("fngValue").textContent = "Nicht verfügbar";
-      document.getElementById("fngCtx").textContent = "Live-Daten konnten nicht geladen werden.";
+      valueEl.textContent = "Nicht verfügbar";
+      ctxEl.textContent = "";
+      ctxEl.appendChild(document.createTextNode((SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " "));
+      ctxEl.appendChild(buildRetryLink("Erneut versuchen", loadFearGreedTile));
     });
+  }
+
+  function renderMarketTiles(){
+    loadMarketCapTile();
+    loadFearGreedTile();
   }
 
   function renderAltcoinsTab(){
     const statusEl = document.getElementById("altcoinsStatus");
     const altGrid = document.getElementById("altcoinsGrid");
+    statusEl.textContent = "Lade die zehn wichtigsten Coins nach Marktkapitalisierung …";
+    statusEl.style.display = "";
+    altGrid.replaceChildren();
     fetchTop10Markets().then(list=>{
       statusEl.style.display = "none";
       list.forEach((m,i)=>{
@@ -1066,7 +1112,8 @@
       });
     }).catch(err=>{
       console.error("Top-10-Coins konnten nicht geladen werden:", err);
-      statusEl.textContent = "Top-10-Coins konnten nicht geladen werden (Netzwerkfehler oder CoinGecko nicht erreichbar). Bitte später erneut versuchen.";
+      statusEl.textContent = "Top-10-Coins konnten nicht geladen werden: " + (SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " ";
+      statusEl.appendChild(buildRetryLink("Erneut versuchen", renderAltcoinsTab));
     });
   }
 
