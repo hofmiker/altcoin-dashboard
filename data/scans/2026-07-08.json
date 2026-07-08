@@ -1,0 +1,25 @@
+{
+  "date": "2026-07-08",
+  "version": 2,
+  "generatedAt": "2026-07-08T12:48:00Z",
+  "market": {
+    "bitcoin": {"label": "$64.000–64.500", "context": "Short-Squeeze: >$500 Mio. Shorts in 24h liquidiert, ETF-Flows weiterhin schwach"},
+    "altcoinSeasonIndex": {"value": 46, "max": 100, "context": "Leichte Rotation Richtung Altcoins, aber weiterhin Bitcoin-Season-Territorium"},
+    "btcDominance": {"label": "~54–58%", "context": "Fällt leicht, Kapital rotiert u.a. in Solana-Infra & Yield-Token"}
+  },
+  "coins": [
+    {
+      "ticker": "OPG", "name": "OpenGradient", "status": "caution", "statusLabel": "Unter Schwelle / Konzentrationsrisiko", "score": 3,
+      "coingeckoId": "opengradient",
+      "link": "https://cryptobriefing.com/upbit-opg-krw-listing-july/",
+      "signals": [["Frisches Upbit-KRW-Listing (7. Jul, zusätzlich zu BTC/USDT seit 15. Jun)", "+3"], ["Aktives KI-Infrastruktur-Narrativ (verifizierbare AI-Ausführung, CertiK 4.3★)", "+2"]],
+      "flag": "Top-10-Holder halten ~97% des Supply (Gini ~0,999) — laut On-Chain-Analyse aber größtenteils Vesting-/Team-/Bridge-Contracts, keine reinen Whale-Wallets. Dennoch hohes Entsperrungsrisiko und ein Red Flag nach unserem Framework (Top-10 >60%).",
+      "note": "Frisches AI-Infra-Listing mit starkem 24h-Volumen ($65,7 Mio.) — Score bleibt wegen extremer Holder-Konzentration unter der Watchlist-Schwelle."
+    }
+  ],
+  "sources": [
+    {"n": 1, "label": "Upbit listet OpenGradient (OPG) im KRW-Markt, 7. Juli 2026 — CryptoBriefing", "url": "https://cryptobriefing.com/upbit-opg-krw-listing-july/"},
+    {"n": 2, "label": "OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", "url": "https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
+    {"n": 3, "label": "OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", "url": "https://chainward.ai/decodes/opengradient-on-chain"}
+  ]
+}
