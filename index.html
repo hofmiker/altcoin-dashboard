@@ -63,9 +63,31 @@
   }
   .table-toggle:hover{color:var(--ink); border-color:var(--ink-3); transform:translateY(-1px);}
   .table-toggle .label-active{display:none;}
-  .table-toggle-checkbox:checked ~ header .table-toggle .label-default{display:none;}
-  .table-toggle-checkbox:checked ~ header .table-toggle .label-active{display:inline;}
-  .table-toggle-checkbox:focus-visible ~ header .table-toggle{outline:2px solid var(--accent); outline-offset:2px;}
+  .table-toggle-checkbox:checked ~ .table-toggle .label-default{display:none;}
+  .table-toggle-checkbox:checked ~ .table-toggle .label-active{display:inline;}
+  .table-toggle-checkbox:focus-visible ~ .table-toggle{outline:2px solid var(--accent); outline-offset:2px;}
+
+  /* Tabs — same pure-CSS pattern as the table toggle above: radio inputs + label pills,
+     sibling-selector-driven, so switching tabs never depends on JS timing/errors. */
+  .tab-radio{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+  .tab-bar{display:flex; gap:8px; flex-wrap:wrap;}
+  .tab-pill{
+    display:inline-flex; align-items:center; border:1px solid var(--border); background:var(--card);
+    color:var(--ink-2); font-size:13px; font-weight:700; padding:9px 16px; border-radius:100px;
+    cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .tab-pill:hover{color:var(--ink); border-color:var(--ink-3);}
+  .tab-panel{display:none; flex-direction:column; gap:28px;}
+  #tabMarkt:checked ~ #panelMarkt{display:flex;}
+  #tabAltcoins:checked ~ #panelAltcoins{display:flex;}
+  #tabPump:checked ~ #panelPump{display:flex;}
+  #tabMarkt:checked ~ .tab-bar label[for="tabMarkt"],
+  #tabAltcoins:checked ~ .tab-bar label[for="tabAltcoins"],
+  #tabPump:checked ~ .tab-bar label[for="tabPump"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  #tabMarkt:focus-visible ~ .tab-bar label[for="tabMarkt"],
+  #tabAltcoins:focus-visible ~ .tab-bar label[for="tabAltcoins"],
+  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"]{outline:2px solid var(--accent); outline-offset:2px;}
+  .tab-status{font-size:13px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 
   /* market strip */
   .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
@@ -213,79 +235,109 @@
 <div class="page">
   <div class="wrap">
 
-    <input type="checkbox" id="tableToggleCheckbox" class="table-toggle-checkbox">
+    <input type="radio" name="dashTab" id="tabMarkt" class="tab-radio" checked>
+    <input type="radio" name="dashTab" id="tabAltcoins" class="tab-radio">
+    <input type="radio" name="dashTab" id="tabPump" class="tab-radio">
 
     <header>
       <div>
         <p class="eyebrow">Krypto Pump-Signal-Scan · 08.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
-        <p class="sub">Eine Kachel pro Coin aus dem heutigen Scan. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M) direkt im Browser nach.</p>
       </div>
+    </header>
+
+    <nav class="tab-bar">
+      <label for="tabMarkt" class="tab-pill">Markt</label>
+      <label for="tabAltcoins" class="tab-pill">Altcoins</label>
+      <label for="tabPump" class="tab-pill">Pump-Potentials</label>
+    </nav>
+
+    <section class="tab-panel" id="panelMarkt">
+      <section class="strip">
+        <div class="stat">
+          <div class="label">Bitcoin</div>
+          <div class="value mono">$64.000–64.500</div>
+          <div class="ctx">Short-Squeeze: &gt;$500 Mio. Shorts in 24h liquidiert, ETF-Flows weiterhin schwach</div>
+        </div>
+        <div class="stat">
+          <div class="label">Altcoin Season Index</div>
+          <div class="value mono">46 / 100</div>
+          <div class="ctx">Leichte Rotation Richtung Altcoins, aber weiterhin Bitcoin-Season-Territorium</div>
+          <div class="gauge"><i style="width:46%"></i><span class="thresh" style="left:75%"></span></div>
+        </div>
+        <div class="stat">
+          <div class="label">BTC-Dominanz</div>
+          <div class="value mono">~54–58%</div>
+          <div class="ctx">Fällt leicht, Kapital rotiert u.a. in Solana-Infra &amp; Yield-Token</div>
+        </div>
+        <div class="stat" id="statFearGreed">
+          <div class="label">Fear &amp; Greed Index</div>
+          <div class="value mono" id="fngValue">Lädt …</div>
+          <div class="ctx" id="fngCtx">Live via alternative.me</div>
+          <div class="gauge" id="fngGauge" style="display:none"><i style="width:0%"></i><span class="thresh" style="left:50%"></span></div>
+        </div>
+        <div class="stat" id="statMarketCap">
+          <div class="label">Gesamt-Marktkapitalisierung</div>
+          <div class="value mono" id="mcapValue">Lädt …</div>
+          <div class="ctx" id="mcapCtx">Live via CoinGecko</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="panelAltcoins">
+      <div class="tab-status" id="altcoinsStatus">Lade die zehn wichtigsten Coins nach Marktkapitalisierung …</div>
+      <section class="grid" id="altcoinsGrid"></section>
+    </section>
+
+    <section class="tab-panel" id="panelPump">
+      <input type="checkbox" id="tableToggleCheckbox" class="table-toggle-checkbox">
       <label for="tableToggleCheckbox" class="table-toggle" aria-controls="tableView">
         <span class="label-default">Tabellenansicht anzeigen</span>
         <span class="label-active">Tabellenansicht ausblenden</span>
       </label>
-    </header>
 
-    <div class="table-view" id="tableView">
-      <table>
-        <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th><th>Quelle</th></tr></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-
-    <section class="strip">
-      <div class="stat">
-        <div class="label">Bitcoin</div>
-        <div class="value mono">$64.000–64.500</div>
-        <div class="ctx">Short-Squeeze: &gt;$500 Mio. Shorts in 24h liquidiert, ETF-Flows weiterhin schwach</div>
+      <div class="table-view" id="tableView">
+        <table>
+          <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th><th>Quelle</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
       </div>
-      <div class="stat">
-        <div class="label">Altcoin Season Index</div>
-        <div class="value mono">46 / 100</div>
-        <div class="ctx">Leichte Rotation Richtung Altcoins, aber weiterhin Bitcoin-Season-Territorium</div>
-        <div class="gauge"><i style="width:46%"></i><span class="thresh" style="left:75%"></span></div>
-      </div>
-      <div class="stat">
-        <div class="label">BTC-Dominanz</div>
-        <div class="value mono">~54–58%</div>
-        <div class="ctx">Fällt leicht, Kapital rotiert u.a. in Solana-Infra &amp; Yield-Token</div>
-      </div>
-    </section>
 
-    <section class="grid" id="cardGrid"></section>
+      <section class="grid" id="cardGrid"></section>
 
-    <section class="panel" id="methodology">
-      <h2>Wie wird der Score berechnet?</h2>
-      <p>Jeder Kandidat startet bei 0 Punkten (Maximum 12). Punkte gibt es für folgende Signale:</p>
-      <ul class="method-list">
-        <li><span>Exchange-Listing (Upbit/Binance/Coinbase), neu oder frisch angekündigt</span><b>+3</b></li>
-        <li><span>KOL-/Whale-Kauf on-chain sichtbar (z. B. CZ, Arthur Hayes, bekannte Wallets)</span><b>+2</b></li>
-        <li><span>Aktives KI- oder Agentic-DeFi-Narrativ</span><b>+2</b></li>
-        <li><span>Short-Squeeze-Setup (hohes Open Interest, neutrale/bearishe Funding Rate)</span><b>+2</b></li>
-        <li><span>Neues Feature / Produkt-Launch in den letzten 48 Stunden</span><b>+1</b></li>
-        <li><span>Token-Burn oder Supply-Shock-Event</span><b>+1</b></li>
-        <li><span>Aktive bezahlte Social-Media-Kampagne (z. B. Kaito Yap-to-Earn)</span><b>+1</b></li>
-      </ul>
-      <p>Red Flags ziehen Punkte ab oder disqualifizieren den Kandidaten direkt:</p>
-      <ul class="method-list flags">
-        <li><span>Top-10-Holder halten &gt;60 % des Supply</span><b>Disqualifikation</b></li>
-        <li><span>Market Cap &gt;$300 Mio. bei TVL &lt;$1 Mio.</span><b>Disqualifikation</b></li>
-        <li><span>RSI &gt;92</span><b>Disqualifikation</b></li>
-        <li><span>Kein Whitepaper oder kein Audit auffindbar</span><b>Disqualifikation</b></li>
-      </ul>
-      <p><b>Status-Einordnung:</b> Score ≥4 ohne Red-Flag-Verdacht → <b>Watchlist</b>. Unter 4 oder Red-Flag-Verdacht → <b>Risiko</b>. Klarer Scam-/Betrugsverdacht → <b>Kritisch</b> (Score kann negativ sein). Kein frisches Signal heute → <b>Kontext</b>, nicht gescort.</p>
-      <div class="legend">
-        <span class="chip good"><i></i>Watchlist — Score ≥ 4, keine Red Flags</span>
-        <span class="chip caution"><i></i>Risiko — unter Schwelle / Red-Flag-Verdacht</span>
-        <span class="chip critical"><i></i>Kritisch — Scam-Verdacht, meiden</span>
-        <span class="chip neutral"><i></i>Kontext — kein frisches Signal heute</span>
-      </div>
-    </section>
+      <section class="panel" id="methodology">
+        <p class="sub">Jede Kachel zeigt einen Coin aus der laufenden Pump-Watchlist. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M / 1J / 5J) direkt im Browser nach.</p>
+        <h2>Wie wird der Score berechnet?</h2>
+        <p>Jeder Kandidat startet bei 0 Punkten (Maximum 12). Punkte gibt es für folgende Signale:</p>
+        <ul class="method-list">
+          <li><span>Exchange-Listing (Upbit/Binance/Coinbase), neu oder frisch angekündigt</span><b>+3</b></li>
+          <li><span>KOL-/Whale-Kauf on-chain sichtbar (z. B. CZ, Arthur Hayes, bekannte Wallets)</span><b>+2</b></li>
+          <li><span>Aktives KI- oder Agentic-DeFi-Narrativ</span><b>+2</b></li>
+          <li><span>Short-Squeeze-Setup (hohes Open Interest, neutrale/bearishe Funding Rate)</span><b>+2</b></li>
+          <li><span>Neues Feature / Produkt-Launch in den letzten 48 Stunden</span><b>+1</b></li>
+          <li><span>Token-Burn oder Supply-Shock-Event</span><b>+1</b></li>
+          <li><span>Aktive bezahlte Social-Media-Kampagne (z. B. Kaito Yap-to-Earn)</span><b>+1</b></li>
+        </ul>
+        <p>Red Flags ziehen Punkte ab oder disqualifizieren den Kandidaten direkt:</p>
+        <ul class="method-list flags">
+          <li><span>Top-10-Holder halten &gt;60 % des Supply</span><b>Disqualifikation</b></li>
+          <li><span>Market Cap &gt;$300 Mio. bei TVL &lt;$1 Mio.</span><b>Disqualifikation</b></li>
+          <li><span>RSI &gt;92</span><b>Disqualifikation</b></li>
+          <li><span>Kein Whitepaper oder kein Audit auffindbar</span><b>Disqualifikation</b></li>
+        </ul>
+        <p><b>Status-Einordnung:</b> Score ≥4 ohne Red-Flag-Verdacht → <b>Watchlist</b>. Unter 4 oder Red-Flag-Verdacht → <b>Risiko</b>. Klarer Scam-/Betrugsverdacht → <b>Kritisch</b> (Score kann negativ sein). Kein frisches Signal heute → <b>Kontext</b>, nicht gescort.</p>
+        <div class="legend">
+          <span class="chip good"><i></i>Watchlist — Score ≥ 4, keine Red Flags</span>
+          <span class="chip caution"><i></i>Risiko — unter Schwelle / Red-Flag-Verdacht</span>
+          <span class="chip critical"><i></i>Kritisch — Scam-Verdacht, meiden</span>
+          <span class="chip neutral"><i></i>Kontext — kein frisches Signal heute</span>
+        </div>
+      </section>
 
-    <section class="panel sources" id="sourcesSection" style="display:none">
-      <h2>Quellen</h2>
-      <ol id="sourcesList"></ol>
+      <section class="panel sources" id="sourcesSection" style="display:none">
+        <h2>Quellen</h2>
+        <ol id="sourcesList"></ol>
+      </section>
     </section>
 
     <footer>
@@ -452,7 +504,7 @@
   const NS = "http://www.w3.org/2000/svg";
   const grid = document.getElementById("cardGrid");
   const tableBody = document.getElementById("tableBody");
-  const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral"};
+  const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral", market:"--accent"};
   const liveCache = new Map();
 
   // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
@@ -503,20 +555,56 @@
       return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
     }
     const month = d.toLocaleDateString("de-DE",{month:"short"}).replace(/\.$/,"");
+    if(Number(days) >= 365){
+      return d.getDate() + ". " + month + " " + d.getFullYear().toString().slice(-2);
+    }
     return d.getDate() + ". " + month;
   }
+
+  function fmtCompactUsd(n){
+    if(n === null || n === undefined || isNaN(n)) return "—";
+    const abs = Math.abs(n);
+    if(abs >= 1e12) return "$" + (n/1e12).toFixed(2).replace(/\.00$/,"") + " Bio.";
+    if(abs >= 1e9) return "$" + (n/1e9).toFixed(2).replace(/\.00$/,"") + " Mrd.";
+    if(abs >= 1e6) return "$" + (n/1e6).toFixed(2).replace(/\.00$/,"") + " Mio.";
+    return "$" + n.toLocaleString("de-DE",{maximumFractionDigits:0});
+  }
+
+  // Distinguishable failure reasons so the UI never shows one blanket "not available"
+  // message for both a permanently bad CoinGecko ID and a passing rate-limit hiccup.
+  const LIVE_ERROR_MESSAGES = {
+    "not-found": "CoinGecko-ID nicht gefunden · Research-Daten",
+    "rate-limited": "Kurzzeitig überlastet, bitte später erneut versuchen · Research-Daten",
+    "no-data": "Keine Daten für diesen Zeitraum · Research-Daten",
+    "network-error": "Verbindungsfehler beim Laden · Research-Daten"
+  };
 
   function fetchLiveSeries(id, days){
     const key = id + ":" + days;
     if(liveCache.has(key)) return liveCache.get(key);
     const p = fetch(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${days}`)
-      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(res=>{
+        if(!res.ok){
+          const err = new Error("HTTP " + res.status);
+          err.code = res.status === 404 ? "not-found" : res.status === 429 ? "rate-limited" : "network-error";
+          throw err;
+        }
+        return res.json();
+      })
       .then(data=>{
         const prices = data.prices || [];
-        if(!prices.length) throw new Error("empty");
+        if(!prices.length){
+          const err = new Error("empty");
+          err.code = "no-data";
+          throw err;
+        }
         const step = Math.max(1, Math.floor(prices.length / 60));
         const sampled = prices.filter((_,i)=> i % step === 0 || i === prices.length - 1);
         return sampled.map(([ts,value])=>({label: formatTs(ts, days), value}));
+      })
+      .catch(err=>{
+        if(!err.code) err.code = "network-error";
+        throw err;
       });
     liveCache.set(key, p);
     p.catch(()=> liveCache.delete(key));
@@ -681,6 +769,64 @@
     return null;
   }
 
+  // Shared by buildCard() (Pump-Potentials) and buildMarketCoinCard() (Altcoins tab):
+  // price head + chart + range buttons, appended onto whatever card element is passed in.
+  function buildChartSection(card, coin, opts){
+    opts = opts || {};
+    let priceHost = null;
+    if(coin.chartType === "line"){
+      priceHost = document.createElement("div");
+      priceHost.className = "price-head";
+      card.appendChild(priceHost);
+    }
+
+    const chartHost = document.createElement("div");
+    card.appendChild(chartHost);
+
+    function renderSeries(series, sourceLabel){
+      chartHost.replaceChildren(buildChart(coin, series));
+      if(priceHost) updatePriceHead(priceHost, series, coin.unit, sourceLabel);
+    }
+
+    renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
+
+    if(coin.chartType === "line" && coin.coingeckoId){
+      const btnRow = document.createElement("div");
+      btnRow.className = "range-btns";
+      const ranges = [
+        {key:"1", label:"1T", title:"Letzte 24 Stunden"},
+        {key:"7", label:"1W", title:"Letzte 7 Tage"},
+        {key:"30", label:"1M", title:"Letzte 30 Tage"},
+        {key:"365", label:"1J", title:"Letztes Jahr"},
+        {key:"1825", label:"5J", title:"Letzte 5 Jahre"}
+      ];
+      const defaultRange = opts.defaultRange || "7";
+      function loadRange(days){
+        [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
+        chartHost.classList.add("loading");
+        fetchLiveSeries(coin.coingeckoId, days).then(series=>{
+          chartHost.classList.remove("loading");
+          renderSeries(series, "Live · CoinGecko");
+        }).catch(err=>{
+          chartHost.classList.remove("loading");
+          renderSeries(coin.series, LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"]);
+        });
+      }
+      ranges.forEach(r=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "range-btn" + (r.key === defaultRange ? " active" : "");
+        b.textContent = r.label;
+        b.title = r.title;
+        b.dataset.range = r.key;
+        b.addEventListener("click", ()=> loadRange(r.key));
+        btnRow.appendChild(b);
+      });
+      card.appendChild(btnRow);
+      loadRange(defaultRange);
+    }
+  }
+
   function buildCard(coin){
     const card = document.createElement("article");
     card.className = "card" + (coin.status === "critical" ? " critical" : "");
@@ -718,51 +864,7 @@
     head.appendChild(scoreBlock);
     card.appendChild(head);
 
-    let priceHost = null;
-    if(coin.chartType === "line"){
-      priceHost = document.createElement("div");
-      priceHost.className = "price-head";
-      card.appendChild(priceHost);
-    }
-
-    const chartHost = document.createElement("div");
-    card.appendChild(chartHost);
-
-    function renderSeries(series, sourceLabel){
-      chartHost.replaceChildren(buildChart(coin, series));
-      if(priceHost) updatePriceHead(priceHost, series, coin.unit, sourceLabel);
-    }
-
-    renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
-
-    if(coin.chartType === "line" && coin.coingeckoId){
-      const btnRow = document.createElement("div");
-      btnRow.className = "range-btns";
-      const ranges = [{key:"1",label:"1T",title:"Letzte 24 Stunden"},{key:"7",label:"1W",title:"Letzte 7 Tage"},{key:"30",label:"1M",title:"Letzte 30 Tage"}];
-      function loadRange(days){
-        [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
-        chartHost.classList.add("loading");
-        fetchLiveSeries(coin.coingeckoId, days).then(series=>{
-          chartHost.classList.remove("loading");
-          renderSeries(series, "Live · CoinGecko");
-        }).catch(()=>{
-          chartHost.classList.remove("loading");
-          renderSeries(coin.series, "Live nicht verfügbar · Research-Daten");
-        });
-      }
-      ranges.forEach(r=>{
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "range-btn" + (r.key === "7" ? " active" : "");
-        b.textContent = r.label;
-        b.title = r.title;
-        b.dataset.range = r.key;
-        b.addEventListener("click", ()=> loadRange(r.key));
-        btnRow.appendChild(b);
-      });
-      card.appendChild(btnRow);
-      loadRange("7");
-    }
+    buildChartSection(card, coin, {defaultRange:"7"});
 
     const statRow = document.createElement("div");
     statRow.className = "stat-row";
@@ -804,6 +906,133 @@
     return card;
   }
 
+  // Slimmer card for the Altcoins tab: same avatar/price/chart/range-button/stat-row
+  // building blocks as buildCard(), but no score, signals, flag box, note or source refs —
+  // those pump-scan concepts don't apply to a plain top-10-by-market-cap listing.
+  function buildMarketCoinCard(coin){
+    const card = document.createElement("article");
+    card.className = "card";
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+    const tickerBlock = document.createElement("div");
+    tickerBlock.className = "ticker-block";
+    tickerBlock.appendChild(buildAvatar(coin));
+    const tickerText = document.createElement("div");
+    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>`;
+    tickerBlock.appendChild(tickerText);
+    head.appendChild(tickerBlock);
+
+    const rank = document.createElement("div");
+    rank.className = "score-num mono";
+    rank.style.color = "var(--ink-3)";
+    rank.textContent = "Rang #" + coin.rank;
+    head.appendChild(rank);
+    card.appendChild(head);
+
+    buildChartSection(card, coin, {defaultRange:"7"});
+
+    const statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.innerHTML = coin.stats.map(s=>`<div><span class="k">${s.k}</span><span class="v mono">${s.v}</span></div>`).join("");
+    card.appendChild(statRow);
+
+    const link = resolveCoinLink(coin);
+    if(link){
+      const linkEl = document.createElement("div");
+      linkEl.className = "card-link";
+      linkEl.innerHTML = `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
+      card.appendChild(linkEl);
+    }
+
+    return card;
+  }
+
+  function fetchGlobalMarketData(){
+    return fetch("https://api.coingecko.com/api/v3/global")
+      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(json=> json.data);
+  }
+
+  function fetchFearGreed(){
+    return fetch("https://api.alternative.me/fng/")
+      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(json=> (json.data && json.data[0]) || null);
+  }
+
+  function fetchTop10Markets(){
+    return fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
+      .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); });
+  }
+
+  // Live client-side tiles for the Markt tab — these are not authored by the daily scan
+  // routine, so an honest error text on failure beats showing stale/fake numbers.
+  function renderMarketTiles(){
+    fetchGlobalMarketData().then(data=>{
+      const mcap = data.total_market_cap && data.total_market_cap.usd;
+      const chg = data.market_cap_change_percentage_24h_usd;
+      document.getElementById("mcapValue").textContent = fmtCompactUsd(mcap);
+      document.getElementById("mcapCtx").textContent = typeof chg === "number"
+        ? (chg > 0 ? "+" : "") + chg.toFixed(2) + "% in 24h · Live via CoinGecko"
+        : "Live via CoinGecko";
+    }).catch(err=>{
+      console.error("Gesamt-Marktkapitalisierung konnte nicht geladen werden:", err);
+      document.getElementById("mcapValue").textContent = "Nicht verfügbar";
+      document.getElementById("mcapCtx").textContent = "Live-Daten konnten nicht geladen werden.";
+    });
+
+    fetchFearGreed().then(entry=>{
+      if(!entry) throw new Error("no-data");
+      const value = Number(entry.value);
+      document.getElementById("fngValue").textContent = value + " / 100";
+      document.getElementById("fngCtx").textContent = (entry.value_classification || "") + " · Live via alternative.me";
+      const gauge = document.getElementById("fngGauge");
+      gauge.style.display = "";
+      gauge.querySelector("i").style.width = Math.max(0, Math.min(100, value)) + "%";
+    }).catch(err=>{
+      console.error("Fear & Greed Index konnte nicht geladen werden:", err);
+      document.getElementById("fngValue").textContent = "Nicht verfügbar";
+      document.getElementById("fngCtx").textContent = "Live-Daten konnten nicht geladen werden.";
+    });
+  }
+
+  function renderAltcoinsTab(){
+    const statusEl = document.getElementById("altcoinsStatus");
+    const altGrid = document.getElementById("altcoinsGrid");
+    fetchTop10Markets().then(list=>{
+      statusEl.style.display = "none";
+      list.forEach((m,i)=>{
+        try{
+          const pct = typeof m.price_change_percentage_24h === "number" ? m.price_change_percentage_24h : 0;
+          const price = m.current_price;
+          const prevPrice = price / (1 + pct/100);
+          const coin = {
+            ticker: (m.symbol || "").toUpperCase(),
+            name: m.name,
+            status: "market",
+            chartType: "line",
+            unit: "$",
+            logo: m.image || null,
+            coingeckoId: m.id,
+            rank: m.market_cap_rank || (i+1),
+            series: [{label:"vor 24h", value: prevPrice}, {label:"jetzt", value: price}]
+          };
+          coin.stats = [
+            {k:"Market Cap", v: fmtCompactUsd(m.market_cap)},
+            {k:"24h Vol.", v: fmtCompactUsd(m.total_volume)},
+            {k:"24h Änderung", v: (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%"}
+          ];
+          altGrid.appendChild(buildMarketCoinCard(coin));
+        } catch(err){
+          console.error("Konnte Marktcoin nicht rendern:", m && m.id, err);
+        }
+      });
+    }).catch(err=>{
+      console.error("Top-10-Coins konnten nicht geladen werden:", err);
+      statusEl.textContent = "Top-10-Coins konnten nicht geladen werden (Netzwerkfehler oder CoinGecko nicht erreichbar). Bitte später erneut versuchen.";
+    });
+  }
+
   function renderSources(){
     const section = document.getElementById("sourcesSection");
     const list = document.getElementById("sourcesList");
@@ -832,6 +1061,8 @@
   });
 
   renderSources();
+  renderMarketTiles();
+  renderAltcoinsTab();
 })();
 </script>
 </body>
