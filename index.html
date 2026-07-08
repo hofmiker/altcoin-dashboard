@@ -507,6 +507,43 @@
   const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral", market:"--accent"};
   const liveCache = new Map();
 
+  // CoinGecko's free/no-key API throttles hard against bursts of parallel requests.
+  // Both tabs' cards (up to ~16 total) build in the background on page load regardless
+  // of which tab is visible, and each auto-loads its default range immediately — without
+  // this queue that fires ~16 simultaneous requests and most get rejected (429 / connection
+  // reset) except for the handful that slip through first. Cap concurrency and space out
+  // request starts so they all get a fair chance to succeed.
+  const COINGECKO_MAX_CONCURRENT = 2;
+  const COINGECKO_MIN_GAP_MS = 350;
+  let coinGeckoActive = 0;
+  let coinGeckoLastStart = 0;
+  const coinGeckoQueue = [];
+
+  function coinGeckoScheduleNext(){
+    if(coinGeckoActive >= COINGECKO_MAX_CONCURRENT || coinGeckoQueue.length === 0) return;
+    const wait = Math.max(0, coinGeckoLastStart + COINGECKO_MIN_GAP_MS - Date.now());
+    setTimeout(()=>{
+      if(coinGeckoActive >= COINGECKO_MAX_CONCURRENT || coinGeckoQueue.length === 0) return;
+      const job = coinGeckoQueue.shift();
+      coinGeckoActive++;
+      coinGeckoLastStart = Date.now();
+      job();
+      coinGeckoScheduleNext();
+    }, wait);
+  }
+
+  function coinGeckoFetch(url){
+    return new Promise((resolve, reject)=>{
+      coinGeckoQueue.push(()=>{
+        fetch(url).then(resolve, reject).finally(()=>{
+          coinGeckoActive--;
+          coinGeckoScheduleNext();
+        });
+      });
+      coinGeckoScheduleNext();
+    });
+  }
+
   // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
   const versionTag = document.getElementById("versionTag");
   if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
@@ -582,7 +619,7 @@
   function fetchLiveSeries(id, days){
     const key = id + ":" + days;
     if(liveCache.has(key)) return liveCache.get(key);
-    const p = fetch(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${days}`)
+    const p = coinGeckoFetch(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${days}`)
       .then(res=>{
         if(!res.ok){
           const err = new Error("HTTP " + res.status);
@@ -949,7 +986,7 @@
   }
 
   function fetchGlobalMarketData(){
-    return fetch("https://api.coingecko.com/api/v3/global")
+    return coinGeckoFetch("https://api.coingecko.com/api/v3/global")
       .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
       .then(json=> json.data);
   }
@@ -961,7 +998,7 @@
   }
 
   function fetchTop10Markets(){
-    return fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
+    return coinGeckoFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
       .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); });
   }
 
