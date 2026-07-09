@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 08.07.2026</title>
+<title>Pump-Signal Dashboard — 09.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -241,7 +241,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 08.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 09.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -256,19 +256,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$64.000–64.500</div>
-          <div class="ctx">Short-Squeeze: &gt;$500 Mio. Shorts in 24h liquidiert, ETF-Flows weiterhin schwach</div>
+          <div class="value mono">$62.500–64.500</div>
+          <div class="ctx">Zieht sich vom 2-Wochen-Hoch zurück (BTC/ETH heute −1,6%), fallendes Open Interest &amp; schwache ETF-Flows bremsen die Rally</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">46 / 100</div>
-          <div class="ctx">Leichte Rotation Richtung Altcoins, aber weiterhin Bitcoin-Season-Territorium</div>
+          <div class="ctx">Unverändert seit Tagen — weiterhin klar Bitcoin-Season-Territorium (Altseason ab 75)</div>
           <div class="gauge"><i style="width:46%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~54–58%</div>
-          <div class="ctx">Fällt leicht, Kapital rotiert u.a. in Solana-Infra &amp; Yield-Token</div>
+          <div class="value mono">~58%</div>
+          <div class="ctx">Leicht fallend von 58,2% am Vortag, Bitcoin dominiert Kapitalflüsse weiterhin klar</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -341,7 +341,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–8.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–9.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -349,7 +349,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 3;
+  const DASHBOARD_VERSION = 4;
 
   const coins = [
     {
@@ -491,6 +491,29 @@
       flag:null,
       note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung.",
       sourceRefs:[]
+    },
+    {
+      ticker:"GAL", name:"Galxe (migriert zu Gravity)", status:"caution", statusLabel:"Unter Schwelle / Migrations-Unsicherheit", score:3, firstSeen:"09.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"galxe", link:"https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token",
+      series:[
+        {label:"2. Jul", value:0.248},
+        {label:"4. Jul", value:0.251},
+        {label:"6. Jul", value:0.258},
+        {label:"7. Jul", value:0.270},
+        {label:"9. Jul", value:0.269}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$34,5 Mio."},
+        {k:"7-Tage",v:"+4,5%"},
+        {k:"Ankündigung",v:"+8,63% Spike"},
+        {k:"Listing",v:"Upbit KRW, 11. Jul"}
+      ],
+      signals:[
+        ["Bevorstehendes Upbit-KRW-Listing (angekündigt für 11. Jul, bereits +8,63% Kursreaktion)","+3"]
+      ],
+      flag:"GAL wurde technisch bereits zu einem neuen Token „Gravity (G)” migriert — Upbit listet weiterhin das alte GAL-Kürzel. Das deutet eher auf einen Legacy-/Liquiditäts-Listing-Fall als auf einen reinen Momentum-Trade hin; vor dem Kauf unbedingt prüfen, welches Kürzel/Contract tatsächlich gehandelt wird.",
+      note:"Frisches Upbit-Listing als klassisches Kurssignal (+3), aber die laufende Migration zu Gravity (G) macht die Situation ungewöhnlich — <b>Score bleibt unter der Watchlist-Schwelle</b>, eher ein Beobachtungsposten als ein klarer Pump-Kandidat.",
+      sourceRefs:[4,5]
     }
   ];
 
@@ -498,7 +521,9 @@
   const sources = [
     {n:1, label:"Upbit listet OpenGradient (OPG) im KRW-Markt, 7. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-opg-krw-listing-july/"},
     {n:2, label:"OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
-    {n:3, label:"OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", url:"https://chainward.ai/decodes/opengradient-on-chain"}
+    {n:3, label:"OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", url:"https://chainward.ai/decodes/opengradient-on-chain"},
+    {n:4, label:"Upbit kündigt GAL-Listing im KRW-Markt für 11. Juli an — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token"},
+    {n:5, label:"Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", url:"https://www.coingecko.com/en/coins/galxe"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";

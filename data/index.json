@@ -1,6 +1,7 @@
 {
   "scans": [
     {"date": "2026-07-07", "file": "scans/2026-07-07.json", "version": 1},
-    {"date": "2026-07-08", "file": "scans/2026-07-08.json", "version": 3}
+    {"date": "2026-07-08", "file": "scans/2026-07-08.json", "version": 3},
+    {"date": "2026-07-09", "file": "scans/2026-07-09.json", "version": 4}
   ]
 }
