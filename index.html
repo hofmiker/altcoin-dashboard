@@ -148,7 +148,13 @@
     border:1px solid var(--border); background:transparent; color:var(--ink-2); cursor:pointer;
   }
   .range-btn.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
-  .range-btn:hover:not(.active){border-color:var(--ink-3); color:var(--ink);}
+  .range-btn:hover:not(.active):not(.disabled){border-color:var(--ink-3); color:var(--ink);}
+  .range-btn.disabled{opacity:.35; color:var(--ink-3);}
+  .range-btn.disabled.active{background:transparent; color:var(--ink-3); border-color:var(--border);}
+
+  .chart-wrap.no-data{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; aspect-ratio:300/118;}
+  .chart-wrap.no-data .no-data-label{font-size:13px; font-weight:700; color:var(--ink-3);}
+  .chart-wrap.no-data .no-data-sub{font-size:10.5px; color:var(--ink-3);}
 
   .card-note{font-size:12.8px; line-height:1.5; color:var(--ink-2);}
   .card-note b{color:var(--ink); font-weight:700;}
@@ -349,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 13;
+  const DASHBOARD_VERSION = 14;
 
   const coins = [
     {
@@ -875,6 +881,17 @@
       if(priceHost) updatePriceHead(priceHost, series, coin.unit, sourceLabel);
     }
 
+    // Live fetch failed (or returned nothing usable) — show an honest "no data" state
+    // instead of falling back to the static research series, which could otherwise be
+    // mistaken for a real (e.g. falling) price move that never actually happened.
+    function renderNoData(sourceLabel){
+      const wrap = document.createElement("div");
+      wrap.className = "chart-wrap no-data";
+      wrap.innerHTML = `<span class="no-data-label">Keine Daten</span><span class="no-data-sub">${sourceLabel}</span>`;
+      chartHost.replaceChildren(wrap);
+      if(priceHost) priceHost.innerHTML = `<span class="cur mono">–</span><span class="range-note">${sourceLabel}</span>`;
+    }
+
     renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
 
     if(coin.chartType === "line" && coin.coingeckoId){
@@ -888,15 +905,20 @@
         {key:"1825", label:"5J", title:"Letzte 5 Jahre"}
       ];
       const defaultRange = opts.defaultRange || "7";
+      function setButtonsDisabled(disabled){
+        [...btnRow.children].forEach(b=> b.classList.toggle("disabled", disabled));
+      }
       function loadRange(days){
         [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
         chartHost.classList.add("loading");
         fetchLiveSeries(coin.coingeckoId, days).then(series=>{
           chartHost.classList.remove("loading");
+          setButtonsDisabled(false);
           renderSeries(series, "Live · CoinGecko");
         }).catch(err=>{
           chartHost.classList.remove("loading");
-          renderSeries(coin.series, LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"]);
+          setButtonsDisabled(true);
+          renderNoData(LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"]);
         });
       }
       ranges.forEach(r=>{
