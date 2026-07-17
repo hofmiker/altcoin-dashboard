@@ -349,7 +349,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 12;
+  const DASHBOARD_VERSION = 13;
 
   const coins = [
     {
@@ -514,6 +514,28 @@
       flag:"GAL wurde technisch bereits zu einem neuen Token „Gravity (G)” migriert — Upbit listet weiterhin das alte GAL-Kürzel. Das deutet eher auf einen Legacy-/Liquiditäts-Listing-Fall als auf einen reinen Momentum-Trade hin; vor dem Kauf unbedingt prüfen, welches Kürzel/Contract tatsächlich gehandelt wird.",
       note:"Upbit-Listing ist wie angekündigt am 11. Jul live gegangen, die Kursreaktion blieb bislang aber verhalten (~stabil bei $0,27) — die laufende Migration zu Gravity (G) macht die Situation weiterhin ungewöhnlich. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
       sourceRefs:[4,5]
+    },
+    {
+      ticker:"OXT", name:"Orchid Protocol", status:"neutral", statusLabel:"Bereits gelaufen — kein Vorab-Signal", score:null, firstSeen:"17.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"orchid-protocol", link:null,
+      series:[
+        {label:"9. Jul '26", value:0.0035},
+        {label:"14. Jul '26", value:0.0055},
+        {label:"17. Jul '26", value:0.0072}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$5–31 Mio.*"},
+        {k:"Kursreaktion",v:"+90 bis +190%*"},
+        {k:"Exchange-Status",v:"Von Binance (Monitoring-Tag), Upbit, OKX, Bitget delistet/eingeschränkt"}
+      ],
+      signals:[
+        ["Technische Erholung nach Delisting-Crash (RSI ~32, überverkauft)","kein Score"],
+        ["DePIN-Sektor-Momentum (Top-Gainer am 9. Jul, +5,47%)","kein Score"],
+        ["Vermutetes Short-Covering bei dünner Liquidität","kein Score"]
+      ],
+      flag:"Kursangaben zwischen Börsen/Aggregatoren aktuell extrem widersprüchlich ($0,0065–$0,053 je nach Quelle, teils >90% Abweichung) — typisches Zeichen fragmentierter, dünner Liquidität nach den Delistings. Keine belastbare Einzelzahl verfügbar.",
+      note:"Auf Nutzeranfrage recherchiert, nicht Teil des täglichen Scans: OXT ist deutlich gestiegen (Quellen uneinig zwischen +93% in 24h und +93% in 7 Tagen), aber <b>kein fundamentaler Katalysator</b> (kein neues Listing, keine Partnerschaft) auffindbar — wirkt getrieben von überverkaufter technischer Gegenbewegung und mutmaßlichem Short-Covering, nicht von einem im Voraus erkennbaren Ereignis. Strukturelle Delisting-Risiken (Binance-Monitoring-Tag seit 6. Mär, Upbit-Delisting 29. Jun) bleiben bestehen. Retrospektive Analyse ohne aktionables Vorab-Signal — daher bewusst <b>nicht gescort</b>.",
+      sourceRefs:[6,7,8]
     }
   ];
 
@@ -523,7 +545,10 @@
     {n:2, label:"OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
     {n:3, label:"OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", url:"https://chainward.ai/decodes/opengradient-on-chain"},
     {n:4, label:"Upbit kündigt GAL-Listing im KRW-Markt für 11. Juli an — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token"},
-    {n:5, label:"Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", url:"https://www.coingecko.com/en/coins/galxe"}
+    {n:5, label:"Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", url:"https://www.coingecko.com/en/coins/galxe"},
+    {n:6, label:"Orchid Protocol (OXT) Preis, Marktkapitalisierung und News — CoinGecko", url:"https://www.coingecko.com/en/coins/orchid-protocol"},
+    {n:7, label:"Orchid (OXT) Preis-Analyse (RSI, Volumen) — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/price-analysis/"},
+    {n:8, label:"Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
