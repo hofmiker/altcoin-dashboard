@@ -15,9 +15,29 @@ der Build-Schritt schließt `data/` explizit aus dem Artefakt aus).
   - `market`: Markt-Strip-Werte (Bitcoin-Preisspanne, Altcoin Season Index, BTC-Dominanz)
   - `coins`: vollständiges Coins-Array wie in `index.html` nach diesem Lauf veröffentlicht
   - `sources`: an diesem Tag zitierte Quellen (Fußnoten)
+- `watchlist.csv` — fortlaufende Tabelle, eine Zeile pro Coin (siehe unten).
 
 Jeder Lauf legt eine neue Datei an (bestehende Tage werden nicht überschrieben), sodass sich
 über die Zeit eine durchsuchbare Historie ergibt, wie sich die Watchlist Tag für Tag entwickelt hat.
+
+## watchlist.csv — fortlaufende Tabelle
+
+Zusätzlich zu den Tages-Snapshots gibt es `watchlist.csv`: eine einzelne, fortlaufend gepflegte
+Tabelle mit **einer Zeile pro Coin** (nicht pro Scan-Tag) — für schnellen Überblick und einfache
+Weiterverarbeitung in Excel/Sheets, ohne jeden Tages-Snapshot einzeln öffnen zu müssen. GitHub
+zeigt `.csv`-Dateien im Browser ebenfalls als Tabelle an.
+
+Spalten: `Ticker, Name, Status, StatusLabel, Score, FirstSeen, LastUpdated, CoinGeckoID,
+PrimaryLink, Signals, RedFlag, Note`. `LastUpdated` ist das Datum des letzten inhaltlichen
+Updates dieser Zeile (nicht zwingend das Datum des letzten Scan-Laufs — nur wenn sich für diesen
+Coin tatsächlich etwas geändert hat). `Signals`, `RedFlag` und `Note` sind Klartext (HTML-Tags
+aus `index.html` entfernt), `Signals` mehrere Einträge durch `;` getrennt.
+
+Die Routine pflegt diese Datei bei jedem Lauf parallel zum `coins`-Array in `index.html`: neue
+Coins bekommen eine neue Zeile, bestehende Coins werden bei einer inhaltlichen Änderung
+überschrieben (inkl. `LastUpdated`), unveränderte Zeilen bleiben unangetastet. Coins, die aus
+`index.html` entfernt werden (siehe Obergrenze/Invalidierung unten), werden auch aus der CSV
+entfernt, damit beide Quellen synchron bleiben.
 
 ## Rolling Watchlist (seit 08.07.2026)
 
