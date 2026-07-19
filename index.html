@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 17.07.2026</title>
+<title>Pump-Signal Dashboard — 19.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 17.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 19.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,8 +262,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$62.000–64.000</div>
-          <div class="ctx">Stabil, Gesamtmarktkapitalisierung bei $2,29 Billionen (+0,1% in 24h)</div>
+          <div class="value mono">$63.500–65.000</div>
+          <div class="ctx">Leicht fester bei ~$64,2k (+0,4% heute), weiterhin in der seit Tagen stabilen Spanne</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–17.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–19.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 14;
+  const DASHBOARD_VERSION = 15;
 
   const coins = [
     {
@@ -420,17 +420,17 @@
         {label:"6. Jul", value:150}
       ],
       stats:[
-        {k:"Market Cap",v:"$150 Mio."},
-        {k:"24h Vol.",v:"$213 Mio."},
         {k:"Juni-Rally",v:"+1.000%"},
-        {k:"Katalysator",v:"Hayes-Kauf"}
+        {k:"Seit Hayes-Kauf (Ende Jun)",v:"−55%"},
+        {k:"Hayes-Einstiegspreis",v:"~$0,357"},
+        {k:"Hayes-Position",v:"~28% im Minus"}
       ],
       signals:[
         ["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)","+2"]
       ],
-      flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben.",
-      note:"Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — nur für sehr risikofreudige Trader.",
-      sourceRefs:[]
+      flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben. Bestätigt: Kurs ist seit Ende Juni bereits &gt;55% gefallen.",
+      note:"<b>Update:</b> Der Überkauft-Verdacht hat sich bestätigt — SYN ist seit Ende Juni bereits &gt;55% gefallen, Hayes' Position liegt ~28% im Minus. Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — als Warnbeispiel, nicht als Trade-Idee zu sehen.",
+      sourceRefs:[9]
     },
     {
       ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1, firstSeen:"07.07.2026",
@@ -554,7 +554,8 @@
     {n:5, label:"Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", url:"https://www.coingecko.com/en/coins/galxe"},
     {n:6, label:"Orchid Protocol (OXT) Preis, Marktkapitalisierung und News — CoinGecko", url:"https://www.coingecko.com/en/coins/orchid-protocol"},
     {n:7, label:"Orchid (OXT) Preis-Analyse (RSI, Volumen) — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/price-analysis/"},
-    {n:8, label:"Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"}
+    {n:8, label:"Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"},
+    {n:9, label:"SYN-Token fällt >55% nach Arthur-Hayes-Empfehlung, Position ~28% im Minus — BeInCrypto", url:"https://beincrypto.com/arthur-hayes-buys-eth-again/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
