@@ -11,6 +11,7 @@
     {"date": "2026-07-15", "file": "scans/2026-07-15.json", "version": 10},
     {"date": "2026-07-16", "file": "scans/2026-07-16.json", "version": 11},
     {"date": "2026-07-17", "file": "scans/2026-07-17.json", "version": 14},
-    {"date": "2026-07-19", "file": "scans/2026-07-19.json", "version": 15}
+    {"date": "2026-07-19", "file": "scans/2026-07-19.json", "version": 15},
+    {"date": "2026-07-20", "file": "scans/2026-07-20.json", "version": 16}
   ]
 }
