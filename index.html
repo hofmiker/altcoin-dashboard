@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 21.07.2026</title>
+<title>Pump-Signal Dashboard — 22.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 21.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 22.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,19 +262,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$64.500–66.000</div>
-          <div class="ctx">Zieht leicht an auf ~$65,3k (+1% heute), Marktstimmung laut Fear &amp; Greed Index bei 25 („Extreme Fear“)</div>
+          <div class="value mono">$65.500–67.000</div>
+          <div class="ctx">Springt auf ~$66,5k (+1,7% heute), breite Erholung — 13 von 17 großen Coins im Plus, AAVE führt mit +7,7%</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">45 / 100</div>
-          <div class="ctx">Unverändert — weiterhin klar Bitcoin-Season-Territorium (Altseason ab 75)</div>
-          <div class="gauge"><i style="width:45%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">52 / 100</div>
+          <div class="ctx">Leichter Anstieg von 45 auf 52 (CoinMarketCap) — weiterhin klar unter der Altseason-Schwelle von 75</div>
+          <div class="gauge"><i style="width:52%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~56%</div>
-          <div class="ctx">Unverändert bei ~56%, Trader bevorzugen gebührengenerierende Altcoins mit Buybacks/Burns statt breiter Spekulation</div>
+          <div class="ctx">Unverändert bei ~56,3%, Trader bevorzugen gebührengenerierende Altcoins mit Buybacks/Burns statt breiter Spekulation</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–21.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–22.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 17;
+  const DASHBOARD_VERSION = 18;
 
   const coins = [
     {
@@ -542,6 +542,50 @@
       flag:"Kursangaben zwischen Börsen/Aggregatoren aktuell extrem widersprüchlich ($0,0065–$0,053 je nach Quelle, teils >90% Abweichung) — typisches Zeichen fragmentierter, dünner Liquidität nach den Delistings. Keine belastbare Einzelzahl verfügbar.",
       note:"Auf Nutzeranfrage recherchiert, nicht Teil des täglichen Scans: OXT ist deutlich gestiegen (Quellen uneinig zwischen +93% in 24h und +93% in 7 Tagen), aber <b>kein fundamentaler Katalysator</b> (kein neues Listing, keine Partnerschaft) auffindbar — wirkt getrieben von überverkaufter technischer Gegenbewegung und mutmaßlichem Short-Covering, nicht von einem im Voraus erkennbaren Ereignis. Strukturelle Delisting-Risiken (Binance-Monitoring-Tag seit 6. Mär, Upbit-Delisting 29. Jun) bleiben bestehen. Retrospektive Analyse ohne aktionables Vorab-Signal — daher bewusst <b>nicht gescort</b>.",
       sourceRefs:[6,7,8]
+    },
+    {
+      ticker:"AERO", name:"Aerodrome Finance", status:"good", statusLabel:"Watchlist", score:4, firstSeen:"22.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"aerodrome-finance", link:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/",
+      series:[
+        {label:"16. Jul", value:0.40},
+        {label:"17. Jul", value:0.525},
+        {label:"19. Jul", value:0.45},
+        {label:"21. Jul", value:0.45}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$433,7 Mio."},
+        {k:"TVL",v:"&gt;$1 Mrd."},
+        {k:"Holder",v:"740.000+"},
+        {k:"Seit Listing-Peak",v:"−14%"}
+      ],
+      signals:[
+        ["Frisches Binance-Listing mit Seed Tag (17. Jul, AERO/USDT+USDC+TRY)","+3"],
+        ["Laufendes Buyback-Programm (Protocol Growth Fund, &gt;190 Mio. AERO gesamt gelockt)","+1"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Binance listete AERO am 17. Jul mit Seed Tag (erhöhtes Volatilitätsrisiko) — Kurs spitzte auf $0,525, fiel binnen 36h um 14% auf ~$0,45. Aerodrome ist mit &gt;$1 Mrd. TVL die führende Base-DEX, TVL übersteigt die Market Cap deutlich (kein Red-Flag-Verhältnis), Holder breit gestreut (740.000+). Laufendes Buyback-Programm stützt den Token. <b>Nachkaufrisiko nach dem Pop beachten</b> — Seed Tag signalisiert bewusst hohe Schwankungsbreite.",
+      sourceRefs:[10,11]
+    },
+    {
+      ticker:"DRV", name:"Derive", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3, firstSeen:"22.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"derive", link:"https://cryptobriefing.com/upbit-lists-derive-drv-token/",
+      series:[
+        {label:"13. Jul", value:0.116},
+        {label:"14. Jul", value:0.150},
+        {label:"21. Jul", value:0.151}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$151,2 Mio."},
+        {k:"TVL",v:"&gt;$100 Mio."},
+        {k:"Top-10-Holder",v:"82,55%"},
+        {k:"Ausstehende Unlocks",v:"762 Mio. Token"}
+      ],
+      signals:[
+        ["Frisches Upbit- und Bithumb-Listing (14. Jul, KRW/BTC/USDT-Märkte, zusätzlich zum bestehenden Coinbase-Listing)","+3"]
+      ],
+      flag:"Top-10-Wallets halten 82,55% des On-Chain-Supply — klares Red Flag nach unserem Framework (Top-10 &gt;60%). Zusätzlich stehen noch 762 Mio. Token aus Unlocks/Emissionen aus, plus eine vorgeschlagene 50%-Supply-Erhöhung im Raum.",
+      note:"<b>Neu:</b> Upbit und Bithumb haben DRV am 14. Jul zusätzlich zum bestehenden Coinbase-Listing gelistet, Kurs stieg dadurch um fast 30%. TVL liegt bei &gt;$100 Mio. (solide im Verhältnis zur Market Cap von ~$151 Mio.), aber die extreme Holder-Konzentration (82,55% bei 10 Wallets) und die geplante Supply-Erhöhung sind ernste Risikofaktoren. <b>Score bleibt unter der Watchlist-Schwelle.</b>",
+      sourceRefs:[12,13]
     }
   ];
 
@@ -555,7 +599,11 @@
     {n:6, label:"Orchid Protocol (OXT) Preis, Marktkapitalisierung und News — CoinGecko", url:"https://www.coingecko.com/en/coins/orchid-protocol"},
     {n:7, label:"Orchid (OXT) Preis-Analyse (RSI, Volumen) — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/price-analysis/"},
     {n:8, label:"Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"},
-    {n:9, label:"SYN-Token fällt >55% nach Arthur-Hayes-Empfehlung, Position ~28% im Minus — BeInCrypto", url:"https://beincrypto.com/arthur-hayes-buys-eth-again/"}
+    {n:9, label:"SYN-Token fällt >55% nach Arthur-Hayes-Empfehlung, Position ~28% im Minus — BeInCrypto", url:"https://beincrypto.com/arthur-hayes-buys-eth-again/"},
+    {n:10, label:"Binance listet Aerodrome (AERO) mit Seed Tag, 17. Juli 2026 — BlockchainReporter", url:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/"},
+    {n:11, label:"Aerodrome (AERO) TVL und Protocol-Growth-Fund-Buybacks — DefiLlama", url:"https://defillama.com/protocol/aerodrome"},
+    {n:12, label:"Upbit listet Derive (DRV) im KRW/BTC/USDT-Markt, 14. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-lists-derive-drv-token/"},
+    {n:13, label:"Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", url:"https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
