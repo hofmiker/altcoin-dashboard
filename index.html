@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 22.07.2026</title>
+<title>Pump-Signal Dashboard — 23.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 22.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 23.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,13 +262,13 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$65.500–67.000</div>
-          <div class="ctx">Springt auf ~$66,5k (+1,7% heute), breite Erholung — 13 von 17 großen Coins im Plus, AAVE führt mit +7,7%</div>
+          <div class="value mono">$64.500–66.500</div>
+          <div class="ctx">Pendelt um ~$65,7k (leicht schwächer, −1,2% vom Vortageshoch $66,5k), 24h-Volumen $13,2 Mrd.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">52 / 100</div>
-          <div class="ctx">Leichter Anstieg von 45 auf 52 (CoinMarketCap) — weiterhin klar unter der Altseason-Schwelle von 75</div>
+          <div class="ctx">Unverändert bei 52 (CoinMarketCap) — weiterhin klar unter der Altseason-Schwelle von 75</div>
           <div class="gauge"><i style="width:52%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–22.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–23.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 18;
+  const DASHBOARD_VERSION = 19;
 
   const coins = [
     {
@@ -586,6 +586,27 @@
       flag:"Top-10-Wallets halten 82,55% des On-Chain-Supply — klares Red Flag nach unserem Framework (Top-10 &gt;60%). Zusätzlich stehen noch 762 Mio. Token aus Unlocks/Emissionen aus, plus eine vorgeschlagene 50%-Supply-Erhöhung im Raum.",
       note:"<b>Neu:</b> Upbit und Bithumb haben DRV am 14. Jul zusätzlich zum bestehenden Coinbase-Listing gelistet, Kurs stieg dadurch um fast 30%. TVL liegt bei &gt;$100 Mio. (solide im Verhältnis zur Market Cap von ~$151 Mio.), aber die extreme Holder-Konzentration (82,55% bei 10 Wallets) und die geplante Supply-Erhöhung sind ernste Risikofaktoren. <b>Score bleibt unter der Watchlist-Schwelle.</b>",
       sourceRefs:[12,13]
+    },
+    {
+      ticker:"O", name:"o1.exchange", status:"caution", statusLabel:"Unter Schwelle / Dilution-Risiko", score:3, firstSeen:"23.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"o1-exchange", link:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news",
+      series:[
+        {label:"Vor Ankündigung", value:0.675},
+        {label:"Vor Listing", value:0.518},
+        {label:"23. Jul (Listing)", value:0.519}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$83,0 Mio."},
+        {k:"FDV",v:"~$518,5 Mio. (16% im Umlauf)"},
+        {k:"24h Vol.",v:"$39,4 Mio."},
+        {k:"Audit",v:"Ja (xors.xyz, Contract+Vesting)"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (23. Jul, KRW/BTC/USDT — zusätzlich zu Coinbase)","+3"]
+      ],
+      flag:"Nur 16% des 1-Mrd.-Supply im Umlauf (FDV ~6x Market Cap) — hohes Verwässerungsrisiko bei künftigen Freischaltungen. Team/Seed-Investoren-Konzentration vom Projekt selbst offengelegt, aber ohne konkrete Top-10-Prozentzahl verifizierbar (daher kein hartes Red-Flag-Scoring, nur Caution).",
+      note:"<b>Neu:</b> o1.exchange (DEX-Aggregator/Trading-Terminal auf Base &amp; Solana) wurde heute auf Upbit gelistet (KRW/BTC/USDT), zusätzlich zum bestehenden Coinbase-Listing. Ungewöhnlich: Der Kurs ist im Vorfeld der Ankündigung bereits von ~$0,675 auf ~$0,52 gefallen — die Listing-News wirkte bislang nicht als Kurstreiber. Audit vorhanden, aber niedriger Free Float (16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b> — als Beobachtungsposten aufgenommen.",
+      sourceRefs:[14,15]
     }
   ];
 
@@ -603,7 +624,9 @@
     {n:10, label:"Binance listet Aerodrome (AERO) mit Seed Tag, 17. Juli 2026 — BlockchainReporter", url:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/"},
     {n:11, label:"Aerodrome (AERO) TVL und Protocol-Growth-Fund-Buybacks — DefiLlama", url:"https://defillama.com/protocol/aerodrome"},
     {n:12, label:"Upbit listet Derive (DRV) im KRW/BTC/USDT-Markt, 14. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-lists-derive-drv-token/"},
-    {n:13, label:"Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", url:"https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"}
+    {n:13, label:"Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", url:"https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"},
+    {n:14, label:"o1 Exchange Listing auf Upbit heute (23. Juli 2026) — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news"},
+    {n:15, label:"o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/o1-exchange"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
