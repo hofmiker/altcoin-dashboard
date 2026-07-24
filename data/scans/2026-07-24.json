@@ -1,0 +1,117 @@
+{
+  "date": "2026-07-24",
+  "version": 20,
+  "generatedAt": "2026-07-24T08:35:00Z",
+  "market": {
+    "bitcoin": {"label": "$63.500–65.500", "context": "Rutscht auf ~$65,0k (−1,4% heute), Gesamtmarkt −1,3% auf $2,3 Bio., Fear & Greed fällt auf 28 (zunehmende Vorsicht)"},
+    "altcoinSeasonIndex": {"value": 50, "max": 100, "context": "Leicht rückläufig von 52 auf 50 (CoinMarketCap) — neutrale Zone, weiterhin klar unter der Altseason-Schwelle von 75"},
+    "btcDominance": {"label": "~56,6%", "context": "Leicht höher bei ~56,6%, DeFi-Sektor sticht mit +9,8% heute deutlich heraus"}
+  },
+  "coins": [
+    {
+      "ticker": "OPG", "name": "OpenGradient", "status": "caution", "statusLabel": "Unter Schwelle / Konzentrationsrisiko", "score": 3, "firstSeen": "08.07.2026",
+      "coingeckoId": "opengradient",
+      "link": "https://cryptobriefing.com/upbit-opg-krw-listing-july/",
+      "signals": [["Frisches Upbit-KRW-Listing (7. Jul, zusätzlich zu BTC/USDT seit 15. Jun)", "+3"], ["Aktives KI-Infrastruktur-Narrativ (verifizierbare AI-Ausführung, CertiK 4.3★)", "+2"]],
+      "flag": "Top-10-Holder halten ~97% des Supply (Gini ~0,999) — laut On-Chain-Analyse aber größtenteils Vesting-/Team-/Bridge-Contracts, keine reinen Whale-Wallets. Dennoch hohes Entsperrungsrisiko und ein Red Flag nach unserem Framework (Top-10 >60%).",
+      "note": "Frisches AI-Infra-Listing mit starkem 24h-Volumen ($65,7 Mio.) — Score bleibt wegen extremer Holder-Konzentration unter der Watchlist-Schwelle."
+    },
+    {
+      "ticker": "MPLX", "name": "Metaplex", "status": "good", "statusLabel": "Watchlist", "score": 4, "firstSeen": "07.07.2026",
+      "coingeckoId": "metaplex",
+      "link": null,
+      "signals": [["Frisches Upbit-Listing (3. Jul, BTC/USDT)", "+3"], ["DAO-Buyback bindet 23% Supply", "+1"]],
+      "flag": null,
+      "note": "Bereits +100% seit Listing gelaufen — Nachkaufrisiko, enger Stop empfohlen."
+    },
+    {
+      "ticker": "SYN", "name": "Synapse", "status": "caution", "statusLabel": "Unter Schwelle", "score": 2, "firstSeen": "07.07.2026",
+      "coingeckoId": null,
+      "link": null,
+      "signals": [["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)", "+2"]],
+      "flag": "Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben. Bestätigt: Kurs ist seit Ende Juni bereits >55% gefallen.",
+      "note": "Update: Der Überkauft-Verdacht hat sich bestätigt — SYN ist seit Ende Juni bereits >55% gefallen, Hayes' Position liegt ~28% im Minus. Interessante KOL-Story, aber Score bleibt unter Watchlist-Schwelle — als Warnbeispiel, nicht als Trade-Idee zu sehen."
+    },
+    {
+      "ticker": "BDAG", "name": "BlockDAG", "status": "critical", "statusLabel": "Scam-Verdacht", "score": -1, "firstSeen": "07.07.2026",
+      "coingeckoId": null,
+      "link": null,
+      "signals": [["Eigene Exchange „BlockDAG Exchange“ — Start bestätigt für 17. Jul, 14:00 UTC", "+1"]],
+      "flag": "ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits deckten nur Vesting-Contracts ab.",
+      "note": "Eigene Exchange öffnet zwar am 17. Jul, tatsächlicher BDAG-Handel dort wird laut Analysten aber erst für August erwartet — Exchange-Start und BDAG-Listing sind zwei getrennte Meilensteine. Ändert nichts an den ungeklärten Betrugsvorwürfen. Trotz Hype in Top-Gainer-Listen: klar meiden."
+    },
+    {
+      "ticker": "ASTER", "name": "Aster (BNB Chain Perp-DEX)", "status": "neutral", "statusLabel": "Kein frisches Signal", "score": null, "firstSeen": "07.07.2026",
+      "coingeckoId": "aster-2",
+      "link": null,
+      "signals": [["CZ-Endorsement + Exchange-Listings", "bereits eingepreist"]],
+      "flag": null,
+      "note": "Rally und CZ-Story sind Monate alt — kein aktueller Katalysator, daher nicht gescort."
+    },
+    {
+      "ticker": "SAHARA", "name": "Sahara AI", "status": "neutral", "statusLabel": "Verblasster Hype", "score": 2, "firstSeen": "07.07.2026",
+      "coingeckoId": "sahara-ai",
+      "link": null,
+      "signals": [["Aktives KI-Narrativ (Sorin AI Copilot)", "+2"]],
+      "flag": null,
+      "note": "AI-Narrativ vorhanden, aber Abwärtstrend dominiert."
+    },
+    {
+      "ticker": "GAL", "name": "Galxe (migriert zu Gravity)", "status": "caution", "statusLabel": "Unter Schwelle / Migrations-Unsicherheit", "score": 3, "firstSeen": "09.07.2026",
+      "coingeckoId": "galxe",
+      "link": "https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token",
+      "signals": [["Upbit-KRW-Listing am 11. Jul live gegangen (Ankündigung löste bereits +8,63% Kursreaktion aus)", "+3"]],
+      "flag": "GAL wurde technisch bereits zu einem neuen Token „Gravity (G)” migriert — Upbit listet weiterhin das alte GAL-Kürzel. Das deutet eher auf einen Legacy-/Liquiditäts-Listing-Fall als auf einen reinen Momentum-Trade hin.",
+      "note": "Upbit-Listing ist wie angekündigt am 11. Jul live gegangen, die Kursreaktion blieb bislang aber verhalten (~stabil bei $0,27) — die laufende Migration zu Gravity (G) macht die Situation weiterhin ungewöhnlich. Score bleibt unter der Watchlist-Schwelle."
+    },
+    {
+      "ticker": "OXT", "name": "Orchid Protocol", "status": "neutral", "statusLabel": "Bereits gelaufen — kein Vorab-Signal", "score": null, "firstSeen": "17.07.2026",
+      "coingeckoId": "orchid-protocol",
+      "link": null,
+      "signals": [["Technische Erholung nach Delisting-Crash (RSI ~32, überverkauft)", "kein Score"], ["DePIN-Sektor-Momentum (Top-Gainer am 9. Jul, +5,47%)", "kein Score"], ["Vermutetes Short-Covering bei dünner Liquidität", "kein Score"]],
+      "flag": "Kursangaben zwischen Börsen/Aggregatoren aktuell extrem widersprüchlich ($0,0065–$0,053 je nach Quelle, teils >90% Abweichung) — typisches Zeichen fragmentierter, dünner Liquidität nach den Delistings. Keine belastbare Einzelzahl verfügbar.",
+      "note": "Auf Nutzeranfrage recherchiert, nicht Teil des täglichen Scans: OXT ist deutlich gestiegen (Quellen uneinig zwischen +93% in 24h und +93% in 7 Tagen), aber kein fundamentaler Katalysator (kein neues Listing, keine Partnerschaft) auffindbar — wirkt getrieben von überverkaufter technischer Gegenbewegung und mutmaßlichem Short-Covering, nicht von einem im Voraus erkennbaren Ereignis. Strukturelle Delisting-Risiken (Binance-Monitoring-Tag seit 6. Mär, Upbit-Delisting 29. Jun) bleiben bestehen. Retrospektive Analyse ohne aktionables Vorab-Signal — daher bewusst nicht gescort."
+    },
+    {
+      "ticker": "AERO", "name": "Aerodrome Finance", "status": "good", "statusLabel": "Watchlist", "score": 4, "firstSeen": "22.07.2026",
+      "coingeckoId": "aerodrome-finance",
+      "link": "https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/",
+      "signals": [["Frisches Binance-Listing mit Seed Tag (17. Jul, AERO/USDT+USDC+TRY)", "+3"], ["Laufendes Buyback-Programm (Protocol Growth Fund, >190 Mio. AERO gesamt gelockt)", "+1"]],
+      "flag": null,
+      "note": "Neu: Binance listete AERO am 17. Jul mit Seed Tag (erhöhtes Volatilitätsrisiko) — Kurs spitzte auf $0,525, fiel binnen 36h um 14% auf ~$0,45. Aerodrome ist mit >$1 Mrd. TVL die führende Base-DEX, TVL übersteigt die Market Cap deutlich (kein Red-Flag-Verhältnis), Holder breit gestreut (740.000+). Laufendes Buyback-Programm stützt den Token. Nachkaufrisiko nach dem Pop beachten — Seed Tag signalisiert bewusst hohe Schwankungsbreite."
+    },
+    {
+      "ticker": "DRV", "name": "Derive", "status": "caution", "statusLabel": "Unter Schwelle / Konzentrationsrisiko", "score": 3, "firstSeen": "22.07.2026",
+      "coingeckoId": "derive",
+      "link": "https://cryptobriefing.com/upbit-lists-derive-drv-token/",
+      "signals": [["Frisches Upbit- und Bithumb-Listing (14. Jul, KRW/BTC/USDT-Märkte, zusätzlich zum bestehenden Coinbase-Listing)", "+3"]],
+      "flag": "Top-10-Wallets halten 82,55% des On-Chain-Supply — klares Red Flag nach unserem Framework (Top-10 >60%). Zusätzlich stehen noch 762 Mio. Token aus Unlocks/Emissionen aus, plus eine vorgeschlagene 50%-Supply-Erhöhung im Raum.",
+      "note": "Neu: Upbit und Bithumb haben DRV am 14. Jul zusätzlich zum bestehenden Coinbase-Listing gelistet, Kurs stieg dadurch um fast 30%. TVL liegt bei >$100 Mio. (solide im Verhältnis zur Market Cap von ~$151 Mio.), aber die extreme Holder-Konzentration (82,55% bei 10 Wallets) und die geplante Supply-Erhöhung sind ernste Risikofaktoren. Score bleibt unter der Watchlist-Schwelle."
+    },
+    {
+      "ticker": "O", "name": "o1.exchange", "status": "caution", "statusLabel": "Unter Schwelle / Dilution-Risiko", "score": 3, "firstSeen": "23.07.2026",
+      "coingeckoId": "o1-exchange",
+      "link": "https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news",
+      "signals": [["Frisches Upbit-Listing (23. Jul, KRW/BTC/USDT — zusätzlich zu Coinbase)", "+3"]],
+      "flag": "Nur 16% des 1-Mrd.-Supply im Umlauf (FDV ~6x Market Cap) — hohes Verwässerungsrisiko bei künftigen Freischaltungen. Team/Seed-Investoren-Konzentration vom Projekt selbst offengelegt, aber ohne konkrete Top-10-Prozentzahl verifizierbar (daher kein hartes Red-Flag-Scoring, nur Caution).",
+      "note": "Neu: o1.exchange (DEX-Aggregator/Trading-Terminal auf Base & Solana) wurde heute auf Upbit gelistet (KRW/BTC/USDT), zusätzlich zum bestehenden Coinbase-Listing. Ungewöhnlich: Der Kurs ist im Vorfeld der Ankündigung bereits von ~$0,675 auf ~$0,52 gefallen — die Listing-News wirkte bislang nicht als Kurstreiber. Audit vorhanden, aber niedriger Free Float (16%) bedeutet erhebliches Verwässerungsrisiko. Score bleibt unter der Watchlist-Schwelle — als Beobachtungsposten aufgenommen."
+    }
+  ],
+  "sources": [
+    {"n": 1, "label": "Upbit listet OpenGradient (OPG) im KRW-Markt, 7. Juli 2026 — CryptoBriefing", "url": "https://cryptobriefing.com/upbit-opg-krw-listing-july/"},
+    {"n": 2, "label": "OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", "url": "https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
+    {"n": 3, "label": "OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", "url": "https://chainward.ai/decodes/opengradient-on-chain"},
+    {"n": 4, "label": "Upbit kündigt GAL-Listing im KRW-Markt für 11. Juli an — CoinGabbar", "url": "https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token"},
+    {"n": 5, "label": "Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", "url": "https://www.coingecko.com/en/coins/galxe"},
+    {"n": 6, "label": "Orchid Protocol (OXT) Preis, Marktkapitalisierung und News — CoinGecko", "url": "https://www.coingecko.com/en/coins/orchid-protocol"},
+    {"n": 7, "label": "Orchid (OXT) Preis-Analyse (RSI, Volumen) — CoinMarketCap CMC AI", "url": "https://coinmarketcap.com/cmc-ai/orchid/price-analysis/"},
+    {"n": 8, "label": "Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", "url": "https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"},
+    {"n": 9, "label": "SYN-Token fällt >55% nach Arthur-Hayes-Empfehlung, Position ~28% im Minus — BeInCrypto", "url": "https://beincrypto.com/arthur-hayes-buys-eth-again/"},
+    {"n": 10, "label": "Binance listet Aerodrome (AERO) mit Seed Tag, 17. Juli 2026 — BlockchainReporter", "url": "https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/"},
+    {"n": 11, "label": "Aerodrome (AERO) TVL und Protocol-Growth-Fund-Buybacks — DefiLlama", "url": "https://defillama.com/protocol/aerodrome"},
+    {"n": 12, "label": "Upbit listet Derive (DRV) im KRW/BTC/USDT-Markt, 14. Juli 2026 — CryptoBriefing", "url": "https://cryptobriefing.com/upbit-lists-derive-drv-token/"},
+    {"n": 13, "label": "Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", "url": "https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"},
+    {"n": 14, "label": "o1 Exchange Listing auf Upbit heute (23. Juli 2026) — CoinGabbar", "url": "https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news"},
+    {"n": 15, "label": "o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", "url": "https://www.coingecko.com/en/coins/o1-exchange"}
+  ]
+}
