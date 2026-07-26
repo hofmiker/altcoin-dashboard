@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 25.07.2026</title>
+<title>Pump-Signal Dashboard — 26.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 25.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 26.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,8 +262,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$63.000–65.000</div>
-          <div class="ctx">Weiter schwach bei ~$64,0k (−1,3% heute), Gesamtmarkt −1,1% auf $2,28 Bio., 24h-Volumen $25,8 Mrd.</div>
+          <div class="value mono">$63.500–65.000</div>
+          <div class="ctx">Stabilisiert sich leicht bei ~$64,3k, DeFi-Lending-Sektor im Fokus (Upbit-Listings MORPHO/EUL)</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -274,7 +274,7 @@
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~56,6%</div>
-          <div class="ctx">Unverändert bei ~56,6%, DEXE (DAO-/AI-Governance-Sektor) mit extremer Tagesvolatilität (+144,63%) auffällig</div>
+          <div class="ctx">Unverändert bei ~56,6%, EUL sticht mit extremem Short-Squeeze (+70% in 24h, RSI 92,96) heraus</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–25.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–26.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 21;
+  const DASHBOARD_VERSION = 22;
 
   const coins = [
     {
@@ -607,6 +607,48 @@
       flag:"Nur 16% des 1-Mrd.-Supply im Umlauf (FDV ~6x Market Cap) — hohes Verwässerungsrisiko bei künftigen Freischaltungen. Team/Seed-Investoren-Konzentration vom Projekt selbst offengelegt, aber ohne konkrete Top-10-Prozentzahl verifizierbar (daher kein hartes Red-Flag-Scoring, nur Caution).",
       note:"<b>Neu:</b> o1.exchange (DEX-Aggregator/Trading-Terminal auf Base &amp; Solana) wurde heute auf Upbit gelistet (KRW/BTC/USDT), zusätzlich zum bestehenden Coinbase-Listing. Ungewöhnlich: Der Kurs ist im Vorfeld der Ankündigung bereits von ~$0,675 auf ~$0,52 gefallen — die Listing-News wirkte bislang nicht als Kurstreiber. Audit vorhanden, aber niedriger Free Float (16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b> — als Beobachtungsposten aufgenommen.",
       sourceRefs:[14,15]
+    },
+    {
+      ticker:"EUL", name:"Euler", status:"caution", statusLabel:"Unter Schwelle / RSI-Extremwert (Disqualifikation)", score:3, firstSeen:"26.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"euler", link:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/",
+      series:[
+        {label:"Vor Ausbruch", value:1.02},
+        {label:"Vor 24h", value:1.02},
+        {label:"26. Jul (Peak)", value:1.74}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$41,2 Mio."},
+        {k:"24h Vol.",v:"$60,3 Mio. (&gt;126% v. MC)"},
+        {k:"RSI (4h)",v:"92,96 (extrem überkauft)"},
+        {k:"Top-100-Holder",v:"93,13% des Supply"}
+      ],
+      signals:[
+        ["Frisches Upbit-KRW-Listing (26. Jul, DeFi-Lending-Expansion)","+3"],
+        ["Short-Squeeze-Setup bestätigt (Ausbruch aus monatelangem Abwärtskanal, ~$4,77 Mio. Short-Liquidationen in 24h)","+2"]
+      ],
+      flag:"RSI (4h) bei 92,96 — klare Disqualifikation nach unserem Framework (RSI &gt;92). Zusätzlich extreme Holder-Konzentration: Top-100-Wallets halten 93,13% des Supply (Gini 0,988), auch wenn ein Teil davon Protocol-Contracts sein dürfte.",
+      note:"<b>Neu:</b> Euler wurde heute (26. Jul) auf Upbit im KRW-Markt gelistet, zeitgleich tobt ein heftiger Short-Squeeze — Kurs +70% in 24h, ~$4,77 Mio. Short-Positionen liquidiert, Ausbruch aus monatelangem Abwärtskanal. Trotz starker Rohsignale (Listing +3, Squeeze +2) reißt der 4h-RSI von 92,96 unsere Disqualifikations-Schwelle klar — <b>Score bleibt unter der Watchlist-Schwelle</b>. Nach einem Move dieser Größe extrem hohes Rückschlagrisiko, kein Nachkauf empfohlen.",
+      sourceRefs:[16,17]
+    },
+    {
+      ticker:"MORPHO", name:"Morpho", status:"caution", statusLabel:"Unter Schwelle / Large-Cap", score:3, firstSeen:"26.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"morpho", link:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/",
+      series:[
+        {label:"Vor Ankündigung", value:1.86},
+        {label:"25. Jul (Listing)", value:1.95}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$1,0–1,3 Mrd."},
+        {k:"Rang",v:"~Top 50–60 nach Market Cap"},
+        {k:"Kursreaktion",v:"+4,8% (Listing-Ankündigung)"},
+        {k:"Feature",v:"Morpho Midnight (Fixed-Rate-Lending, Base, 22. Jul)"}
+      ],
+      signals:[
+        ["Frisches Upbit-KRW-Listing (25. Jul, DeFi-Lending-Expansion, zeitgleich mit EUL)","+3"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Upbit listete MORPHO am 25. Jul im KRW-Markt (zusammen mit EUL einen Tag später), Kursreaktion moderat (+4,8%). Mit $1–1,3 Mrd. Market Cap ist Morpho ein etablierter Large-Cap-DeFi-Player (Top 50–60), kein klassisches Pump-Setup. <b>Score bleibt unter der Watchlist-Schwelle</b> — primär als Kontext zur DeFi-Lending-Listing-Welle aufgenommen.",
+      sourceRefs:[16]
     }
   ];
 
@@ -626,7 +668,9 @@
     {n:12, label:"Upbit listet Derive (DRV) im KRW/BTC/USDT-Markt, 14. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-lists-derive-drv-token/"},
     {n:13, label:"Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", url:"https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"},
     {n:14, label:"o1 Exchange Listing auf Upbit heute (23. Juli 2026) — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news"},
-    {n:15, label:"o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/o1-exchange"}
+    {n:15, label:"o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/o1-exchange"},
+    {n:16, label:"Upbit listet Morpho (25. Juli) und Euler (26. Juli) im KRW-Markt — CryptoBriefing", url:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/"},
+    {n:17, label:"Euler (EUL) Short-Squeeze-Rally, RSI 92,96, Liquidationen — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/euler-eul-price-prediction-token-rallies-on-short-squeeze-surge"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
