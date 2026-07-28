@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 27.07.2026</title>
+<title>Pump-Signal Dashboard — 28.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 27.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 28.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,8 +262,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$64.500–66.000</div>
-          <div class="ctx">Erholt sich auf ~$65,4k (+1,45% heute), Gesamtmarkt +1,7% auf $2,3 Bio.</div>
+          <div class="value mono">$62.000–64.000</div>
+          <div class="ctx">Fällt zurück auf ~$63,2k (−2,8% heute), Gesamtmarkt −1,6% auf $2,26 Bio. — Fed-Zinsentscheid am 28./29. Jul belastet</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -273,8 +273,8 @@
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56,6%</div>
-          <div class="ctx">Unverändert bei ~56,6%, keine neuen frischen Pump-Signale heute — breite Markterholung ohne Einzeltitel-Katalysator</div>
+          <div class="value mono">~56%</div>
+          <div class="ctx">Leicht niedriger bei ~56%, KAITO (KI-Narrativ) sticht mit +12–16% heraus trotz breiter Marktschwäche</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–27.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–28.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 23;
+  const DASHBOARD_VERSION = 24;
 
   const coins = [
     {
@@ -649,6 +649,27 @@
       flag:null,
       note:"<b>Neu:</b> Upbit listete MORPHO am 25. Jul im KRW-Markt (zusammen mit EUL einen Tag später), Kursreaktion moderat (+4,8%). Mit $1–1,3 Mrd. Market Cap ist Morpho ein etablierter Large-Cap-DeFi-Player (Top 50–60), kein klassisches Pump-Setup. <b>Score bleibt unter der Watchlist-Schwelle</b> — primär als Kontext zur DeFi-Lending-Listing-Welle aufgenommen.",
       sourceRefs:[16]
+    },
+    {
+      ticker:"KAITO", name:"Kaito", status:"caution", statusLabel:"Unter Schwelle / Chase-Risiko (überkauft)", score:2, firstSeen:"28.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"kaito", link:"https://cryptobriefing.com/kaito-ai-data-agreement-x/",
+      series:[
+        {label:"Vor Ankündigung", value:1.00},
+        {label:"24. Jul", value:1.05},
+        {label:"28. Jul", value:1.32}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$291,2 Mio."},
+        {k:"RSI (täglich)",v:"77,14 (überkauft)"},
+        {k:"Open Interest",v:"$70,9 Mio. (Jahreshoch)"},
+        {k:"Unlock (20. Jul)",v:"$17,1 Mio. (+7–8% Supply)"}
+      ],
+      signals:[
+        ["Aktives KI-/Agentic-Narrativ (offizielle X-Datenkooperation für KI-/Social-Intelligence, bestätigt)","+2"]
+      ],
+      flag:"Täglicher RSI bei 77,14 — deutlich überkauft (unter der 92er-Disqualifikationsschwelle, aber Vorsicht geboten). Erst am 20. Jul lief ein Token-Unlock (~1,8% des Supply) — zusätzlicher Verwässerungsdruck bei gleichzeitigem Kursanstieg.",
+      note:"<b>Neu:</b> Kaito sicherte sich eine offizielle Datenkooperation mit X zur Stärkung seiner KI-/Social-Intelligence-Produkte — Kurs zieht seither an, heute allein +12–16% auf $1,32. Kein frisches Exchange-Listing (Kaito ist bereits etabliert), daher nur der Narrativ-Punkt. <b>Score bleibt unter der Watchlist-Schwelle</b> — nach dem Run und bei überkauftem RSI kein Nachkauf-Kandidat, eher als Beispiel für ein laufendes KI-Narrativ aufgenommen.",
+      sourceRefs:[18]
     }
   ];
 
@@ -670,7 +691,8 @@
     {n:14, label:"o1 Exchange Listing auf Upbit heute (23. Juli 2026) — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news"},
     {n:15, label:"o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/o1-exchange"},
     {n:16, label:"Upbit listet Morpho (25. Juli) und Euler (26. Juli) im KRW-Markt — CryptoBriefing", url:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/"},
-    {n:17, label:"Euler (EUL) Short-Squeeze-Rally, RSI 92,96, Liquidationen — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/euler-eul-price-prediction-token-rallies-on-short-squeeze-surge"}
+    {n:17, label:"Euler (EUL) Short-Squeeze-Rally, RSI 92,96, Liquidationen — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/euler-eul-price-prediction-token-rallies-on-short-squeeze-surge"},
+    {n:18, label:"Kaito AI enters data agreement with X to enhance use cases — CryptoBriefing", url:"https://cryptobriefing.com/kaito-ai-data-agreement-x/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
