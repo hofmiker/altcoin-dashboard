@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 30.07.2026</title>
+<title>Pump-Signal Dashboard — 31.07.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 30.07.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 31.07.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,19 +262,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$63.000–64.500</div>
-          <div class="ctx">Stabil bei ~$63,9k (+0,2% heute), Gesamtmarkt fast unverändert bei $2,27 Bio. (−0,1%)</div>
+          <div class="value mono">$64.000–66.000</div>
+          <div class="ctx">Zieht an auf ~$65,0k (+2,1% heute), Gesamtmarkt +1,4% auf $2,3 Bio.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">53 / 100</div>
-          <div class="ctx">Leichter Anstieg von 52 auf 53 (CoinMarketCap) — weiterhin neutrale Zone, klar unter der Altseason-Schwelle von 75</div>
-          <div class="gauge"><i style="width:53%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">52 / 100</div>
+          <div class="ctx">Weiterhin neutrale Zone (CoinMarketCap), klar unter der Altseason-Schwelle von 75</div>
+          <div class="gauge"><i style="width:52%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56%</div>
-          <div class="ctx">Unverändert bei ~56%, DeFi-Sektor fällt heute deutlich um 11,5% — Altcoin-Rotation bleibt selektiv</div>
+          <div class="value mono">~56,3%</div>
+          <div class="ctx">Unverändert bei ~56,3%, breite Erholung mit UNI (+12%) und INJ (+10%) an der Spitze</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–30.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–31.7.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 26;
+  const DASHBOARD_VERSION = 27;
 
   const coins = [
     {
@@ -692,6 +692,27 @@
       flag:"Am 1. Aug steht ein großer Unlock bevor (21,24 Mio. BEAT, ~$73,8 Mio., deutlich mehr als der wöchentliche Burn kompensiert) — erhebliches kurzfristiges Verwässerungsrisiko direkt nach der aktuellen Erholung. Kein Audit auffindbar (nicht bestätigt disqualifizierend, da etabliertes Coinbase-Listing mit belegtem Umsatz).",
       note:"<b>Neu:</b> Audiera (Web3-Musik-/Tanz-Plattform mit KI-Agenten als Teilnehmern) erholt sich nach einem Kursrutsch wieder (+23% zwischenzeitlich), gestützt von echtem Umsatz (~$2,9 Mio./Woche) und laufenden Burns. Die vielzitierte „AI-Partnership“-Meldung ist allerdings von Anfang Juni und nicht mehr frisch. <b>Score bleibt unter der Watchlist-Schwelle</b> — der bevorstehende Unlock am 1. Aug (~$73,8 Mio.) ist ein ernstes Warnsignal direkt nach dem Rebound.",
       sourceRefs:[19,20]
+    },
+    {
+      ticker:"GRVT", name:"GRVT (On-Chain Wealth Platform / Perp-DEX)", status:"caution", statusLabel:"Unter Schwelle / Audit nicht verifizierbar", score:3, firstSeen:"31.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"grvt", link:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/",
+      series:[
+        {label:"29. Jul", value:0.15},
+        {label:"30. Jul (Launch)", value:0.15},
+        {label:"31. Jul (Peak)", value:0.2436}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$35,0 Mio."},
+        {k:"FDV",v:"$306,3 Mio. (11% im Umlauf)"},
+        {k:"Private-Sale-Anteil",v:"19,9% (~$33 Mio. eingesammelt)"},
+        {k:"Community/Airdrop",v:"28%"}
+      ],
+      signals:[
+        ["Multi-Exchange-Listing (Binance Alpha, Bybit, MEXC, KuCoin, Bitget, Coinbase-Deposits — 30. Jul)","+3"]
+      ],
+      flag:"Kein Audit für den GRVT-Token-Contract auffindbar (nicht zu verwechseln mit dem unabhängigen Projekt „Gravitoken/GRV”). Nur 11% des 1-Mrd.-Supply im Umlauf — FDV liegt beim ~8,75-Fachen der Market Cap, hohes Verwässerungsrisiko bei künftigen Freischaltungen.",
+      note:"<b>Neu:</b> GRVT (selbstverwahrende On-Chain-Wealth-Plattform, seit Dez. 2024 als lizenzierte Perp-DEX aktiv) startete den Token gestern (30. Jul) zeitgleich auf Binance Alpha, Bybit, MEXC, KuCoin, Bitget und mit Coinbase-Einzahlungen — Kurs heute +62%. Bereits am 21. Jul als Kandidat geprüft und mangels bestätigtem Tier-1-Listing zurückgestellt; das ist jetzt nachgeholt. <b>Score bleibt unter der Watchlist-Schwelle</b> — kein auffindbarer Audit und starkes Dilution-Risiko (nur 11% Floating Supply) bremsen trotz des breiten Exchange-Rollouts.",
+      sourceRefs:[21,22]
     }
   ];
 
@@ -716,7 +737,9 @@
     {n:17, label:"Euler (EUL) Short-Squeeze-Rally, RSI 92,96, Liquidationen — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/euler-eul-price-prediction-token-rallies-on-short-squeeze-surge"},
     {n:18, label:"Kaito AI enters data agreement with X to enhance use cases — CryptoBriefing", url:"https://cryptobriefing.com/kaito-ai-data-agreement-x/"},
     {n:19, label:"Audiera Price Prediction: $BEAT 23% Rally vs. Big Token Unlock Fears — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/audiera-price-prediction-beat-token-unlock-risk-analysis"},
-    {n:20, label:"Audiera's BEAT Jumps 30% on Verifiable Revenue and Burns With an August Unlock Next — Coinspeaker", url:"https://partners.coinspeaker.com/audieras-beat-jumps-30-on-verifiable-revenue-and-burns-with-an-august-unlock-next-the-calendar"}
+    {n:20, label:"Audiera's BEAT Jumps 30% on Verifiable Revenue and Burns With an August Unlock Next — Coinspeaker", url:"https://partners.coinspeaker.com/audieras-beat-jumps-30-on-verifiable-revenue-and-burns-with-an-august-unlock-next-the-calendar"},
+    {n:21, label:"MEXC lists Grvt (GRVT) mit $60.000 GRVT und 10.000 USDT Airdrop+ — CryptoBriefing", url:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/"},
+    {n:22, label:"GRVT Token Price, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/grvt"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
