@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>BTC On-Chain-Valuation Dashboard — MVRV Quantile Bands</title>
+<style>
+  :root{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
+    --c-price:#1a1e27; --c-mvrv:#5a5fa6; --c-realized:#b87b16; --c-nupl:#22935a; --c-zscore:#c73f39;
+    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+      --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+      --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+      --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
+      --c-price:#eef1f5; --c-mvrv:#8489d1; --c-realized:#d99a2e; --c-nupl:#3db877; --c-zscore:#e0655f;
+      --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+    --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+    --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+    --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+    --c-price:#eef1f5; --c-mvrv:#8489d1; --c-realized:#d99a2e; --c-nupl:#3db877; --c-zscore:#e0655f;
+    --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --c-price:#1a1e27; --c-mvrv:#5a5fa6; --c-realized:#b87b16; --c-nupl:#22935a; --c-zscore:#c73f39;
+    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a;
+  }
+
+  *{box-sizing:border-box}
+  html{background:var(--bg);}
+  body{margin:0; background:var(--bg); overflow-x:hidden;}
+  .page{
+    background:var(--bg); color:var(--ink); min-height:100%;
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:24px;}
+  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; font-variant-numeric:tabular-nums;}
+
+  header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
+  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
+  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:70ch; line-height:1.5;}
+  .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600;}
+  .backlink:hover{text-decoration:underline;}
+
+  .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 16px; line-height:1.6;}
+  .tab-status a{color:var(--accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
+  .tab-status.error{color:var(--critical); border-color:var(--critical-bg); background:var(--critical-bg);}
+
+  .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px 17px; box-shadow:var(--shadow); min-width:0;}
+  .stat .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
+  .stat .value{font-size:21px; font-weight:700; margin-top:6px;}
+  .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:6px; line-height:1.4;}
+
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
+  .chip i{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .chip.good{color:var(--good); background:var(--good-bg); border-color:var(--good-bg);} .chip.good i{background:var(--good);}
+  .chip.caution{color:var(--caution); background:var(--caution-bg); border-color:var(--caution-bg);} .chip.caution i{background:var(--caution);}
+  .chip.critical{color:var(--critical); background:var(--critical-bg); border-color:var(--critical-bg);} .chip.critical i{background:var(--critical);}
+  .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
+
+  .controls-row{display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;}
+  .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:4px; box-shadow:var(--shadow);}
+  .seg button{
+    font:inherit; font-size:12.3px; font-weight:700; padding:7px 13px; border-radius:7px; border:none;
+    background:transparent; color:var(--ink-2); cursor:pointer; transition:background .15s ease, color .15s ease;
+  }
+  .seg button:hover{color:var(--ink);}
+  .seg button.active{background:var(--ink); color:var(--bg);}
+
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;}
+  .panel h2{font-size:16px; margin:0; font-weight:700;}
+  .panel h3{font-size:14px; margin:0; font-weight:700;}
+  .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
+  .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 18px 16px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--shadow);
+    min-width:0;
+  }
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .card-head .ticker{font-size:15.5px; font-weight:800; letter-spacing:.01em;}
+  .card-head .name{font-size:12px; color:var(--ink-3); margin-top:2px; line-height:1.4; max-width:38ch;}
+  .card-head .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;}
+  .card-head .score-num{font-size:16px; font-weight:800;}
+
+  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:8px 8px 4px;}
+  .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+  .mchart-tip{
+    position:absolute; top:8px; right:8px; background:var(--card); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px; font-size:10.8px; line-height:1.55; box-shadow:var(--shadow);
+    pointer-events:none; min-width:132px; max-width:220px;
+  }
+  .tip-date{font-weight:700; color:var(--ink); margin-bottom:2px;}
+  .tip-row{display:flex; align-items:center; gap:5px; color:var(--ink-2); white-space:nowrap;}
+  .tip-row i{width:7px; height:7px; border-radius:50%; display:inline-block; flex:none;}
+  .tip-row span{overflow:hidden; text-overflow:ellipsis;}
+  .tip-row b{color:var(--ink); margin-left:auto; padding-left:8px; font-family:ui-monospace,monospace;}
+
+  .chart-legend{display:flex; flex-wrap:wrap; gap:9px 14px; margin-top:2px;}
+  .legend-chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-2); font-weight:600;}
+  .legend-chip i{width:8px; height:8px; border-radius:50%; display:inline-block; flex:none;}
+
+  .overlay-panel{gap:16px;}
+  .overlay-toggles{display:flex; flex-wrap:wrap; gap:8px;}
+  .overlay-toggle-chip{
+    display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--ink-3);
+    border:1.5px solid var(--border); background:var(--inset); border-radius:100px; padding:6px 12px 6px 10px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .overlay-toggle-chip input{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
+  .overlay-toggle-chip i{width:8px; height:8px; border-radius:50%; display:inline-block; background:var(--border); flex:none;}
+  .overlay-toggle-chip.active{color:var(--ink); border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 12%, var(--card));}
+  .overlay-toggle-chip.active i{background:var(--chip-color);}
+
+  footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
+  footer a{color:var(--accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+  @media (max-width: 700px){
+    .strip{grid-template-columns:1fr;}
+    .grid{grid-template-columns:1fr;}
+    .controls-row{flex-direction:column; align-items:stretch;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="wrap">
+
+    <header>
+      <div>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics</p>
+        <h1>MVRV Quantile Bands &amp; On-Chain-Dashboard</h1>
+        <p class="sub">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle Werte werden direkt im Browser aus der frei zugänglichen Coin Metrics Community API berechnet.</p>
+      </div>
+      <a class="backlink" href="../index.html">← Zurück zum Pump-Signal-Dashboard</a>
+    </header>
+
+    <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
+
+    <section class="strip" id="statStrip"></section>
+
+    <section class="panel" id="heroPanel">
+      <div>
+        <h2>MVRV Quantile Bands</h2>
+        <p>Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.</p>
+      </div>
+      <div id="heroChart"></div>
+    </section>
+
+    <div class="controls-row">
+      <div class="seg" id="rangeSeg" role="group" aria-label="Zeitraum">
+        <button data-range="all" class="active">Alles</button>
+        <button data-range="1825">5J</button>
+        <button data-range="730">2J</button>
+        <button data-range="365">1J</button>
+        <button data-range="180">6M</button>
+      </div>
+      <div class="seg" id="modeSeg" role="group" aria-label="Ansicht">
+        <button data-mode="tiles" class="active">Kacheln</button>
+        <button data-mode="overlay">Überlagert</button>
+      </div>
+    </div>
+
+    <section id="metricsHost"></section>
+
+    <section class="panel" id="methodology">
+      <h2>Methodik &amp; Formeln</h2>
+      <p><b>MVRV</b> = Market Cap ÷ Realized Cap. Realized Cap bewertet jedes UTXO zum Preis seiner letzten Bewegung statt zum aktuellen Kurs — eine Art durchschnittlicher On-Chain-Einstandspreis. MVRV &gt; 1 → Markt im Schnitt im Gewinn, MVRV &lt; 1 → im Schnitt im Verlust.</p>
+      <p><b>Realized Price</b> = Realized Cap ÷ Circulating Supply = Marktpreis ÷ MVRV.</p>
+      <p><b>Quantile Bands:</b> An jedem Tag t werden die erweiternden Perzentile (5/25/50/75/95 %) aller MVRV-Werte von Beginn der Historie bis t berechnet — keine fixen, sondern mit der Zeit präziser werdende Bänder. Jedes Perzentil wird über Band-Preis(t) = Realized Price(t) × Perzentil-MVRV(t) zurück in eine Preislinie umgerechnet.</p>
+      <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
+      <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
+      <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen.</p>
+    </section>
+
+    <section class="panel" id="sourcesSection">
+      <h2>Datenquelle</h2>
+      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key, direkt im Browser abgerufen (CORS-fähig). Geladene Metriken: <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>. Alle weiteren Kennzahlen auf dieser Seite (Realized Price, NUPL, Z-Score, Quantile Bands, Supply-Wachstum, ATH-Abstand) sind im Browser daraus abgeleitete Berechnungen.</p>
+    </section>
+
+    <footer>
+      Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung).
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000";
+  const CACHE_KEY = "mvrvDashboard_cache_v1";
+  const CACHE_TTL = 6 * 60 * 60 * 1000;
+
+  let FULL = null;
+  let mode = "tiles";
+  let rangeDays = "all";
+  const overlaySel = {
+    price:true, mvrv:true, nupl:true, zscore:true,
+    realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false
+  };
+
+  const METRICS = {
+    price:        {label:"BTC-Kurs",               color:"var(--c-price)",    fmt:fmtUSD},
+    mvrv:         {label:"MVRV-Ratio",              color:"var(--c-mvrv)",     fmt:fmtRatio},
+    realizedPrice:{label:"Realized Price",          color:"var(--c-realized)", fmt:fmtUSD},
+    nupl:         {label:"NUPL",                    color:"var(--c-nupl)",     fmt:fmtPctFrac},
+    zscore:       {label:"MVRV Z-Score",            color:"var(--c-zscore)",   fmt:fmtRatio},
+    marketCap:    {label:"Market Cap",              color:"var(--c-mcap)",     fmt:fmtUSD},
+    realizedCap:  {label:"Realized Cap",            color:"var(--c-rcap)",     fmt:fmtUSD},
+    supplyGrowth: {label:"Supply-Wachstum (p.a.)",  color:"var(--c-supply)",   fmt:fmtPctRaw}
+  };
+
+  // ---------- formatters ----------
+  function fmtUSD(v){
+    if(v==null || !isFinite(v)) return "–";
+    const abs=Math.abs(v);
+    if(abs>=1e12) return "$"+(v/1e12).toFixed(2)+"T";
+    if(abs>=1e9) return "$"+(v/1e9).toFixed(2)+"B";
+    if(abs>=1e6) return "$"+(v/1e6).toFixed(2)+"M";
+    if(abs>=1e3) return "$"+(v/1e3).toFixed(1)+"K";
+    return "$"+v.toFixed(2);
+  }
+  function fmtRatio(v){ return v==null||!isFinite(v) ? "–" : v.toFixed(2); }
+  function fmtPctFrac(v){ return v==null||!isFinite(v) ? "–" : (v*100).toFixed(1)+"%"; }
+  function fmtPctRaw(v){ return v==null||!isFinite(v) ? "–" : v.toFixed(1)+"%"; }
+  function fmtBTC(v){ return v==null||!isFinite(v) ? "–" : (v/1e6).toFixed(3)+"M BTC"; }
+  function fmtCompact(v){ return v==null||!isFinite(v) ? "–" : (Math.abs(v)>=1000? v.toFixed(0): v.toFixed(2)); }
+
+  function lastVal(arr){
+    if(!arr) return null;
+    for(let i=arr.length-1;i>=0;i--){ if(arr[i]!=null && isFinite(arr[i])) return arr[i]; }
+    return null;
+  }
+
+  // ---------- data loading ----------
+  async function loadData(force){
+    if(!force){
+      try{
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+        if(cached && Date.now() - cached.ts < CACHE_TTL && Array.isArray(cached.rows)){
+          return {rows:cached.rows, fromCache:true};
+        }
+      }catch(e){ /* ignore corrupt cache */ }
+    }
+    const res = await fetch(API_URL);
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    const rows = json.data || [];
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), rows})); }catch(e){ /* storage full/unavailable */ }
+    return {rows, fromCache:false};
+  }
+
+  function parseRows(rows){
+    return rows.map(d=>({
+      date: d.time.slice(0,10),
+      t: new Date(d.time).getTime(),
+      price: d.PriceUSD!=null ? parseFloat(d.PriceUSD) : null,
+      mvrv: d.CapMVRVCur!=null ? parseFloat(d.CapMVRVCur) : null,
+      realizedCap: d.CapRealUSD!=null ? parseFloat(d.CapRealUSD) : null,
+      supply: d.SplyCur!=null ? parseFloat(d.SplyCur) : null,
+      marketCap: d.CapMrktCurUSD!=null ? parseFloat(d.CapMrktCurUSD) : null
+    })).filter(d=>
+      d.price!=null && d.price>0 &&
+      d.mvrv!=null && d.mvrv>0 &&
+      d.realizedCap!=null && d.realizedCap>0 &&
+      d.supply!=null && d.supply>0 &&
+      d.marketCap!=null && d.marketCap>0
+    );
+  }
+
+  // ---------- math ----------
+  function expandingQuantiles(values, qs){
+    const sorted = [];
+    const out = qs.map(()=> new Array(values.length));
+    for(let i=0;i<values.length;i++){
+      const v = values[i];
+      let lo=0, hi=sorted.length;
+      while(lo<hi){ const mid=(lo+hi)>>1; if(sorted[mid]<v) lo=mid+1; else hi=mid; }
+      sorted.splice(lo,0,v);
+      qs.forEach((q,qi)=>{
+        const pos = q*(sorted.length-1);
+        const lo2 = Math.floor(pos), hi2 = Math.ceil(pos);
+        out[qi][i] = sorted[lo2] + (sorted[hi2]-sorted[lo2])*(pos-lo2);
+      });
+    }
+    return out;
+  }
+
+  function expandingStd(values){
+    let mean=0, M2=0, n=0;
+    const out = new Array(values.length);
+    for(let i=0;i<values.length;i++){
+      n++;
+      const x = values[i];
+      const delta = x-mean;
+      mean += delta/n;
+      const delta2 = x-mean;
+      M2 += delta*delta2;
+      out[i] = Math.sqrt(n>1 ? M2/n : 0);
+    }
+    return out;
+  }
+
+  function computeDerived(rows){
+    const dates = rows.map(r=>r.date);
+    const t = rows.map(r=>r.t);
+    const price = rows.map(r=>r.price);
+    const mvrv = rows.map(r=>r.mvrv);
+    const realizedCap = rows.map(r=>r.realizedCap);
+    const marketCap = rows.map(r=>r.marketCap);
+    const supply = rows.map(r=>r.supply);
+
+    const realizedPrice = realizedCap.map((rc,i)=> rc/supply[i]);
+    const nupl = marketCap.map((mc,i)=> (mc-realizedCap[i])/mc);
+    const std = expandingStd(marketCap);
+    const zscore = marketCap.map((mc,i)=> std[i]>0 ? (mc-realizedCap[i])/std[i] : 0);
+
+    const [q05,q25,q50,q75,q95] = expandingQuantiles(mvrv, [0.05,0.25,0.5,0.75,0.95]);
+    const bands = {
+      p05: realizedPrice.map((rp,i)=> rp*q05[i]),
+      p25: realizedPrice.map((rp,i)=> rp*q25[i]),
+      p50: realizedPrice.map((rp,i)=> rp*q50[i]),
+      p75: realizedPrice.map((rp,i)=> rp*q75[i]),
+      p95: realizedPrice.map((rp,i)=> rp*q95[i])
+    };
+    const mvrvQuantiles = {p05:q05, p25:q25, p50:q50, p75:q75, p95:q95};
+
+    let runningMax = -Infinity;
+    const athDrawdown = price.map(p=>{ runningMax = Math.max(runningMax,p); return (p-runningMax)/runningMax*100; });
+
+    const supplyGrowth = supply.map((s,i)=> (i>=365 && supply[i-365]) ? (s/supply[i-365]-1)*100 : null);
+
+    return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,athDrawdown,supplyGrowth};
+  }
+
+  function sliceRange(d, days){
+    if(days==="all") return d;
+    const cutoff = d.t[d.t.length-1] - days*86400000;
+    let idx = d.t.findIndex(t=> t>=cutoff);
+    if(idx<0) idx=0;
+    const s = k=> d[k].slice(idx);
+    return {
+      dates:s("dates"), t:s("t"), price:s("price"), mvrv:s("mvrv"), realizedCap:s("realizedCap"),
+      marketCap:s("marketCap"), supply:s("supply"), realizedPrice:s("realizedPrice"), nupl:s("nupl"), zscore:s("zscore"),
+      bands:{p05:d.bands.p05.slice(idx), p25:d.bands.p25.slice(idx), p50:d.bands.p50.slice(idx), p75:d.bands.p75.slice(idx), p95:d.bands.p95.slice(idx)},
+      mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx), p25:d.mvrvQuantiles.p25.slice(idx), p50:d.mvrvQuantiles.p50.slice(idx), p75:d.mvrvQuantiles.p75.slice(idx), p95:d.mvrvQuantiles.p95.slice(idx)},
+      athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth")
+    };
+  }
+
+  // ---------- zone classification (always latest real value, independent of chart range) ----------
+  function mvrvZoneForCurrent(){
+    const v = lastVal(FULL.mvrv);
+    if(v==null) return null;
+    const q = FULL.mvrvQuantiles;
+    const p05=lastVal(q.p05), p25=lastVal(q.p25), p75=lastVal(q.p75), p95=lastVal(q.p95);
+    if(v<p05) return {label:"Fire Sale", cls:"good"};
+    if(v<p25) return {label:"Günstig", cls:"good"};
+    if(v<=p75) return {label:"Fair Value", cls:"neutral"};
+    if(v<=p95) return {label:"Teuer", cls:"caution"};
+    return {label:"Euphorie", cls:"critical"};
+  }
+  function nuplZone(v){
+    if(v==null) return {label:"–", cls:"neutral"};
+    if(v<0) return {label:"Kapitulation", cls:"critical"};
+    if(v<0.25) return {label:"Hoffnung/Angst", cls:"caution"};
+    if(v<0.5) return {label:"Optimismus", cls:"neutral"};
+    if(v<0.75) return {label:"Glaube", cls:"good"};
+    return {label:"Euphorie/Gier", cls:"critical"};
+  }
+  function zscoreZone(v){
+    if(v==null) return {label:"–", cls:"neutral"};
+    if(v<0) return {label:"Unterbewertet", cls:"good"};
+    if(v<2) return {label:"Neutral", cls:"neutral"};
+    if(v<4) return {label:"Bullisch", cls:"caution"};
+    if(v<7) return {label:"Überhitzt", cls:"caution"};
+    return {label:"Extrem-Euphorie", cls:"critical"};
+  }
+
+  // ---------- generic SVG multi-line chart ----------
+  function buildLineChart(cfg){
+    const w = 1000, h = cfg.height || 240, padL = 54, padR = 14, padT = 16, padB = 24;
+    const n = cfg.dates.length;
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+
+    if(n < 2){
+      wrap.innerHTML = '<div style="padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;">Keine Daten im gewählten Zeitraum</div>';
+      return wrap;
+    }
+
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.setAttribute("role","img");
+
+    let allVals = [];
+    cfg.series.forEach(s=> s.values.forEach(v=>{ if(v!=null && isFinite(v)) allVals.push(v); }));
+    (cfg.refLines||[]).forEach(r=> allVals.push(r.value));
+    if(allVals.length===0) allVals = [0,1];
+    let min = Math.min(...allVals), max = Math.max(...allVals);
+    if(cfg.log){ min = Math.max(min, 1e-6); if(max<=min) max = min*10; }
+    if(min===max){ min -= (Math.abs(min)||1)*0.1; max += (Math.abs(max)||1)*0.1; }
+    if(!cfg.log){
+      const pad = (max-min)*0.08;
+      min -= pad; max += pad;
+    } else {
+      const lmin = Math.log(min), lmax = Math.log(max), lpad = (lmax-lmin)*0.06 || 0.1;
+      min = Math.exp(lmin-lpad); max = Math.exp(lmax+lpad);
+    }
+
+    function yOf(v){
+      if(v==null || !isFinite(v)) return null;
+      if(cfg.log){
+        const lv = Math.log(Math.max(v,1e-9)), lmin = Math.log(min), lmax = Math.log(max);
+        return padT + (1-(lv-lmin)/(lmax-lmin))*(h-padT-padB);
+      }
+      return padT + (1-(v-min)/(max-min))*(h-padT-padB);
+    }
+    function xOf(i){ return n<=1 ? padL : padL + (i/(n-1))*(w-padL-padR); }
+
+    // background zone bands
+    (cfg.zoneBands||[]).forEach(z=>{
+      const top = z.to===Infinity ? max : z.to;
+      const bot = z.from===-Infinity ? min : z.from;
+      const yTop = yOf(Math.min(top,max)), yBot = yOf(Math.max(bot,min));
+      if(yTop==null||yBot==null) return;
+      const rect = document.createElementNS(NS,"rect");
+      rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
+      rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
+      rect.setAttribute("fill", z.color);
+      svg.appendChild(rect);
+    });
+
+    // gridlines + y labels
+    const ticks = 5;
+    const axisFmt = cfg.axisFmt || (cfg.series[0] && cfg.series[0].fmt) || fmtCompact;
+    for(let i=0;i<=ticks;i++){
+      const frac = i/ticks;
+      let val;
+      if(cfg.log){ const lmin=Math.log(min), lmax=Math.log(max); val = Math.exp(lmin+(1-frac)*(lmax-lmin)); }
+      else { val = min + (1-frac)*(max-min); }
+      const y = padT + frac*(h-padT-padB);
+      const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
+      gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(gl);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = axisFmt(val);
+      svg.appendChild(lbl);
+    }
+
+    // band fills (between two named series)
+    (cfg.bandFill||[]).forEach(bf=>{
+      const top = cfg.series.find(s=>s.key===bf.topKey).values;
+      const bot = cfg.series.find(s=>s.key===bf.bottomKey).values;
+      let d = "", started = false;
+      for(let i=0;i<n;i++){
+        if(top[i]==null||bot[i]==null) continue;
+        const x=xOf(i), y=yOf(top[i]);
+        d += (started?"L":"M") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+        started = true;
+      }
+      for(let i=n-1;i>=0;i--){
+        if(top[i]==null||bot[i]==null) continue;
+        d += "L" + xOf(i).toFixed(1) + "," + yOf(bot[i]).toFixed(1) + " ";
+      }
+      d += "Z";
+      const path = document.createElementNS(NS,"path");
+      path.setAttribute("d",d); path.setAttribute("fill",bf.color); path.setAttribute("stroke","none");
+      svg.appendChild(path);
+    });
+
+    // reference lines
+    (cfg.refLines||[]).forEach(r=>{
+      const y = yOf(r.value);
+      if(y==null) return;
+      const line = document.createElementNS(NS,"line");
+      line.setAttribute("x1",padL); line.setAttribute("x2",w-padR); line.setAttribute("y1",y); line.setAttribute("y2",y);
+      line.setAttribute("stroke", r.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
+      line.setAttribute("stroke-dasharray","4 3"); line.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(line);
+      if(r.label){
+        const lbl = document.createElementNS(NS,"text");
+        lbl.setAttribute("x",w-padR); lbl.setAttribute("y",y-4); lbl.setAttribute("text-anchor","end");
+        lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", r.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
+        lbl.textContent = r.label;
+        svg.appendChild(lbl);
+      }
+    });
+
+    // series lines
+    cfg.series.forEach(s=>{
+      let d = "", started = false;
+      for(let i=0;i<n;i++){
+        const v = s.values[i];
+        if(v==null || !isFinite(v)){ started=false; continue; }
+        const x=xOf(i), y=yOf(v);
+        d += (started?"L":"M") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+        started = true;
+      }
+      const path = document.createElementNS(NS,"path");
+      path.setAttribute("d", d.trim()); path.setAttribute("fill","none");
+      path.setAttribute("stroke", s.color); path.setAttribute("stroke-width", s.width||1.8);
+      if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
+      path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
+      path.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(path);
+    });
+
+    // x-axis date labels
+    const xTicks = Math.min(6, n);
+    for(let k=0;k<xTicks;k++){
+      const i = Math.round(k*(n-1)/((xTicks-1)||1));
+      const x = xOf(i);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6);
+      lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = cfg.dates[i].slice(0,7);
+      svg.appendChild(lbl);
+    }
+
+    // crosshair
+    const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
+    cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1");
+    cross.setAttribute("vector-effect","non-scaling-stroke");
+    cross.style.opacity = "0";
+    svg.appendChild(cross);
+
+    const hitRect = document.createElementNS(NS,"rect");
+    hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
+    hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
+    hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair";
+    svg.appendChild(hitRect);
+
+    wrap.appendChild(svg);
+    const tip = document.createElement("div");
+    tip.className = "mchart-tip";
+    wrap.appendChild(tip);
+
+    function renderAt(i){
+      const x = xOf(i);
+      cross.setAttribute("x1",x); cross.setAttribute("x2",x);
+      let html = `<div class="tip-date">${cfg.dates[i]}</div>`;
+      cfg.series.forEach(s=>{
+        const raw = s.tooltipValues ? s.tooltipValues[i] : s.values[i];
+        const fmt = s.fmt || cfg.valueFmt || fmtCompact;
+        html += `<div class="tip-row"><i style="background:${s.color}"></i><span>${s.label}</span><b>${raw==null?"–":fmt(raw)}</b></div>`;
+      });
+      tip.innerHTML = html;
+    }
+    renderAt(n-1);
+
+    function handleMove(clientX){
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width / w;
+      const svgX = (clientX - rect.left) / scaleX;
+      let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
+      i = Math.max(0, Math.min(n-1, i));
+      cross.style.opacity = "1";
+      renderAt(i);
+    }
+    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; renderAt(n-1); });
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1); });
+
+    return wrap;
+  }
+
+  function buildLegend(series){
+    const el = document.createElement("div");
+    el.className = "chart-legend";
+    el.innerHTML = series.map(s=> `<span class="legend-chip"><i style="background:${s.color}"></i>${s.label}</span>`).join("");
+    return el;
+  }
+
+  function normalize(values){
+    const vals = values.filter(v=> v!=null && isFinite(v));
+    if(!vals.length) return values.map(()=>null);
+    const min = Math.min(...vals), max = Math.max(...vals), range = (max-min)||1;
+    return values.map(v=> (v==null||!isFinite(v)) ? null : (v-min)/range);
+  }
+
+  // ---------- tile definitions ----------
+  const TILES = [
+    {
+      title:"MVRV-Ratio", desc:"Market Value ÷ Realized Value. >1 = Markt im Schnitt im Gewinn.",
+      current(){ const v=lastVal(FULL.mvrv); return {value:fmtRatio(v), zone:mvrvZoneForCurrent()}; },
+      build(view){
+        return {chart: buildLineChart({
+          dates:view.dates, height:200, log:false,
+          series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:2, fmt:fmtRatio}],
+          refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
+        })};
+      }
+    },
+    {
+      title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis vs. tatsächlicher Kurs (log-skaliert).",
+      current(){ return {value:fmtUSD(lastVal(FULL.realizedPrice))}; },
+      build(view){
+        const series = [
+          {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2, dashed:true, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2, fmt:fmtUSD}
+        ];
+        const chart = buildLineChart({dates:view.dates, height:200, log:true, series});
+        return {chart, legend: buildLegend(series)};
+      }
+    },
+    {
+      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn. = 1 − 1/MVRV.",
+      current(){ const v=lastVal(FULL.nupl); return {value:fmtPctFrac(v), zone:nuplZone(v)}; },
+      build(view){
+        return {chart: buildLineChart({
+          dates:view.dates, height:200, log:false,
+          series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:2, fmt:fmtPctFrac}],
+          refLines:[
+            {value:0, label:"Kapitulation", color:"var(--critical)"},
+            {value:0.75, label:"Euphorie", color:"var(--good)"}
+          ]
+        })};
+      }
+    },
+    {
+      title:"MVRV Z-Score", desc:"(Market Cap − Realized Cap) ÷ erweiternde Standardabweichung(Market Cap).",
+      current(){ const v=lastVal(FULL.zscore); return {value:fmtRatio(v), zone:zscoreZone(v)}; },
+      build(view){
+        return {chart: buildLineChart({
+          dates:view.dates, height:200, log:false,
+          series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:2, fmt:fmtRatio}],
+          refLines:[
+            {value:0, label:"neutral", color:"var(--ink-3)"},
+            {value:7, label:"Top-Zone", color:"var(--critical)"}
+          ]
+        })};
+      }
+    },
+    {
+      title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert. Verhältnis der beiden Linien = MVRV.",
+      current(){ return {value: fmtUSD(lastVal(FULL.marketCap)) + " / " + fmtUSD(lastVal(FULL.realizedCap))}; },
+      build(view){
+        const series = [
+          {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:2, fmt:fmtUSD},
+          {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:2, dashed:true, fmt:fmtUSD}
+        ];
+        const chart = buildLineChart({dates:view.dates, height:200, log:true, series});
+        return {chart, legend: buildLegend(series)};
+      }
+    },
+    {
+      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage).",
+      current(){ return {value: fmtPctRaw(lastVal(FULL.supplyGrowth))}; },
+      build(view){
+        return {chart: buildLineChart({
+          dates:view.dates, height:200, log:false,
+          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:2, fmt:fmtPctRaw}],
+          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
+        })};
+      }
+    },
+    {
+      title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %).",
+      current(){ return {value: fmtPctRaw(lastVal(FULL.athDrawdown))}; },
+      build(view){
+        return {chart: buildLineChart({
+          dates:view.dates, height:200, log:false,
+          series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:2, fmt:fmtPctRaw}],
+          refLines:[{value:0, label:"ATH", color:"var(--good)"}]
+        })};
+      }
+    }
+  ];
+
+  // ---------- rendering ----------
+  function renderStatStrip(){
+    const el = document.getElementById("statStrip");
+    const price = lastVal(FULL.price), mvrv = lastVal(FULL.mvrv), nupl = lastVal(FULL.nupl), z = lastVal(FULL.zscore);
+    const rp = lastVal(FULL.realizedPrice), mc = lastVal(FULL.marketCap), rc = lastVal(FULL.realizedCap);
+    const ath = lastVal(FULL.athDrawdown), sg = lastVal(FULL.supplyGrowth), sup = lastVal(FULL.supply);
+    const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
+    el.innerHTML = `
+      <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Stand: ${FULL.dates[FULL.dates.length-1]}</div></div>
+      <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}"><i></i>${mz.label}</span>`:"–"}</div></div>
+      <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}"><i></i>${nz.label}</span></div></div>
+      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${fmtRatio(z)}</div><div class="ctx"><span class="chip ${zz.cls}"><i></i>${zz.label}</span></div></div>
+      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>
+      <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${fmtUSD(mc)} / ${fmtUSD(rc)}</div><div class="ctx">Verhältnis = MVRV</div></div>
+      <div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>
+      <div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${fmtBTC(sup)}</div><div class="ctx">Wachstum p.a.: ${fmtPctRaw(sg)}</div></div>
+    `;
+  }
+
+  function renderHero(view){
+    const host = document.getElementById("heroChart");
+    host.innerHTML = "";
+    const series = [
+      {key:"p95", label:"Euphorie (95. Pct.)", color:"var(--critical)", values:view.bands.p95, dashed:true, width:1.3, fmt:fmtUSD},
+      {key:"p75", label:"Teuer (75. Pct.)", color:"var(--caution)", values:view.bands.p75, dashed:true, width:1.3, fmt:fmtUSD},
+      {key:"p50", label:"Fair Value (Median)", color:"var(--neutral)", values:view.bands.p50, dashed:true, width:1.3, fmt:fmtUSD},
+      {key:"p25", label:"Günstig (25. Pct.)", color:"var(--good)", values:view.bands.p25, dashed:true, width:1.3, fmt:fmtUSD},
+      {key:"p05", label:"Fire Sale (5. Pct.)", color:"var(--accent)", values:view.bands.p05, dashed:true, width:1.3, fmt:fmtUSD},
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.4, fmt:fmtUSD}
+    ];
+    const bandFill = [
+      {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
+      {topKey:"p75", bottomKey:"p50", color:"var(--caution-bg)"},
+      {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
+      {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
+    ];
+    const chart = buildLineChart({dates:view.dates, series, log:true, height:360, bandFill});
+    host.appendChild(chart);
+    host.appendChild(buildLegend(series));
+  }
+
+  function renderTiles(view){
+    const host = document.getElementById("metricsHost");
+    host.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    TILES.forEach(tile=>{
+      const cur = tile.current();
+      const card = document.createElement("div");
+      card.className = "card";
+      const head = document.createElement("div");
+      head.className = "card-head";
+      head.innerHTML = `
+        <div><div class="ticker">${tile.title}</div><div class="name">${tile.desc}</div></div>
+        <div class="score-block">
+          <div class="score-num mono">${cur.value}</div>
+          ${cur.zone ? `<span class="chip ${cur.zone.cls}"><i></i>${cur.zone.label}</span>` : ""}
+        </div>
+      `;
+      card.appendChild(head);
+      const built = tile.build(view);
+      card.appendChild(built.chart);
+      if(built.legend) card.appendChild(built.legend);
+      grid.appendChild(card);
+    });
+    host.appendChild(grid);
+  }
+
+  function renderOverlay(view){
+    const host = document.getElementById("metricsHost");
+    host.innerHTML = "";
+    const panel = document.createElement("div");
+    panel.className = "panel overlay-panel";
+    panel.innerHTML = `<h3>Kennzahlen überlagern</h3><p>Wähle beliebige Kennzahlen aus, um sie normalisiert (0–100 % je sichtbarem Zeitraum) in einem Chart zu vergleichen — z. B. um zu sehen, wie MVRV, NUPL und Z-Score im Gleichlauf zum Kurs schwingen.</p>`;
+
+    const legendWrap = document.createElement("div");
+    legendWrap.className = "overlay-toggles";
+    Object.keys(METRICS).forEach(key=>{
+      const m = METRICS[key];
+      const lab = document.createElement("label");
+      lab.className = "overlay-toggle-chip" + (overlaySel[key] ? " active" : "");
+      lab.style.setProperty("--chip-color", m.color);
+      lab.innerHTML = `<input type="checkbox" ${overlaySel[key] ? "checked" : ""}><i></i>${m.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        overlaySel[key] = e.target.checked;
+        renderAll();
+      });
+      legendWrap.appendChild(lab);
+    });
+    panel.appendChild(legendWrap);
+
+    const selectedKeys = Object.keys(overlaySel).filter(k=> overlaySel[k]);
+    if(selectedKeys.length === 0){
+      const empty = document.createElement("p");
+      empty.className = "sub";
+      empty.textContent = "Wähle mindestens eine Kennzahl aus, um sie zu überlagern.";
+      panel.appendChild(empty);
+    } else {
+      const series = selectedKeys.map(key=>({
+        key, label:METRICS[key].label, color:METRICS[key].color,
+        values: normalize(view[key]),
+        tooltipValues: view[key],
+        fmt: METRICS[key].fmt,
+        width:2
+      }));
+      const chart = buildLineChart({
+        dates:view.dates, series, log:false, height:360,
+        axisFmt: v=> (v*100).toFixed(0)+"%"
+      });
+      panel.appendChild(chart);
+      const note = document.createElement("p");
+      note.className = "method-note";
+      note.textContent = "Alle Linien sind Min–Max-normalisiert auf den sichtbaren Zeitraum (0–100 %), um Timing und Zyklen vergleichbar zu machen. Die Tooltip-Werte zeigen die echten, nicht normalisierten Kennzahlen.";
+      panel.appendChild(note);
+    }
+    host.appendChild(panel);
+  }
+
+  function renderAll(){
+    const view = sliceRange(FULL, rangeDays);
+    renderStatStrip();
+    renderHero(view);
+    if(mode === "tiles") renderTiles(view); else renderOverlay(view);
+  }
+
+  // ---------- status banner ----------
+  function setStatus(kind, extra){
+    const el = document.getElementById("statusBanner");
+    if(kind === "loading"){
+      el.className = "tab-status";
+      el.innerHTML = "Lade Onchain-Daten von Coin Metrics …";
+    } else if(kind === "ok"){
+      el.className = "tab-status";
+      el.innerHTML = `Live-Daten von <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> · ${extra.count} Handelstage seit ${FULL.dates[0]} · zuletzt aktualisiert ${new Date().toLocaleString("de-DE")}${extra.fromCache ? " (aus Cache, < 6 Std. alt)" : ""}`;
+    } else if(kind === "error"){
+      el.className = "tab-status error";
+      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}). <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
+      const btn = document.getElementById("retryBtn");
+      if(btn) btn.addEventListener("click", ()=> loadAndRender(true));
+    }
+  }
+
+  // ---------- controls ----------
+  function setActive(segId, btn){
+    document.querySelectorAll("#"+segId+" button").forEach(b=> b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+  function wireControls(){
+    document.getElementById("rangeSeg").addEventListener("click", e=>{
+      const btn = e.target.closest("button"); if(!btn) return;
+      rangeDays = btn.dataset.range === "all" ? "all" : parseInt(btn.dataset.range,10);
+      setActive("rangeSeg", btn);
+      renderAll();
+    });
+    document.getElementById("modeSeg").addEventListener("click", e=>{
+      const btn = e.target.closest("button"); if(!btn) return;
+      mode = btn.dataset.mode;
+      setActive("modeSeg", btn);
+      renderAll();
+    });
+  }
+
+  async function loadAndRender(force){
+    setStatus("loading");
+    try{
+      const {rows, fromCache} = await loadData(force);
+      const parsed = parseRows(rows);
+      if(parsed.length < 30) throw new Error("zu wenige gültige Datenpunkte");
+      FULL = computeDerived(parsed);
+      setStatus("ok", {count:parsed.length, fromCache});
+      renderAll();
+    }catch(err){
+      setStatus("error", err);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    wireControls();
+    loadAndRender(false);
+  });
+})();
+</script>
+</body>
+</html>
