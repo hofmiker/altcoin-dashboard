@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pump-Signal Dashboard — 04.08.2026</title>
+<title>Pump-Signal Dashboard — 05.08.2026</title>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -247,7 +247,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 04.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 05.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -262,8 +262,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$62.500–64.500</div>
-          <div class="ctx">Stabil um ~$63k, ruhiger Handelstag ohne große Bewegung</div>
+          <div class="value mono">$63.000–65.000</div>
+          <div class="ctx">Hält sich über $64k (+0,98% heute), Gesamtmarkt +0,7% auf $2,27 Bio.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -274,7 +274,7 @@
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~56,3%</div>
-          <div class="ctx">Unverändert bei ~56,3%, keine neuen frischen Pump-Signale heute gefunden</div>
+          <div class="ctx">Unverändert bei ~56,3%, breite Short-Squeeze-Welle treibt kleinere Altcoins wie CYS deutlich an</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -347,7 +347,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–4.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–5.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -355,7 +355,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 31;
+  const DASHBOARD_VERSION = 32;
 
   const coins = [
     {
@@ -714,6 +714,27 @@
       flag:"Kein Audit für den GRVT-Token-Contract auffindbar (nicht zu verwechseln mit dem unabhängigen Projekt „Gravitoken/GRV”). Nur 11% des 1-Mrd.-Supply im Umlauf — FDV liegt beim ~8,75-Fachen der Market Cap, hohes Verwässerungsrisiko bei künftigen Freischaltungen.",
       note:"<b>Neu:</b> GRVT (selbstverwahrende On-Chain-Wealth-Plattform, seit Dez. 2024 als lizenzierte Perp-DEX aktiv) startete den Token gestern (30. Jul) zeitgleich auf Binance Alpha, Bybit, MEXC, KuCoin, Bitget und mit Coinbase-Einzahlungen — Kurs heute +62%. Bereits am 21. Jul als Kandidat geprüft und mangels bestätigtem Tier-1-Listing zurückgestellt; das ist jetzt nachgeholt. <b>Score bleibt unter der Watchlist-Schwelle</b> — kein auffindbarer Audit und starkes Dilution-Risiko (nur 11% Floating Supply) bremsen trotz des breiten Exchange-Rollouts.",
       sourceRefs:[21,22]
+    },
+    {
+      ticker:"CYS", name:"Cysic (ZK-Proof-/ComputeFi-Infrastruktur)", status:"caution", statusLabel:"Unter Schwelle / kein Einzeltitel-Katalysator", score:2, firstSeen:"05.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"cysic", link:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises",
+      series:[
+        {label:"Vor Ausbruch", value:0.29},
+        {label:"4. Aug", value:0.29},
+        {label:"5. Aug (Peak)", value:0.547}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$85,4–87,6 Mio."},
+        {k:"FDV",v:"$545 Mio. (~16% im Umlauf)"},
+        {k:"24h-Liquidationen",v:"$2,29 Mio. (67% Shorts)"},
+        {k:"Audit",v:"CertiK 4,4/5"}
+      ],
+      signals:[
+        ["Short-Squeeze-Dynamik im breiten Markt (67% der Liquidationen Shorts, CYS-Volumen +71%)","+2"]
+      ],
+      flag:"Nur ~16% des 1-Mrd.-Supply im Umlauf (FDV ~6,2x Market Cap) — hohes Verwässerungsrisiko. Kein Cysic-spezifischer Katalysator identifizierbar, Kursbewegung wird von Analysten als „positive Beta” zur allgemeinen Marktrally beschrieben, nicht als eigenständiges Signal.",
+      note:"<b>Neu:</b> Cysic (ZK-Proof-/ComputeFi-Infrastruktur) sprang um bis zu 93% im Zuge einer breiten Short-Squeeze-Welle im Markt (67% der $2,29-Mio.-Liquidationen betrafen Shorts). Kein projekteigener Katalysator auffindbar — Analysten stufen den Move als Beta zur allgemeinen Bitcoin-Rally ein, nicht als Cysic-spezifisches Ereignis. Audit vorhanden (CertiK 4,4/5), aber niedriger Free Float (~16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
+      sourceRefs:[24]
     }
   ];
 
@@ -741,7 +762,8 @@
     {n:20, label:"Audiera's BEAT Jumps 30% on Verifiable Revenue and Burns With an August Unlock Next — Coinspeaker", url:"https://partners.coinspeaker.com/audieras-beat-jumps-30-on-verifiable-revenue-and-burns-with-an-august-unlock-next-the-calendar"},
     {n:21, label:"MEXC lists Grvt (GRVT) mit $60.000 GRVT und 10.000 USDT Airdrop+ — CryptoBriefing", url:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/"},
     {n:22, label:"GRVT Token Price, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/grvt"},
-    {n:23, label:"Audiera BEAT Token Rips 30% as Traders Price in Reduced Risk From Early-August Unlock — ICOBench", url:"https://icobench.com/news/press-releases/audieras-beat-rips-30-on-revenue-and-burn-data-as-traders-price-in-an-early-august-unlock/"}
+    {n:23, label:"Audiera BEAT Token Rips 30% as Traders Price in Reduced Risk From Early-August Unlock — ICOBench", url:"https://icobench.com/news/press-releases/audieras-beat-rips-30-on-revenue-and-burn-data-as-traders-price-in-an-early-august-unlock/"},
+    {n:24, label:"Crypto News Today August 5: Bitcoin Holds $64K, Cysic Token Soars 93% — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
