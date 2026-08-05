@@ -19,20 +19,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch Coin Metrics data (fails loudly instead of writing partial/empty data)
+      - name: Fetch Coin Metrics data (probes which metrics are free, fails loudly instead of writing partial/empty data)
         id: fetch
         run: |
           set -euo pipefail
-          URL="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000"
-          # A plain curl UA/request from a GitHub-runner IP gets a 403 (confirmed in a prior run) while a
-          # real mobile browser hitting the same URL works fine, so mimic an ordinary browser request.
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          BASE="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&frequency=1d"
+
+          # Confirmed via a real run: CapRealUSD returns 403 "not available with supplied credentials"
+          # on the keyless community tier even though PriceUSD works fine - Coin Metrics' free/paid split
+          # isn't what earlier research assumed. Probe every metric we want individually (cheap, page_size=2)
+          # and only request what's actually free, instead of failing the whole fetch over one paid metric.
+          AVAILABLE=""
+          for METRIC in PriceUSD CapMVRVCur CapRealUSD SplyCur CapMrktCurUSD; do
+            CODE=$(curl -sS --retry 3 --retry-delay 5 -o /tmp/probe.json -w "%{http_code}" \
+              -H "User-Agent: $UA" -H "Accept: application/json" -H "Accept-Language: en-US,en;q=0.9" \
+              "${BASE}&metrics=${METRIC}&page_size=2")
+            if [ "$CODE" = "200" ]; then
+              echo "AVAILABLE: $METRIC"
+              AVAILABLE="${AVAILABLE}${AVAILABLE:+,}${METRIC}"
+            else
+              echo "NOT AVAILABLE: $METRIC (HTTP $CODE) - $(cat /tmp/probe.json)"
+            fi
+          done
+          echo "Metrics available with these credentials: $AVAILABLE"
+
+          case ",$AVAILABLE," in
+            *,CapMVRVCur,*) : ;;
+            *)
+              echo "CapMVRVCur itself is not available with these credentials - the whole MVRV dashboard" >&2
+              echo "concept needs it and there is no substitute. Aborting without committing anything." >&2
+              exit 1
+              ;;
+          esac
+
+          URL="${BASE}&metrics=${AVAILABLE}&page_size=10000"
           HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -w "%{http_code}" -o /tmp/cm_response.json \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
-            -H "Accept: application/json, text/plain, */*" \
-            -H "Accept-Language: en-US,en;q=0.9" \
+            -H "User-Agent: $UA" -H "Accept: application/json, text/plain, */*" -H "Accept-Language: en-US,en;q=0.9" \
             "$URL")
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "API returned HTTP $HTTP_CODE - aborting without committing anything. Response body:" >&2
+            echo "Full fetch of available metrics returned HTTP $HTTP_CODE - aborting without committing anything. Response body:" >&2
             cat /tmp/cm_response.json >&2
             exit 1
           fi
@@ -45,13 +71,14 @@ jobs:
           FETCHED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           AS_OF=$(echo "$RAW" | jq -r '.data[-1].time[0:10]')
           mkdir -p data/mvrv/history
-          echo "$RAW" | jq --arg fetchedAt "$FETCHED_AT" --arg source "$URL" --arg asOf "$AS_OF" \
-            '{fetchedAt:$fetchedAt, source:$source, asOf:$asOf, rowCount:(.data|length), data:.data}' \
+          echo "$RAW" | jq --arg fetchedAt "$FETCHED_AT" --arg source "$URL" --arg asOf "$AS_OF" --arg metrics "$AVAILABLE" \
+            '{fetchedAt:$fetchedAt, source:$source, asOf:$asOf, metricsAvailable:($metrics|split(",")), rowCount:(.data|length), data:.data}' \
             > data/mvrv/latest.json
           cp data/mvrv/latest.json "data/mvrv/history/${AS_OF}.json"
           echo "as_of=$AS_OF" >> "$GITHUB_OUTPUT"
           echo "row_count=$ROWCOUNT" >> "$GITHUB_OUTPUT"
           echo "fetched_at=$FETCHED_AT" >> "$GITHUB_OUTPUT"
+          echo "metrics_available=$AVAILABLE" >> "$GITHUB_OUTPUT"
 
       - name: Commit snapshot and open PR (main is branch-protected, no direct push)
         env:
@@ -70,6 +97,6 @@ jobs:
           git commit -m "Update MVRV data snapshot (${{ steps.fetch.outputs.as_of }}, ${{ steps.fetch.outputs.row_count }} rows)"
           git push -u origin "$BRANCH"
           gh pr create --title "Update MVRV data snapshot (${{ steps.fetch.outputs.as_of }})" \
-            --body "Automated Coin Metrics Community API fetch, unmodified. Data as of ${{ steps.fetch.outputs.as_of }}, fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows." \
+            --body "Automated Coin Metrics Community API fetch, unmodified. Data as of ${{ steps.fetch.outputs.as_of }}, fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows. Metrics available with current credentials: ${{ steps.fetch.outputs.metrics_available }}." \
             --base main --head "$BRANCH"
           gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
