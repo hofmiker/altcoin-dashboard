@@ -66,6 +66,8 @@
   .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 16px; line-height:1.6;}
   .tab-status a{color:var(--accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
   .tab-status.error{color:var(--critical); border-color:var(--critical-bg); background:var(--critical-bg);}
+  .tab-status.fallback{color:var(--caution); border-color:var(--caution-bg); background:var(--caution-bg);}
+  .tab-status b{color:inherit; font-family:ui-monospace,monospace;}
 
   .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;}
   .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px 17px; box-shadow:var(--shadow); min-width:0;}
@@ -154,7 +156,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics</p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics<span id="eyebrowDate"></span></p>
         <h1>MVRV Quantile Bands &amp; On-Chain-Dashboard</h1>
         <p class="sub">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle Werte werden direkt im Browser aus der frei zugänglichen Coin Metrics Community API berechnet.</p>
       </div>
@@ -201,7 +203,8 @@
 
     <section class="panel" id="sourcesSection">
       <h2>Datenquelle</h2>
-      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key, direkt im Browser abgerufen (CORS-fähig). Geladene Metriken: <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>. Alle weiteren Kennzahlen auf dieser Seite (Realized Price, NUPL, Z-Score, Quantile Bands, Supply-Wachstum, ATH-Abstand) sind im Browser daraus abgeleitete Berechnungen.</p>
+      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key, direkt im Browser abgerufen (CORS-fähig). Geladene Metriken: <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>. Alle weiteren Kennzahlen auf dieser Seite (Realized Price, NUPL, Z-Score, Quantile Bands, Supply-Wachstum, ATH-Abstand) sind im Browser daraus abgeleitete Berechnungen — es wird nichts geschätzt oder erfunden.</p>
+      <p>Schlägt der Live-Abruf fehl, springt die Seite automatisch auf einen im Repo hinterlegten Snapshot (<span class="mono">data/mvrv/latest.json</span>) um, den eine tägliche GitHub Action unverändert von derselben API abholt und mit Datum versieht (Archiv: <span class="mono">data/mvrv/history/</span>). Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
     </section>
 
     <footer>
@@ -261,21 +264,43 @@
   }
 
   // ---------- data loading ----------
+  // Primary path: live fetch straight from Coin Metrics in the visitor's browser (real-time, unmodified).
+  // If that fails (rate limit, CORS change, offline), fall back to the dated snapshot committed to this
+  // repo by .github/workflows/fetch-mvrv-data.yml — clearly labelled as such, never silently treated as live.
+  // data/ is intentionally excluded from the published Pages build (see data/README.md), so the fallback
+  // is read straight from GitHub's raw file host instead of a relative path.
+  const FALLBACK_URL = "https://raw.githubusercontent.com/hofmiker/altcoin-dashboard/main/data/mvrv/latest.json";
+
   async function loadData(force){
     if(!force){
       try{
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
         if(cached && Date.now() - cached.ts < CACHE_TTL && Array.isArray(cached.rows)){
-          return {rows:cached.rows, fromCache:true};
+          return {rows:cached.rows, fromCache:true, source:cached.source||"live", fetchedAt:cached.fetchedAt||null};
         }
       }catch(e){ /* ignore corrupt cache */ }
     }
-    const res = await fetch(API_URL);
-    if(!res.ok) throw new Error("HTTP " + res.status);
-    const json = await res.json();
-    const rows = json.data || [];
-    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), rows})); }catch(e){ /* storage full/unavailable */ }
-    return {rows, fromCache:false};
+    try{
+      const res = await fetch(API_URL);
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      const rows = json.data || [];
+      const fetchedAt = new Date().toISOString();
+      try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), rows, source:"live", fetchedAt})); }catch(e){ /* storage full/unavailable */ }
+      return {rows, fromCache:false, source:"live", fetchedAt};
+    }catch(liveErr){
+      try{
+        const res2 = await fetch(FALLBACK_URL);
+        if(!res2.ok) throw new Error("HTTP " + res2.status);
+        const json2 = await res2.json();
+        const rows = json2.data || [];
+        const fetchedAt = json2.fetchedAt || null;
+        try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ts:Date.now(), rows, source:"fallback", fetchedAt})); }catch(e){ /* storage full/unavailable */ }
+        return {rows, fromCache:false, source:"fallback", fetchedAt};
+      }catch(fallbackErr){
+        throw liveErr;
+      }
+    }
   }
 
   function parseRows(rows){
@@ -830,17 +855,30 @@
   }
 
   // ---------- status banner ----------
+  function fmtTs(iso){
+    if(!iso) return "unbekannt";
+    try{ return new Date(iso).toLocaleString("de-DE", {dateStyle:"medium", timeStyle:"short"}); }catch(e){ return iso; }
+  }
+
   function setStatus(kind, extra){
     const el = document.getElementById("statusBanner");
+    const eyebrow = document.getElementById("eyebrowDate");
     if(kind === "loading"){
       el.className = "tab-status";
       el.innerHTML = "Lade Onchain-Daten von Coin Metrics …";
     } else if(kind === "ok"){
-      el.className = "tab-status";
-      el.innerHTML = `Live-Daten von <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> · ${extra.count} Handelstage seit ${FULL.dates[0]} · zuletzt aktualisiert ${new Date().toLocaleString("de-DE")}${extra.fromCache ? " (aus Cache, < 6 Std. alt)" : ""}`;
+      const asOf = FULL.dates[FULL.dates.length-1];
+      const isFallback = extra.source === "fallback";
+      el.className = "tab-status" + (isFallback ? " fallback" : "");
+      if(isFallback){
+        el.innerHTML = `<b>Fallback-Daten</b> (Live-Abruf direkt von Coin Metrics ist gerade fehlgeschlagen) — geladen aus dem im Repo hinterlegten Snapshot, abgeholt von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> am <b>${fmtTs(extra.fetchedAt)}</b> · Datenstand (letzter Tag in der Zeitreihe): <b>${asOf}</b> · ${extra.count} Handelstage.`;
+      } else {
+        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache, Originalabruf davor)" : ""} · Datenstand (letzter Tag in der Zeitreihe): <b>${asOf}</b> · ${extra.count} Handelstage seit ${FULL.dates[0]}.`;
+      }
+      if(eyebrow) eyebrow.textContent = " · Datenstand: " + asOf;
     } else if(kind === "error"){
       el.className = "tab-status error";
-      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}). <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
+      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Fallback-Snapshot. <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
       const btn = document.getElementById("retryBtn");
       if(btn) btn.addEventListener("click", ()=> loadAndRender(true));
     }
@@ -869,11 +907,11 @@
   async function loadAndRender(force){
     setStatus("loading");
     try{
-      const {rows, fromCache} = await loadData(force);
+      const {rows, fromCache, source, fetchedAt} = await loadData(force);
       const parsed = parseRows(rows);
       if(parsed.length < 30) throw new Error("zu wenige gültige Datenpunkte");
       FULL = computeDerived(parsed);
-      setStatus("ok", {count:parsed.length, fromCache});
+      setStatus("ok", {count:parsed.length, fromCache, source, fetchedAt, browserFetchedAt:new Date().toISOString()});
       renderAll();
     }catch(err){
       setStatus("error", err);

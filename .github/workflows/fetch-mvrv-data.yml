@@ -1,0 +1,63 @@
+name: Fetch MVRV Data
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-mvrv-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Coin Metrics data (fails loudly instead of writing partial/empty data)
+        id: fetch
+        run: |
+          set -euo pipefail
+          URL="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000"
+          RAW=$(curl -sS --fail --retry 3 --retry-delay 5 "$URL")
+          ROWCOUNT=$(echo "$RAW" | jq '.data | length')
+          if [ -z "$ROWCOUNT" ] || [ "$ROWCOUNT" -lt 100 ]; then
+            echo "API returned too few rows ($ROWCOUNT) - aborting without committing anything." >&2
+            exit 1
+          fi
+          FETCHED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          AS_OF=$(echo "$RAW" | jq -r '.data[-1].time[0:10]')
+          mkdir -p data/mvrv/history
+          echo "$RAW" | jq --arg fetchedAt "$FETCHED_AT" --arg source "$URL" --arg asOf "$AS_OF" \
+            '{fetchedAt:$fetchedAt, source:$source, asOf:$asOf, rowCount:(.data|length), data:.data}' \
+            > data/mvrv/latest.json
+          cp data/mvrv/latest.json "data/mvrv/history/${AS_OF}.json"
+          echo "as_of=$AS_OF" >> "$GITHUB_OUTPUT"
+          echo "row_count=$ROWCOUNT" >> "$GITHUB_OUTPUT"
+          echo "fetched_at=$FETCHED_AT" >> "$GITHUB_OUTPUT"
+
+      - name: Commit snapshot and open PR (main is branch-protected, no direct push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- data/mvrv; then
+            echo "No data changes since last run, nothing to commit."
+            exit 0
+          fi
+          BRANCH="mvrv-data-${{ steps.fetch.outputs.as_of }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/mvrv
+          git commit -m "Update MVRV data snapshot (${{ steps.fetch.outputs.as_of }}, ${{ steps.fetch.outputs.row_count }} rows)"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Update MVRV data snapshot (${{ steps.fetch.outputs.as_of }})" \
+            --body "Automated Coin Metrics Community API fetch, unmodified. Data as of ${{ steps.fetch.outputs.as_of }}, fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
