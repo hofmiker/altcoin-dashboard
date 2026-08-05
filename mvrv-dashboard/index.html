@@ -202,7 +202,7 @@
 
     <section class="panel" id="sourcesSection">
       <h2>Datenquelle</h2>
-      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Geladene Metriken: <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>. Alle weiteren Kennzahlen auf dieser Seite (Realized Price, NUPL, Z-Score, Quantile Bands, Supply-Wachstum, ATH-Abstand) sind im Browser daraus abgeleitete Berechnungen — es wird nichts geschätzt oder erfunden.</p>
+      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt (z. B. MVRV Z-Score, Market/Realized Cap in Dollar, Supply-Wachstum), werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt. Was mit <span class="mono">PriceUSD</span> und <span class="mono">CapMVRVCur</span> allein noch exakt berechenbar bleibt (Realized Price = Kurs ÷ MVRV, NUPL = 1 − 1/MVRV, die Quantile Bands), wird weiterhin normal angezeigt.</p>
       <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht (Archiv: <span class="mono">data/mvrv/history/</span>). Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
     </section>
 
@@ -306,6 +306,11 @@
     }
   }
 
+  // Coin Metrics' keyless community tier turned out to only reliably serve PriceUSD and CapMVRVCur —
+  // CapRealUSD/SplyCur/CapMrktCurUSD come back as HTTP 403 "not available with supplied credentials"
+  // (confirmed via a real fetch). So only price+mvrv are required; the rest stay null when the API
+  // doesn't grant them, and computeDerived() below falls back to what's still mathematically derivable
+  // rather than inventing numbers for what isn't.
   function parseRows(rows){
     return rows.map(d=>({
       date: d.time.slice(0,10),
@@ -315,13 +320,7 @@
       realizedCap: d.CapRealUSD!=null ? parseFloat(d.CapRealUSD) : null,
       supply: d.SplyCur!=null ? parseFloat(d.SplyCur) : null,
       marketCap: d.CapMrktCurUSD!=null ? parseFloat(d.CapMrktCurUSD) : null
-    })).filter(d=>
-      d.price!=null && d.price>0 &&
-      d.mvrv!=null && d.mvrv>0 &&
-      d.realizedCap!=null && d.realizedCap>0 &&
-      d.supply!=null && d.supply>0 &&
-      d.marketCap!=null && d.marketCap>0
-    );
+    })).filter(d=> d.price!=null && d.price>0 && d.mvrv!=null && d.mvrv>0);
   }
 
   // ---------- math ----------
@@ -366,10 +365,27 @@
     const marketCap = rows.map(r=>r.marketCap);
     const supply = rows.map(r=>r.supply);
 
-    const realizedPrice = realizedCap.map((rc,i)=> rc/supply[i]);
-    const nupl = marketCap.map((mc,i)=> (mc-realizedCap[i])/mc);
-    const std = expandingStd(marketCap);
-    const zscore = marketCap.map((mc,i)=> std[i]>0 ? (mc-realizedCap[i])/std[i] : 0);
+    const hasRealizedCap = realizedCap.some(v=> v!=null);
+    const hasSupply = supply.some(v=> v!=null);
+    const hasMarketCap = marketCap.some(v=> v!=null);
+    // Realized Price = Realized Cap / Supply, but algebraically also = Market Price / MVRV, so it's
+    // still exactly derivable even when Coin Metrics won't grant CapRealUSD/SplyCur directly.
+    const realizedPrice = price.map((p,i)=>
+      (hasRealizedCap && hasSupply && realizedCap[i]!=null && supply[i]!=null) ? realizedCap[i]/supply[i] : p/mvrv[i]
+    );
+    // NUPL = (MarketCap - RealizedCap) / MarketCap = 1 - RealizedCap/MarketCap = 1 - 1/MVRV by definition
+    // (MVRV = MarketCap/RealizedCap), so it needs no dollar-scale inputs at all.
+    const nupl = mvrv.map(v=> 1 - 1/v);
+
+    // The classic MVRV Z-Score is scale-dependent (stdev of an absolute dollar Market Cap), so unlike
+    // Realized Price/NUPL it genuinely cannot be reconstructed from the MVRV ratio alone - only compute
+    // it when Coin Metrics actually granted both dollar-scale metrics.
+    const hasZScore = hasMarketCap && hasRealizedCap;
+    let zscore = mvrv.map(()=> null);
+    if(hasZScore){
+      const std = expandingStd(marketCap);
+      zscore = marketCap.map((mc,i)=> (mc!=null && realizedCap[i]!=null && std[i]>0) ? (mc-realizedCap[i])/std[i] : null);
+    }
 
     const [q05,q25,q50,q75,q95] = expandingQuantiles(mvrv, [0.05,0.25,0.5,0.75,0.95]);
     const bands = {
@@ -384,9 +400,12 @@
     let runningMax = -Infinity;
     const athDrawdown = price.map(p=>{ runningMax = Math.max(runningMax,p); return (p-runningMax)/runningMax*100; });
 
-    const supplyGrowth = supply.map((s,i)=> (i>=365 && supply[i-365]) ? (s/supply[i-365]-1)*100 : null);
+    const supplyGrowth = hasSupply
+      ? supply.map((s,i)=> (i>=365 && supply[i-365]!=null && s!=null) ? (s/supply[i-365]-1)*100 : null)
+      : supply.map(()=> null);
 
-    return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,athDrawdown,supplyGrowth};
+    return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,athDrawdown,supplyGrowth,
+      hasRealizedCap,hasSupply,hasMarketCap,hasZScore};
   }
 
   function sliceRange(d, days){
@@ -400,7 +419,8 @@
       marketCap:s("marketCap"), supply:s("supply"), realizedPrice:s("realizedPrice"), nupl:s("nupl"), zscore:s("zscore"),
       bands:{p05:d.bands.p05.slice(idx), p25:d.bands.p25.slice(idx), p50:d.bands.p50.slice(idx), p75:d.bands.p75.slice(idx), p95:d.bands.p95.slice(idx)},
       mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx), p25:d.mvrvQuantiles.p25.slice(idx), p50:d.mvrvQuantiles.p50.slice(idx), p75:d.mvrvQuantiles.p75.slice(idx), p95:d.mvrvQuantiles.p95.slice(idx)},
-      athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth")
+      athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth"),
+      hasRealizedCap:d.hasRealizedCap, hasSupply:d.hasSupply, hasMarketCap:d.hasMarketCap, hasZScore:d.hasZScore
     };
   }
 
@@ -684,6 +704,8 @@
     },
     {
       title:"MVRV Z-Score", desc:"(Market Cap − Realized Cap) ÷ erweiternde Standardabweichung(Market Cap).",
+      requires:"hasZScore",
+      unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
       current(){ const v=lastVal(FULL.zscore); return {value:fmtRatio(v), zone:zscoreZone(v)}; },
       build(view){
         return {chart: buildLineChart({
@@ -698,6 +720,8 @@
     },
     {
       title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert. Verhältnis der beiden Linien = MVRV.",
+      requires:"hasMarketCapAndRealizedCap",
+      unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
       current(){ return {value: fmtUSD(lastVal(FULL.marketCap)) + " / " + fmtUSD(lastVal(FULL.realizedCap))}; },
       build(view){
         const series = [
@@ -710,6 +734,8 @@
     },
     {
       title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage).",
+      requires:"hasSupply",
+      unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       current(){ return {value: fmtPctRaw(lastVal(FULL.supplyGrowth))}; },
       build(view){
         return {chart: buildLineChart({
@@ -739,15 +765,16 @@
     const rp = lastVal(FULL.realizedPrice), mc = lastVal(FULL.marketCap), rc = lastVal(FULL.realizedCap);
     const ath = lastVal(FULL.athDrawdown), sg = lastVal(FULL.supplyGrowth), sup = lastVal(FULL.supply);
     const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
+    const na = `<span class="chip neutral"><i></i>nicht verfügbar</span>`;
     el.innerHTML = `
       <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Stand: ${FULL.dates[FULL.dates.length-1]}</div></div>
       <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}"><i></i>${mz.label}</span>`:"–"}</div></div>
       <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}"><i></i>${nz.label}</span></div></div>
-      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${fmtRatio(z)}</div><div class="ctx"><span class="chip ${zz.cls}"><i></i>${zz.label}</span></div></div>
-      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>
-      <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${fmtUSD(mc)} / ${fmtUSD(rc)}</div><div class="ctx">Verhältnis = MVRV</div></div>
+      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}"><i></i>${zz.label}</span>` : na}</div></div>
+      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis (aus Kurs ÷ MVRV)</div></div>
+      <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? (fmtUSD(mc) + " / " + fmtUSD(rc)) : "–"}</div><div class="ctx">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? "Verhältnis = MVRV" : na}</div></div>
       <div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>
-      <div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${fmtBTC(sup)}</div><div class="ctx">Wachstum p.a.: ${fmtPctRaw(sg)}</div></div>
+      <div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${FULL.hasSupply ? fmtBTC(sup) : "–"}</div><div class="ctx">${FULL.hasSupply ? ("Wachstum p.a.: " + fmtPctRaw(sg)) : na}</div></div>
     `;
   }
 
@@ -773,15 +800,34 @@
     host.appendChild(buildLegend(series));
   }
 
+  function tileIsAvailable(tile){
+    if(!tile.requires) return true;
+    if(tile.requires === "hasZScore") return FULL.hasZScore;
+    if(tile.requires === "hasMarketCapAndRealizedCap") return FULL.hasMarketCap && FULL.hasRealizedCap;
+    if(tile.requires === "hasSupply") return FULL.hasSupply;
+    return true;
+  }
+
   function renderTiles(view){
     const host = document.getElementById("metricsHost");
     host.innerHTML = "";
     const grid = document.createElement("div");
     grid.className = "grid";
     TILES.forEach(tile=>{
-      const cur = tile.current();
       const card = document.createElement("div");
       card.className = "card";
+      if(!tileIsAvailable(tile)){
+        card.innerHTML = `
+          <div class="card-head">
+            <div><div class="ticker">${tile.title}</div><div class="name">${tile.desc}</div></div>
+            <div class="score-block"><span class="chip neutral"><i></i>Nicht verfügbar</span></div>
+          </div>
+          <p class="method-note">${tile.unavailableNote || "Die dafür nötigen Rohdaten sind mit den aktuellen API-Zugangsdaten nicht verfügbar."}</p>
+        `;
+        grid.appendChild(card);
+        return;
+      }
+      const cur = tile.current();
       const head = document.createElement("div");
       head.className = "card-head";
       head.innerHTML = `
@@ -807,23 +853,38 @@
     panel.className = "panel overlay-panel";
     panel.innerHTML = `<h3>Kennzahlen überlagern</h3><p>Wähle beliebige Kennzahlen aus, um sie normalisiert (0–100 % je sichtbarem Zeitraum) in einem Chart zu vergleichen — z. B. um zu sehen, wie MVRV, NUPL und Z-Score im Gleichlauf zum Kurs schwingen.</p>`;
 
+    const metricAvailable = key=>{
+      if(key === "zscore") return FULL.hasZScore;
+      if(key === "marketCap" || key === "realizedCap") return FULL.hasMarketCap && FULL.hasRealizedCap;
+      if(key === "supplyGrowth") return FULL.hasSupply;
+      return true;
+    };
+
     const legendWrap = document.createElement("div");
     legendWrap.className = "overlay-toggles";
     Object.keys(METRICS).forEach(key=>{
       const m = METRICS[key];
+      const available = metricAvailable(key);
+      if(!available) overlaySel[key] = false;
       const lab = document.createElement("label");
-      lab.className = "overlay-toggle-chip" + (overlaySel[key] ? " active" : "");
+      lab.className = "overlay-toggle-chip" + (overlaySel[key] ? " active" : "") + (available ? "" : " disabled");
+      if(!available) lab.style.opacity = "0.4";
       lab.style.setProperty("--chip-color", m.color);
-      lab.innerHTML = `<input type="checkbox" ${overlaySel[key] ? "checked" : ""}><i></i>${m.label}`;
-      lab.querySelector("input").addEventListener("change", e=>{
-        overlaySel[key] = e.target.checked;
-        renderAll();
-      });
+      lab.innerHTML = `<input type="checkbox" ${overlaySel[key] ? "checked" : ""} ${available ? "" : "disabled"}><i></i>${m.label}${available ? "" : " (n/v)"}`;
+      if(available){
+        lab.querySelector("input").addEventListener("change", e=>{
+          overlaySel[key] = e.target.checked;
+          renderAll();
+        });
+      } else {
+        lab.title = "Nicht verfügbar: die zugrunde liegende Metrik wird von Coin Metrics mit den aktuellen Zugangsdaten nicht freigegeben.";
+        lab.style.cursor = "not-allowed";
+      }
       legendWrap.appendChild(lab);
     });
     panel.appendChild(legendWrap);
 
-    const selectedKeys = Object.keys(overlaySel).filter(k=> overlaySel[k]);
+    const selectedKeys = Object.keys(overlaySel).filter(k=> overlaySel[k] && metricAvailable(k));
     if(selectedKeys.length === 0){
       const empty = document.createElement("p");
       empty.className = "sub";
