@@ -24,7 +24,19 @@ jobs:
         run: |
           set -euo pipefail
           URL="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000"
-          RAW=$(curl -sS --fail --retry 3 --retry-delay 5 "$URL")
+          # A plain curl UA/request from a GitHub-runner IP gets a 403 (confirmed in a prior run) while a
+          # real mobile browser hitting the same URL works fine, so mimic an ordinary browser request.
+          HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -w "%{http_code}" -o /tmp/cm_response.json \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+            -H "Accept: application/json, text/plain, */*" \
+            -H "Accept-Language: en-US,en;q=0.9" \
+            "$URL")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "API returned HTTP $HTTP_CODE - aborting without committing anything. Response body:" >&2
+            cat /tmp/cm_response.json >&2
+            exit 1
+          fi
+          RAW=$(cat /tmp/cm_response.json)
           ROWCOUNT=$(echo "$RAW" | jq '.data | length')
           if [ -z "$ROWCOUNT" ] || [ "$ROWCOUNT" -lt 100 ]; then
             echo "API returned too few rows ($ROWCOUNT) - aborting without committing anything." >&2
