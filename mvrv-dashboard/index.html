@@ -7,6 +7,9 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>BTC On-Chain-Valuation Dashboard — MVRV Quantile Bands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -16,6 +19,8 @@
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#1a1e27; --c-mvrv:#5a5fa6; --c-realized:#b87b16; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a;
+    --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
+    --font-body:"Inter", -apple-system, "Segoe UI", sans-serif;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -33,6 +38,7 @@
     --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
     --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
     --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     --c-price:#eef1f5; --c-mvrv:#8489d1; --c-realized:#d99a2e; --c-nupl:#3db877; --c-zscore:#e0655f;
     --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7;
   }
@@ -41,6 +47,7 @@
     --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#1a1e27; --c-mvrv:#5a5fa6; --c-realized:#b87b16; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a;
   }
@@ -50,31 +57,58 @@
   body{margin:0; background:var(--bg); overflow-x:hidden;}
   .page{
     background:var(--bg); color:var(--ink); min-height:100%;
-    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--font-body);
     padding:28px 20px 60px;
   }
-  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:24px;}
-  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
+  .mono{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
 
-  header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
-  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
-  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
-  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:70ch; line-height:1.5;}
+  header{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:22px;}
+  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin:0 0 8px;}
+  .h1-row{display:flex; align-items:center; gap:8px;}
+  h1{font-family:var(--font-display); font-size:32px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  .header-actions{display:flex; align-items:center; gap:10px;}
   .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600;}
   .backlink:hover{text-decoration:underline;}
 
-  .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 16px; line-height:1.6;}
+  .theme-toggle{
+    width:38px; height:38px; border-radius:50%; border:1.5px solid var(--border); background:var(--card);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .theme-toggle:hover{border-color:var(--accent); color:var(--accent);}
+  .theme-toggle svg{width:18px; height:18px;}
+  .theme-toggle .icon-moon{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-sun{display:none;}
+  :root[data-theme="dark"] .theme-toggle .icon-moon{display:block;}
+
+  .info-wrap{position:relative; display:inline-flex; align-items:center;}
+  .info-btn{
+    width:19px; height:19px; border-radius:50%; border:1.5px solid var(--ink-3); background:transparent;
+    color:var(--ink-3); font:700 10.5px/1 var(--font-display); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    flex:none; padding:0; transition:border-color .15s ease, color .15s ease;
+  }
+  .info-btn:hover, .info-btn[aria-expanded="true"]{border-color:var(--accent); color:var(--accent);}
+  .info-pop{
+    position:absolute; top:26px; left:0; z-index:30; width:280px; max-width:min(80vw,320px);
+    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 15px;
+    box-shadow:var(--shadow); font-size:12.5px; color:var(--ink-2); line-height:1.55; display:none;
+  }
+  .info-pop.show{display:block;}
+  .info-pop.align-right{left:auto; right:0;}
+
+  .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 16px; line-height:1.6;}
   .tab-status a{color:var(--accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
   .tab-status.error{color:var(--critical); border-color:var(--critical-bg); background:var(--critical-bg);}
-  .tab-status b{color:inherit; font-family:ui-monospace,monospace;}
+  .tab-status b{color:inherit; font-family:var(--font-display);}
 
-  .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;}
-  .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:15px 17px; box-shadow:var(--shadow); min-width:0;}
-  .stat .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
-  .stat .value{font-size:21px; font-weight:700; margin-top:6px;}
-  .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:6px; line-height:1.4;}
+  .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px; box-shadow:var(--shadow); min-width:0;}
+  .stat .label{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700;}
+  .stat .value{font-family:var(--font-display); font-size:26px; font-weight:700; margin-top:7px; font-variant-numeric:tabular-nums;}
+  .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.4;}
 
-  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
   .chip i{width:7px; height:7px; border-radius:50%; display:inline-block;}
   .chip.good{color:var(--good); background:var(--good-bg); border-color:var(--good-bg);} .chip.good i{background:var(--good);}
   .chip.caution{color:var(--caution); background:var(--caution-bg); border-color:var(--caution-bg);} .chip.caution i{background:var(--caution);}
@@ -82,54 +116,66 @@
   .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
 
   .controls-row{display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;}
-  .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:4px; box-shadow:var(--shadow);}
+  .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:5px; box-shadow:var(--shadow);}
   .seg button{
-    font:inherit; font-size:12.3px; font-weight:700; padding:7px 13px; border-radius:7px; border:none;
+    font:inherit; font-family:var(--font-display); font-size:12.8px; font-weight:600; padding:8px 15px; border-radius:9px; border:none;
     background:transparent; color:var(--ink-2); cursor:pointer; transition:background .15s ease, color .15s ease;
   }
   .seg button:hover{color:var(--ink);}
   .seg button.active{background:var(--ink); color:var(--bg);}
 
-  .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;}
-  .panel h2{font-size:16px; margin:0; font-weight:700;}
-  .panel h3{font-size:14px; margin:0; font-weight:700;}
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
+  .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
+  .panel h3{font-family:var(--font-display); font-size:16px; margin:0; font-weight:700;}
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
+  .panel-head{display:flex; align-items:center; gap:8px;}
 
-  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:18px;}
+  details.panel{padding:0; overflow:hidden;}
+  details.panel summary{
+    list-style:none; cursor:pointer; padding:18px 24px; display:flex; align-items:center; gap:10px;
+    font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ink);
+  }
+  details.panel summary::-webkit-details-marker{display:none;}
+  details.panel summary .chev{margin-left:auto; color:var(--ink-3); transition:transform .15s ease; flex:none;}
+  details.panel[open] summary .chev{transform:rotate(180deg);}
+  details.panel summary .hint{font-size:11.5px; color:var(--ink-3); font-weight:600; font-family:var(--font-body);}
+  details.panel .details-body{padding:0 24px 22px; display:flex; flex-direction:column; gap:12px;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(520px,1fr)); gap:20px;}
   .card{
-    background:var(--card); border:1px solid var(--border); border-radius:16px;
-    padding:18px 18px 16px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--shadow);
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    padding:22px 22px 18px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow);
     min-width:0;
   }
-  .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
-  .card-head .ticker{font-size:15.5px; font-weight:800; letter-spacing:.01em;}
-  .card-head .name{font-size:12px; color:var(--ink-3); margin-top:2px; line-height:1.4; max-width:38ch;}
-  .card-head .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none;}
-  .card-head .score-num{font-size:16px; font-weight:800;}
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
+  .card-title-block{display:flex; flex-direction:column; gap:8px;}
+  .ticker-row{display:flex; align-items:center; gap:7px;}
+  .card-title-block .ticker{font-family:var(--font-display); font-size:16.5px; font-weight:700; letter-spacing:.01em;}
 
-  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:8px 8px 4px;}
+  .readout{display:flex; flex-direction:column; gap:5px; align-items:flex-end; margin-left:auto;}
+  .readout-date{font-size:10.5px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
+  .readout-row{display:flex; flex-wrap:wrap; gap:8px 18px; justify-content:flex-end;}
+  .readout-item{display:flex; align-items:center; gap:6px;}
+  .readout-dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex:none;}
+  .readout-label{font-size:11px; color:var(--ink-3); font-weight:600; white-space:nowrap;}
+  .readout-value{font-family:var(--font-display); font-size:27px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap;}
+  .readout.compact .readout-value{font-size:16px;}
+  .readout.compact .readout-date{margin-bottom:1px;}
+
+  .hero-panel{gap:16px;}
+  .hero-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;}
+  .hero-title-row{display:flex; align-items:center; gap:8px;}
+
+  .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
-  .mchart-tip{
-    position:absolute; top:8px; right:8px; background:var(--card); border:1px solid var(--border);
-    border-radius:8px; padding:7px 10px; font-size:10.8px; line-height:1.55; box-shadow:var(--shadow);
-    pointer-events:none; min-width:132px; max-width:220px;
-  }
-  .tip-date{font-weight:700; color:var(--ink); margin-bottom:2px;}
-  .tip-row{display:flex; align-items:center; gap:5px; color:var(--ink-2); white-space:nowrap;}
-  .tip-row i{width:7px; height:7px; border-radius:50%; display:inline-block; flex:none;}
-  .tip-row span{overflow:hidden; text-overflow:ellipsis;}
-  .tip-row b{color:var(--ink); margin-left:auto; padding-left:8px; font-family:ui-monospace,monospace;}
-
-  .chart-legend{display:flex; flex-wrap:wrap; gap:9px 14px; margin-top:2px;}
-  .legend-chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-2); font-weight:600;}
-  .legend-chip i{width:8px; height:8px; border-radius:50%; display:inline-block; flex:none;}
+  .chart-empty{padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;}
 
   .overlay-panel{gap:16px;}
   .overlay-toggles{display:flex; flex-wrap:wrap; gap:8px;}
   .overlay-toggle-chip{
-    display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--ink-3);
-    border:1.5px solid var(--border); background:var(--inset); border-radius:100px; padding:6px 12px 6px 10px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; font-size:12.3px; font-weight:600; color:var(--ink-3);
+    border:1.5px solid var(--border); background:var(--inset); border-radius:100px; padding:7px 13px 7px 11px; cursor:pointer;
     transition:border-color .15s ease, color .15s ease, background .15s ease;
   }
   .overlay-toggle-chip input{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
@@ -146,6 +192,9 @@
     .strip{grid-template-columns:1fr;}
     .grid{grid-template-columns:1fr;}
     .controls-row{flex-direction:column; align-items:stretch;}
+    .readout{align-items:flex-start; margin-left:0;}
+    .readout-row{justify-content:flex-start;}
+    h1{font-size:26px;}
   }
 </style>
 </head>
@@ -156,20 +205,31 @@
     <header>
       <div>
         <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics<span id="eyebrowDate"></span></p>
-        <h1>MVRV Quantile Bands &amp; On-Chain-Dashboard</h1>
-        <p class="sub">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.</p>
+        <div class="h1-row">
+          <h1>MVRV Dashboard</h1>
+          <span id="headerInfo"></span>
+        </div>
       </div>
-      <a class="backlink" href="../altcoin-dashboard/">← Zurück zum Pump-Signal-Dashboard</a>
+      <div class="header-actions">
+        <a class="backlink" href="../index.html">← Alle Dashboards</a>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
+        </button>
+      </div>
     </header>
 
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
 
     <section class="strip" id="statStrip"></section>
 
-    <section class="panel" id="heroPanel">
-      <div>
-        <h2>MVRV Quantile Bands</h2>
-        <p>Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.</p>
+    <section class="panel hero-panel" id="heroPanel">
+      <div class="hero-head">
+        <div class="hero-title-row">
+          <h2>MVRV Quantile Bands</h2>
+          <span id="heroInfo"></span>
+        </div>
+        <div id="heroReadout"></div>
       </div>
       <div id="heroChart"></div>
     </section>
@@ -190,21 +250,19 @@
 
     <section id="metricsHost"></section>
 
-    <section class="panel" id="methodology">
-      <h2>Methodik &amp; Formeln</h2>
-      <p><b>MVRV</b> = Market Cap ÷ Realized Cap. Realized Cap bewertet jedes UTXO zum Preis seiner letzten Bewegung statt zum aktuellen Kurs — eine Art durchschnittlicher On-Chain-Einstandspreis. MVRV &gt; 1 → Markt im Schnitt im Gewinn, MVRV &lt; 1 → im Schnitt im Verlust.</p>
-      <p><b>Realized Price</b> = Realized Cap ÷ Circulating Supply = Marktpreis ÷ MVRV.</p>
-      <p><b>Quantile Bands:</b> An jedem Tag t werden die erweiternden Perzentile (5/25/50/75/95 %) aller MVRV-Werte von Beginn der Historie bis t berechnet — keine fixen, sondern mit der Zeit präziser werdende Bänder. Jedes Perzentil wird über Band-Preis(t) = Realized Price(t) × Perzentil-MVRV(t) zurück in eine Preislinie umgerechnet.</p>
-      <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
-      <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
-      <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen.</p>
-    </section>
-
-    <section class="panel" id="sourcesSection">
-      <h2>Datenquelle</h2>
-      <p>API: <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt (z. B. MVRV Z-Score, Market/Realized Cap in Dollar, Supply-Wachstum), werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt. Was mit <span class="mono">PriceUSD</span> und <span class="mono">CapMVRVCur</span> allein noch exakt berechenbar bleibt (Realized Price = Kurs ÷ MVRV, NUPL = 1 − 1/MVRV, die Quantile Bands), wird weiterhin normal angezeigt.</p>
-      <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht (Archiv: <span class="mono">data/mvrv/history/</span>). Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
-    </section>
+    <details class="panel" id="detailsPanel">
+      <summary>Methodik, Formeln &amp; Datenquelle <span class="hint">Details anzeigen</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="details-body">
+        <p><b>MVRV</b> = Market Cap ÷ Realized Cap. Realized Cap bewertet jedes UTXO zum Preis seiner letzten Bewegung statt zum aktuellen Kurs — eine Art durchschnittlicher On-Chain-Einstandspreis. MVRV &gt; 1 → Markt im Schnitt im Gewinn, MVRV &lt; 1 → im Schnitt im Verlust.</p>
+        <p><b>Realized Price</b> = Realized Cap ÷ Circulating Supply = Marktpreis ÷ MVRV.</p>
+        <p><b>Quantile Bands:</b> An jedem Tag t werden die erweiternden Perzentile (5/25/50/75/95 %) aller MVRV-Werte von Beginn der Historie bis t berechnet — keine fixen, sondern mit der Zeit präziser werdende Bänder. Jedes Perzentil wird über Band-Preis(t) = Realized Price(t) × Perzentil-MVRV(t) zurück in eine Preislinie umgerechnet.</p>
+        <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
+        <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
+        <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen.</p>
+        <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
+        <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
+      </div>
+    </details>
 
     <footer>
       Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung).
@@ -212,6 +270,16 @@
 
   </div>
 </div>
+
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem("mvrvTheme");
+    if(!t){ t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light"; }
+    document.documentElement.setAttribute("data-theme", t);
+  }catch(e){}
+})();
+</script>
 
 <script>
 (function(){
@@ -239,6 +307,40 @@
     realizedCap:  {label:"Realized Cap",            color:"var(--c-rcap)",     fmt:fmtUSD},
     supplyGrowth: {label:"Supply-Wachstum (p.a.)",  color:"var(--c-supply)",   fmt:fmtPctRaw}
   };
+
+  // ---------- theme ----------
+  function currentTheme(){ return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
+  function setTheme(t){
+    document.documentElement.setAttribute("data-theme", t);
+    try{ localStorage.setItem("mvrvTheme", t); }catch(e){}
+  }
+
+  // ---------- info popovers ----------
+  function attachInfo(container, text, opts){
+    const wrap = document.createElement("span");
+    wrap.className = "info-wrap";
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "info-btn"; btn.textContent = "i";
+    btn.setAttribute("aria-label","Erklärung anzeigen"); btn.setAttribute("aria-expanded","false");
+    const pop = document.createElement("div");
+    pop.className = "info-pop" + (opts && opts.alignRight ? " align-right" : "");
+    pop.textContent = text;
+    wrap.appendChild(btn); wrap.appendChild(pop);
+    btn.addEventListener("click", e=>{
+      e.stopPropagation();
+      const willShow = !pop.classList.contains("show");
+      document.querySelectorAll(".info-pop.show").forEach(p=>{
+        p.classList.remove("show");
+        const b = p.previousElementSibling;
+        if(b && b.setAttribute) b.setAttribute("aria-expanded","false");
+      });
+      if(willShow){ pop.classList.add("show"); btn.setAttribute("aria-expanded","true"); }
+    });
+    container.appendChild(wrap);
+    return wrap;
+  }
+  document.addEventListener("click", ()=> document.querySelectorAll(".info-pop.show").forEach(p=>p.classList.remove("show")));
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") document.querySelectorAll(".info-pop.show").forEach(p=>p.classList.remove("show")); });
 
   // ---------- formatters ----------
   function fmtUSD(v){
@@ -453,16 +555,48 @@
     return {label:"Extrem-Euphorie", cls:"critical"};
   }
 
+  // ---------- live value readout (replaces the old floating chart tooltip) ----------
+  // Lives in the card header, outside the chart canvas, so it can never overlap the plotted lines.
+  // Defaults to the latest value; while hovering the chart it live-updates to the hovered date.
+  function buildReadout(series, opts){
+    opts = opts || {};
+    const el = document.createElement("div");
+    el.className = "readout" + (opts.compact ? " compact" : "");
+    const dateEl = document.createElement("div");
+    dateEl.className = "readout-date";
+    dateEl.textContent = "Aktuell";
+    el.appendChild(dateEl);
+    const row = document.createElement("div");
+    row.className = "readout-row";
+    el.appendChild(row);
+    const valueEls = series.map(s=>{
+      const item = document.createElement("div");
+      item.className = "readout-item";
+      item.innerHTML = `<i class="readout-dot" style="background:${s.color}"></i><span class="readout-label">${s.label}</span><b class="readout-value mono"></b>`;
+      row.appendChild(item);
+      return item.querySelector(".readout-value");
+    });
+    function update(dateLabel, values){
+      dateEl.textContent = dateLabel;
+      series.forEach((s,i)=>{
+        const v = values[i];
+        valueEls[i].textContent = v==null ? "–" : (s.fmt||fmtCompact)(v);
+      });
+    }
+    return {el, update};
+  }
+
   // ---------- generic SVG multi-line chart ----------
   function buildLineChart(cfg){
     const w = 1000, h = cfg.height || 240, padL = 54, padR = 14, padT = 16, padB = 24;
     const n = cfg.dates.length;
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
+    const readout = buildReadout(cfg.series, {compact: cfg.compactReadout});
 
     if(n < 2){
-      wrap.innerHTML = '<div style="padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;">Keine Daten im gewählten Zeitraum</div>';
-      return wrap;
+      wrap.innerHTML = '<div class="chart-empty">Keine Daten im gewählten Zeitraum</div>';
+      return {wrap, readoutEl: readout.el};
     }
 
     const svg = document.createElementNS(NS,"svg");
@@ -614,22 +748,14 @@
     svg.appendChild(hitRect);
 
     wrap.appendChild(svg);
-    const tip = document.createElement("div");
-    tip.className = "mchart-tip";
-    wrap.appendChild(tip);
 
-    function renderAt(i){
+    function renderAt(i, isDefault){
       const x = xOf(i);
       cross.setAttribute("x1",x); cross.setAttribute("x2",x);
-      let html = `<div class="tip-date">${cfg.dates[i]}</div>`;
-      cfg.series.forEach(s=>{
-        const raw = s.tooltipValues ? s.tooltipValues[i] : s.values[i];
-        const fmt = s.fmt || cfg.valueFmt || fmtCompact;
-        html += `<div class="tip-row"><i style="background:${s.color}"></i><span>${s.label}</span><b>${raw==null?"–":fmt(raw)}</b></div>`;
-      });
-      tip.innerHTML = html;
+      const values = cfg.series.map(s=> s.tooltipValues ? s.tooltipValues[i] : s.values[i]);
+      readout.update(isDefault ? "Aktuell" : cfg.dates[i], values);
     }
-    renderAt(n-1);
+    renderAt(n-1, true);
 
     function handleMove(clientX){
       const rect = svg.getBoundingClientRect();
@@ -639,21 +765,14 @@
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
       cross.style.opacity = "1";
-      renderAt(i);
+      renderAt(i, false);
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
-    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; renderAt(n-1); });
+    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
     hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1); });
+    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
 
-    return wrap;
-  }
-
-  function buildLegend(series){
-    const el = document.createElement("div");
-    el.className = "chart-legend";
-    el.innerHTML = series.map(s=> `<span class="legend-chip"><i style="background:${s.color}"></i>${s.label}</span>`).join("");
-    return el;
+    return {wrap, readoutEl: readout.el};
   }
 
   function normalize(values){
@@ -667,93 +786,87 @@
   const TILES = [
     {
       title:"MVRV-Ratio", desc:"Market Value ÷ Realized Value. >1 = Markt im Schnitt im Gewinn.",
-      current(){ const v=lastVal(FULL.mvrv); return {value:fmtRatio(v), zone:mvrvZoneForCurrent()}; },
+      zone(){ return mvrvZoneForCurrent(); },
       build(view){
-        return {chart: buildLineChart({
-          dates:view.dates, height:200, log:false,
-          series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:2, fmt:fmtRatio}],
+        return buildLineChart({
+          dates:view.dates, height:240, log:false,
+          series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:2.2, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
-        })};
+        });
       }
     },
     {
       title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis vs. tatsächlicher Kurs (log-skaliert).",
-      current(){ return {value:fmtUSD(lastVal(FULL.realizedPrice))}; },
       build(view){
         const series = [
-          {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2, dashed:true, fmt:fmtUSD},
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2, fmt:fmtUSD}
+          {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2.2, dashed:true, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.2, fmt:fmtUSD}
         ];
-        const chart = buildLineChart({dates:view.dates, height:200, log:true, series});
-        return {chart, legend: buildLegend(series)};
+        return buildLineChart({dates:view.dates, height:240, log:true, series});
       }
     },
     {
       title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn. = 1 − 1/MVRV.",
-      current(){ const v=lastVal(FULL.nupl); return {value:fmtPctFrac(v), zone:nuplZone(v)}; },
+      zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
-        return {chart: buildLineChart({
-          dates:view.dates, height:200, log:false,
-          series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:2, fmt:fmtPctFrac}],
+        return buildLineChart({
+          dates:view.dates, height:240, log:false,
+          series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:2.2, fmt:fmtPctFrac}],
           refLines:[
             {value:0, label:"Kapitulation", color:"var(--critical)"},
             {value:0.75, label:"Euphorie", color:"var(--good)"}
           ]
-        })};
+        });
       }
     },
     {
       title:"MVRV Z-Score", desc:"(Market Cap − Realized Cap) ÷ erweiternde Standardabweichung(Market Cap).",
       requires:"hasZScore",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
-      current(){ const v=lastVal(FULL.zscore); return {value:fmtRatio(v), zone:zscoreZone(v)}; },
+      zone(){ return zscoreZone(lastVal(FULL.zscore)); },
       build(view){
-        return {chart: buildLineChart({
-          dates:view.dates, height:200, log:false,
-          series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:2, fmt:fmtRatio}],
+        return buildLineChart({
+          dates:view.dates, height:240, log:false,
+          series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:2.2, fmt:fmtRatio}],
           refLines:[
             {value:0, label:"neutral", color:"var(--ink-3)"},
             {value:7, label:"Top-Zone", color:"var(--critical)"}
           ]
-        })};
+        });
       }
     },
     {
       title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert. Verhältnis der beiden Linien = MVRV.",
       requires:"hasMarketCapAndRealizedCap",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
-      current(){ return {value: fmtUSD(lastVal(FULL.marketCap)) + " / " + fmtUSD(lastVal(FULL.realizedCap))}; },
       build(view){
         const series = [
-          {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:2, fmt:fmtUSD},
-          {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:2, dashed:true, fmt:fmtUSD}
+          {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:2.2, fmt:fmtUSD},
+          {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:2.2, dashed:true, fmt:fmtUSD}
         ];
-        const chart = buildLineChart({dates:view.dates, height:200, log:true, series});
-        return {chart, legend: buildLegend(series)};
+        return buildLineChart({dates:view.dates, height:240, log:true, series});
       }
     },
     {
       title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage).",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
-      current(){ return {value: fmtPctRaw(lastVal(FULL.supplyGrowth))}; },
       build(view){
-        return {chart: buildLineChart({
-          dates:view.dates, height:200, log:false,
-          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:2, fmt:fmtPctRaw}],
+        return buildLineChart({
+          dates:view.dates, height:240, log:false,
+          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:2.2, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
-        })};
+        });
       }
     },
     {
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %).",
-      current(){ return {value: fmtPctRaw(lastVal(FULL.athDrawdown))}; },
       build(view){
-        return {chart: buildLineChart({
-          dates:view.dates, height:200, log:false,
-          series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:2, fmt:fmtPctRaw}],
+        return buildLineChart({
+          dates:view.dates, height:240, log:false,
+          series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:2.2, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"ATH", color:"var(--good)"}]
-        })};
+        });
       }
     }
   ];
@@ -771,7 +884,7 @@
       <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}"><i></i>${mz.label}</span>`:"–"}</div></div>
       <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}"><i></i>${nz.label}</span></div></div>
       <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}"><i></i>${zz.label}</span>` : na}</div></div>
-      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis (aus Kurs ÷ MVRV)</div></div>
+      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>
       <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? (fmtUSD(mc) + " / " + fmtUSD(rc)) : "–"}</div><div class="ctx">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? "Verhältnis = MVRV" : na}</div></div>
       <div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>
       <div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${FULL.hasSupply ? fmtBTC(sup) : "–"}</div><div class="ctx">${FULL.hasSupply ? ("Wachstum p.a.: " + fmtPctRaw(sg)) : na}</div></div>
@@ -779,15 +892,16 @@
   }
 
   function renderHero(view){
-    const host = document.getElementById("heroChart");
-    host.innerHTML = "";
+    const chartHost = document.getElementById("heroChart");
+    const readoutHost = document.getElementById("heroReadout");
+    chartHost.innerHTML = ""; readoutHost.innerHTML = "";
     const series = [
-      {key:"p95", label:"Euphorie (95. Pct.)", color:"var(--critical)", values:view.bands.p95, dashed:true, width:1.3, fmt:fmtUSD},
-      {key:"p75", label:"Teuer (75. Pct.)", color:"var(--caution)", values:view.bands.p75, dashed:true, width:1.3, fmt:fmtUSD},
-      {key:"p50", label:"Fair Value (Median)", color:"var(--neutral)", values:view.bands.p50, dashed:true, width:1.3, fmt:fmtUSD},
-      {key:"p25", label:"Günstig (25. Pct.)", color:"var(--good)", values:view.bands.p25, dashed:true, width:1.3, fmt:fmtUSD},
-      {key:"p05", label:"Fire Sale (5. Pct.)", color:"var(--accent)", values:view.bands.p05, dashed:true, width:1.3, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.4, fmt:fmtUSD}
+      {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.5, fmt:fmtUSD},
+      {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.5, fmt:fmtUSD},
+      {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.5, fmt:fmtUSD},
+      {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.5, fmt:fmtUSD},
+      {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.5, fmt:fmtUSD},
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.8, fmt:fmtUSD}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -795,9 +909,9 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const chart = buildLineChart({dates:view.dates, series, log:true, height:360, bandFill});
-    host.appendChild(chart);
-    host.appendChild(buildLegend(series));
+    const built = buildLineChart({dates:view.dates, series, log:true, height:380, bandFill, compactReadout:true});
+    chartHost.appendChild(built.wrap);
+    readoutHost.appendChild(built.readoutEl);
   }
 
   function tileIsAvailable(tile){
@@ -816,31 +930,36 @@
     TILES.forEach(tile=>{
       const card = document.createElement("div");
       card.className = "card";
+
       if(!tileIsAvailable(tile)){
-        card.innerHTML = `
-          <div class="card-head">
-            <div><div class="ticker">${tile.title}</div><div class="name">${tile.desc}</div></div>
-            <div class="score-block"><span class="chip neutral"><i></i>Nicht verfügbar</span></div>
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.innerHTML = `
+          <div class="card-title-block">
+            <div class="ticker-row"><span class="ticker">${tile.title}</span></div>
           </div>
-          <p class="method-note">${tile.unavailableNote || "Die dafür nötigen Rohdaten sind mit den aktuellen API-Zugangsdaten nicht verfügbar."}</p>
+          <span class="chip neutral"><i></i>Nicht verfügbar</span>
         `;
+        card.appendChild(head);
+        attachInfo(head.querySelector(".ticker-row"), tile.unavailableNote || "Die dafür nötigen Rohdaten sind mit den aktuellen API-Zugangsdaten nicht verfügbar.");
         grid.appendChild(card);
         return;
       }
-      const cur = tile.current();
+
+      const zone = tile.zone ? tile.zone() : null;
       const head = document.createElement("div");
       head.className = "card-head";
       head.innerHTML = `
-        <div><div class="ticker">${tile.title}</div><div class="name">${tile.desc}</div></div>
-        <div class="score-block">
-          <div class="score-num mono">${cur.value}</div>
-          ${cur.zone ? `<span class="chip ${cur.zone.cls}"><i></i>${cur.zone.label}</span>` : ""}
+        <div class="card-title-block">
+          <div class="ticker-row"><span class="ticker">${tile.title}</span></div>
+          ${zone ? `<span class="chip ${zone.cls}"><i></i>${zone.label}</span>` : ""}
         </div>
       `;
-      card.appendChild(head);
+      attachInfo(head.querySelector(".ticker-row"), tile.desc);
       const built = tile.build(view);
-      card.appendChild(built.chart);
-      if(built.legend) card.appendChild(built.legend);
+      head.appendChild(built.readoutEl);
+      card.appendChild(head);
+      card.appendChild(built.wrap);
       grid.appendChild(card);
     });
     host.appendChild(grid);
@@ -851,7 +970,11 @@
     host.innerHTML = "";
     const panel = document.createElement("div");
     panel.className = "panel overlay-panel";
-    panel.innerHTML = `<h3>Kennzahlen überlagern</h3><p>Wähle beliebige Kennzahlen aus, um sie normalisiert (0–100 % je sichtbarem Zeitraum) in einem Chart zu vergleichen — z. B. um zu sehen, wie MVRV, NUPL und Z-Score im Gleichlauf zum Kurs schwingen.</p>`;
+    const headRow = document.createElement("div");
+    headRow.className = "panel-head";
+    headRow.innerHTML = `<h3>Kennzahlen überlagern</h3>`;
+    panel.appendChild(headRow);
+    attachInfo(headRow, "Wähle beliebige Kennzahlen aus, um sie normalisiert (0–100 % je sichtbarem Zeitraum) in einem Chart zu vergleichen — z. B. um zu sehen, wie MVRV, NUPL und Z-Score im Gleichlauf zum Kurs schwingen. Die angezeigten Werte in der Leiste über dem Chart sind die echten, nicht normalisierten Kennzahlen.");
 
     const metricAvailable = key=>{
       if(key === "zscore") return FULL.hasZScore;
@@ -896,17 +1019,19 @@
         values: normalize(view[key]),
         tooltipValues: view[key],
         fmt: METRICS[key].fmt,
-        width:2
+        width:2.2
       }));
-      const chart = buildLineChart({
+      const built = buildLineChart({
         dates:view.dates, series, log:false, height:360,
-        axisFmt: v=> (v*100).toFixed(0)+"%"
+        axisFmt: v=> (v*100).toFixed(0)+"%",
+        compactReadout: series.length > 3
       });
-      panel.appendChild(chart);
-      const note = document.createElement("p");
-      note.className = "method-note";
-      note.textContent = "Alle Linien sind Min–Max-normalisiert auf den sichtbaren Zeitraum (0–100 %), um Timing und Zyklen vergleichbar zu machen. Die Tooltip-Werte zeigen die echten, nicht normalisierten Kennzahlen.";
-      panel.appendChild(note);
+      const readoutRow = document.createElement("div");
+      readoutRow.style.display = "flex";
+      readoutRow.style.justifyContent = "flex-end";
+      readoutRow.appendChild(built.readoutEl);
+      panel.appendChild(readoutRow);
+      panel.appendChild(built.wrap);
     }
     host.appendChild(panel);
   }
@@ -935,14 +1060,14 @@
       const isSnapshot = extra.source === "snapshot";
       el.className = "tab-status";
       if(isSnapshot){
-        el.innerHTML = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (direkter Live-Abruf aus dem Browser wird von Coin Metrics per CORS blockiert, siehe Datenquelle unten) — <b>abgeholt am ${fmtTs(extra.fetchedAt)}</b> · Datenstand (letzter Tag in der Zeitreihe): <b>${asOf}</b> · ${extra.count} Handelstage.`;
+        el.innerHTML = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (Live-Abruf direkt aus dem Browser wird von Coin Metrics per CORS blockiert) — <b>abgeholt am ${fmtTs(extra.fetchedAt)}</b> · Datenstand: <b>${asOf}</b> · ${extra.count} Handelstage.`;
       } else {
-        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache, Originalabruf davor)" : ""} · Datenstand (letzter Tag in der Zeitreihe): <b>${asOf}</b> · ${extra.count} Handelstage seit ${FULL.dates[0]}.`;
+        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache)" : ""} · Datenstand: <b>${asOf}</b> · ${extra.count} Handelstage seit ${FULL.dates[0]}.`;
       }
       if(eyebrow) eyebrow.textContent = " · Datenstand: " + asOf;
     } else if(kind === "error"){
       el.className = "tab-status error";
-      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Fallback-Snapshot. <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
+      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Snapshot. <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
       const btn = document.getElementById("retryBtn");
       if(btn) btn.addEventListener("click", ()=> loadAndRender(true));
     }
@@ -966,6 +1091,11 @@
       setActive("modeSeg", btn);
       renderAll();
     });
+    document.getElementById("themeToggle").addEventListener("click", ()=>{
+      setTheme(currentTheme() === "dark" ? "light" : "dark");
+    });
+    attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
+    attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
   }
 
   async function loadAndRender(force){
