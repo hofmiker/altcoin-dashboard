@@ -1,96 +1,473 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Altcoin Dashboard — Projekte</title>
-<style>
-  :root{
-    --bg:#eef0f3; --card:#ffffff; --border:#dde1e7;
-    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
-    --accent:#0d93ae;
-    --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#0b0d12; --card:#161a23; --border:#262b38;
-      --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
-      --accent:#2bb7cf;
-      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#0b0d12; --card:#161a23; --border:#262b38;
-    --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
-    --accent:#2bb7cf;
-  }
-  :root[data-theme="light"]{
-    --bg:#eef0f3; --card:#ffffff; --border:#dde1e7;
-    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
-    --accent:#0d93ae;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekte</title>
+    <style>
+        @font-face {
+            font-family: 'Offside';
+            src: url('vendor/fonts/offside-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-500.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-600.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
 
-  *{box-sizing:border-box}
-  html{background:var(--bg);}
-  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  .page{padding:28px 20px 60px;}
-  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:28px;}
+        :root {
+            --bg: #05050a;
+            --tile-bg: #1c1c27;
+            --tile-bg-hover: #24242f;
+            --tile-border: rgba(255,255,255,0.08);
+            --tile-border-hover: rgba(255,255,255,0.22);
+            --text-primary: rgba(255,255,255,0.90);
+            --text-secondary: rgba(255,255,255,0.65);
+            --text-tertiary: rgba(255,255,255,0.50);
+            --text-quaternary: rgba(255,255,255,0.38);
+            --chip-border: rgba(255,255,255,0.15);
+            --chip-hover-border: rgba(255,255,255,0.35);
+            --chip-active-bg: rgba(255,255,255,0.85);
+            --chip-active-text: #05050f;
+            --click-outline: #000000;
+            --switch-bg: rgba(255,255,255,0.08);
+            --switch-border: rgba(255,255,255,0.20);
+            --switch-thumb: #cfd2da;
+            --tile-shadow: 0 2px 10px rgba(0,0,0,0.45);
+            --tile-shadow-hover: 0 10px 24px rgba(0,0,0,0.55);
+        }
+        :root[data-theme="light"] {
+            --bg: #f2f1ec;
+            --tile-bg: #ffffff;
+            --tile-bg-hover: #ffffff;
+            --tile-border: rgba(0,0,0,0.08);
+            --tile-border-hover: rgba(0,0,0,0.22);
+            --text-primary: rgba(0,0,0,0.85);
+            --text-secondary: rgba(0,0,0,0.55);
+            --text-tertiary: rgba(0,0,0,0.42);
+            --text-quaternary: rgba(0,0,0,0.32);
+            --chip-border: rgba(0,0,0,0.15);
+            --chip-hover-border: rgba(0,0,0,0.35);
+            --chip-active-bg: rgba(0,0,0,0.85);
+            --chip-active-text: #f2f1ec;
+            --switch-bg: rgba(0,0,0,0.06);
+            --switch-border: rgba(0,0,0,0.16);
+            --switch-thumb: #55534a;
+            --tile-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            --tile-shadow-hover: 0 10px 24px rgba(0,0,0,0.16);
+        }
 
-  header{border-bottom:1px solid var(--border); padding-bottom:20px;}
-  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
-  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700;}
-
-  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px;}
-  a.tile{
-    display:flex; flex-direction:column; gap:0; text-decoration:none; color:inherit;
-    background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden;
-    box-shadow:var(--shadow); transition:transform .15s ease, border-color .15s ease;
-  }
-  a.tile:hover{transform:translateY(-2px); border-color:var(--ink-3);}
-  .tile-thumb{width:100%; aspect-ratio:16/9; object-fit:cover; display:block; background:var(--border);}
-  .tile-body{padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px;}
-  .tile-name{font-size:16px; font-weight:700;}
-  .tile-desc{font-size:13px; color:var(--ink-2); line-height:1.5;}
-  .tile-link{font-size:12.5px; font-weight:600; color:var(--accent); margin-top:4px;}
-</style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, Helvetica, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        h1 {
+            font-family: 'Offside', -apple-system, Helvetica, sans-serif;
+            font-size: 44px;
+            font-weight: 400;
+            letter-spacing: 0.03em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+        .deploy-date {
+            font-size: 10px;
+            letter-spacing: 0.10em;
+            color: var(--text-quaternary);
+            margin-bottom: 28px;
+            transition: color 0.3s ease;
+        }
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 46px;
+            height: 24px;
+            border-radius: 999px;
+            background: var(--switch-bg);
+            border: 1px solid var(--switch-border);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .theme-switch-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--switch-thumb);
+            transform: translateX(0);
+            transition: transform 0.3s ease, background 0.3s ease;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        :root[data-theme="light"] .theme-switch-thumb {
+            transform: translateX(22px);
+        }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 36px;
+            max-width: 840px;
+        }
+        .chip {
+            font: inherit;
+            font-size: 11px;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            background: transparent;
+            border: 1px solid var(--chip-border);
+            border-radius: 999px;
+            padding: 7px 16px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+        }
+        .chip:hover {
+            border-color: var(--chip-hover-border);
+            color: var(--text-primary);
+        }
+        .chip.active {
+            background: var(--chip-active-bg);
+            border-color: var(--chip-active-bg);
+            color: var(--chip-active-text);
+        }
+        .chip-shuffle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-style: dashed;
+        }
+        .chip-shuffle:active {
+            transform: scale(0.95);
+        }
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 840px;
+        }
+        a {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: var(--tile-bg);
+            border: 1px solid var(--tile-border);
+            border-radius: 12px;
+            text-decoration: none;
+            overflow: hidden;
+            box-shadow: var(--tile-shadow);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+        a:hover, a:active {
+            border-color: var(--tile-border-hover);
+            background: var(--tile-bg-hover);
+            box-shadow: var(--tile-shadow-hover);
+            transform: translateY(-3px);
+        }
+        a.is-hidden {
+            display: none;
+        }
+        a.tile-clicked {
+            outline: 4px solid var(--click-outline);
+            outline-offset: -4px;
+        }
+        .thumb {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            background: #000;
+            display: block;
+        }
+        .label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 16px 20px;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tag {
+            font-size: 9px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            border: 1px solid var(--chip-border);
+            border-radius: 999px;
+            padding: 3px 9px;
+        }
+        .name {
+            font-family: 'Offside', -apple-system, Helvetica, sans-serif;
+            font-size: 23px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            color: var(--text-primary);
+        }
+        .desc {
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: var(--text-tertiary);
+        }
+        .updated {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: var(--text-quaternary);
+            margin-top: 2px;
+        }
+        .commits {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: var(--text-quaternary);
+        }
+        .link-badge {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--text-tertiary);
+            color: var(--text-primary);
+            background: var(--tile-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: background 0.2s ease;
+        }
+        a:hover .link-badge {
+            background: var(--tile-bg-hover);
+        }
+    </style>
 </head>
 <body>
-<div class="page">
-  <div class="wrap">
+    <button type="button" class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus umschalten">
+        <span class="theme-switch-thumb"></span>
+    </button>
+    <h1>Projekte</h1>
+    <div class="deploy-date">Deployed {{DEPLOY_DATE}}</div>
+    <div class="filters">
+        <button type="button" class="chip active" data-filter="all">Alle</button>
+        <button type="button" class="chip" data-filter="crypto">Crypto</button>
+        <button type="button" class="chip" data-filter="3d">3D</button>
+        <button type="button" class="chip chip-shuffle" id="shuffle-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            Shuffle
+        </button>
+    </div>
+    <div class="projects">
+        <a href="altcoin-dashboard/" data-tags="crypto" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/altcoin-dashboard.png" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Crypto</span></span>
+                <span class="name">Pump-Signal Dashboard</span>
+                <span class="desc">Kandidaten-Scan für Altcoin-Pumps mit Score-Tabelle</span>
+                <span class="updated">Aktualisiert: {{UPDATED:altcoin-dashboard}}</span>
+                <span class="commits">Commits: {{COMMITS:altcoin-dashboard}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="btc/" data-tags="crypto" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/btc.png" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Crypto</span></span>
+                <span class="name">Bitcoin On-Chain Dashboard</span>
+                <span class="desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken</span>
+                <span class="updated">Aktualisiert: {{UPDATED:btc}}</span>
+                <span class="commits">Commits: {{COMMITS:btc}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="bitcoin-3d/" data-tags="crypto 3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/bitcoin-3d.png" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Crypto</span><span class="tag">3D</span></span>
+                <span class="name">Bitcoin 3D</span>
+                <span class="desc">3D Candlestick-Visualisierung</span>
+                <span class="updated">Aktualisiert: {{UPDATED:bitcoin-3d}}</span>
+                <span class="commits">Commits: {{COMMITS:bitcoin-3d}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="mvrv-dashboard/" data-tags="crypto" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/mvrv-dashboard.png" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Crypto</span></span>
+                <span class="name">MVRV Quantile Bands</span>
+                <span class="desc">Bitcoin-Bewertung via MVRV, NUPL &amp; Z-Score</span>
+                <span class="updated">Aktualisiert: {{UPDATED:mvrv-dashboard}}</span>
+                <span class="commits">Commits: {{COMMITS:mvrv-dashboard}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+    </div>
 
-    <header>
-      <p class="eyebrow">Altcoin Dashboard</p>
-      <h1>Projekte</h1>
-    </header>
+    <script>
+        (function () {
+            var root = document.documentElement;
+            var toggle = document.getElementById('theme-toggle');
+            var thumb = toggle.querySelector('.theme-switch-thumb');
 
-    <section class="grid">
-      <a class="tile" href="altcoin-dashboard/" target="_blank" rel="noopener">
-        <img class="tile-thumb" src="screenshots/altcoin-dashboard.png" alt="">
-        <div class="tile-body">
-          <div class="tile-name">Pump-Signal Dashboard</div>
-          <div class="tile-desc">Kandidaten-Scan für Altcoin-Pumps: Markt-Übersicht, Top-10-Altcoins nach Marktkapitalisierung, Score-Tabelle mit Watchlist/Risiko/Kritisch-Einordnung.</div>
-          <div class="tile-link">Öffnen →</div>
-        </div>
-      </a>
-      <a class="tile" href="btc/" target="_blank" rel="noopener">
-        <img class="tile-thumb" src="screenshots/btc.png" alt="">
-        <div class="tile-body">
-          <div class="tile-name">Bitcoin On-Chain Dashboard</div>
-          <div class="tile-desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken.</div>
-          <div class="tile-link">Öffnen →</div>
-        </div>
-      </a>
-      <a class="tile" href="bitcoin-3d/" target="_blank" rel="noopener">
-        <img class="tile-thumb" src="screenshots/bitcoin-3d.png" alt="">
-        <div class="tile-body">
-          <div class="tile-name">Bitcoin 3D</div>
-          <div class="tile-desc">3D Candlestick-Visualisierung.</div>
-          <div class="tile-link">Öffnen →</div>
-        </div>
-      </a>
-    </section>
+            function applyTheme(theme) {
+                root.setAttribute('data-theme', theme);
+                thumb.textContent = theme === 'light' ? '☀' : '☾';
+            }
 
-  </div>
-</div>
+            var stored = localStorage.getItem('theme');
+            applyTheme(stored === 'light' ? 'light' : 'dark');
+
+            toggle.addEventListener('click', function () {
+                var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                applyTheme(next);
+                localStorage.setItem('theme', next);
+            });
+        })();
+
+        (function () {
+            var chips = document.querySelectorAll('.chip[data-filter]');
+            var projectsEl = document.querySelector('.projects');
+            var tiles = document.querySelectorAll('.projects > a');
+            var shuffleBtn = document.getElementById('shuffle-btn');
+            var active = new Set();
+
+            tiles.forEach(function (tile) {
+                tile.addEventListener('click', function () {
+                    tiles.forEach(function (t) { t.classList.remove('tile-clicked'); });
+                    tile.classList.add('tile-clicked');
+                });
+            });
+
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    var filter = chip.dataset.filter;
+                    if (filter === 'all') {
+                        active.clear();
+                    } else {
+                        if (active.has(filter)) {
+                            active.delete(filter);
+                        } else {
+                            active.add(filter);
+                        }
+                    }
+                    render();
+                });
+            });
+
+            shuffleBtn.addEventListener('click', function () {
+                var before = captureRects();
+                var shuffled = Array.prototype.slice.call(tiles);
+                for (var i = shuffled.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var tmp = shuffled[i];
+                    shuffled[i] = shuffled[j];
+                    shuffled[j] = tmp;
+                }
+                shuffled.forEach(function (tile) { projectsEl.appendChild(tile); });
+                animateReflow(before);
+            });
+
+            function captureRects() {
+                var before = new Map();
+                tiles.forEach(function (tile) {
+                    if (!tile.classList.contains('is-hidden')) {
+                        before.set(tile, tile.getBoundingClientRect());
+                    }
+                });
+                return before;
+            }
+
+            function render() {
+                chips.forEach(function (chip) {
+                    var filter = chip.dataset.filter;
+                    var isActive = filter === 'all' ? active.size === 0 : active.has(filter);
+                    chip.classList.toggle('active', isActive);
+                });
+
+                var before = captureRects();
+
+                tiles.forEach(function (tile) {
+                    var tags = tile.dataset.tags.split(' ');
+                    var matches = active.size === 0 || tags.some(function (t) { return active.has(t); });
+                    tile.classList.toggle('is-hidden', !matches);
+                });
+
+                animateReflow(before);
+            }
+
+            function animateReflow(before) {
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        tiles.forEach(function (tile) {
+                            if (tile.classList.contains('is-hidden')) return;
+                            var first = before.get(tile);
+                            var last = tile.getBoundingClientRect();
+                            if (!first) {
+                                tile.style.transition = 'none';
+                                tile.style.opacity = '0';
+                                tile.style.transform = 'scale(0.92)';
+                                requestAnimationFrame(function () {
+                                    requestAnimationFrame(function () {
+                                        tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                        tile.style.opacity = '1';
+                                        tile.style.transform = '';
+                                    });
+                                });
+                                return;
+                            }
+                            var dx = first.left - last.left;
+                            var dy = first.top - last.top;
+                            if (dx || dy) {
+                                tile.style.transition = 'none';
+                                tile.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+                                requestAnimationFrame(function () {
+                                    requestAnimationFrame(function () {
+                                        tile.style.transition = 'transform 0.35s ease';
+                                        tile.style.transform = '';
+                                    });
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

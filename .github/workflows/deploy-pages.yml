@@ -22,6 +22,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Stamp live deploy date and per-project stats
+        run: |
+          DEPLOY_DATE=$(date -u +'%d.%m.%Y %H:%M UTC')
+          sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/" index.html
+          # --follow on the project's index.html so renamed/restructured
+          # project folders keep their full history instead of being
+          # truncated at the rename commit.
+          for folder in $(grep -oP '(?<=\{\{UPDATED:)[^}]+' index.html | sort -u); do
+            DATE=$(git log --follow -1 --format=%ad --date=format:'%d.%m.%Y' -- "$folder/index.html" 2>/dev/null)
+            if [ -z "$DATE" ]; then DATE=$(date -u +'%d.%m.%Y'); fi
+            sed -i "s/{{UPDATED:$folder}}/$DATE/g" index.html
+          done
+          for folder in $(grep -oP '(?<=\{\{COMMITS:)[^}]+' index.html | sort -u); do
+            COUNT=$(git log --follow --oneline -- "$folder/index.html" 2>/dev/null | wc -l)
+            sed -i "s/{{COMMITS:$folder}}/$COUNT/g" index.html
+          done
       - uses: actions/configure-pages@v5
       - name: Build publishable site (exclude internal data)
         run: |
