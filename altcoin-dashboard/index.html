@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Pump-Signal Dashboard — 05.08.2026</title>
+<style>
+  :root{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a;
+    --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+      --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+      --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+      --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0d12; --card:#161a23; --inset:#10131a; --border:#262b38;
+    --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
+    --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
+    --good-bg:#3db8772266; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
+    --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
+    --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
+    --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a;
+  }
+
+  *{box-sizing:border-box}
+  html{background:var(--bg);}
+  body{margin:0; background:var(--bg); overflow-x:hidden;}
+  .page{
+    background:var(--bg); color:var(--ink); min-height:100%;
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:28px;}
+  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; font-variant-numeric:tabular-nums;}
+
+  /* header */
+  header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
+  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
+  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:64ch; line-height:1.5;}
+  /* Pure-CSS toggle (checkbox + label) so the table view can never break due to JS timing/errors. */
+  .table-toggle-checkbox{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+  .table-toggle{
+    display:inline-block;
+    border:1px solid var(--border); background:var(--card); color:var(--ink-2);
+    font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; cursor:pointer;
+    white-space:nowrap; transition:border-color .15s ease, color .15s ease, transform .15s ease;
+  }
+  .table-toggle:hover{color:var(--ink); border-color:var(--ink-3); transform:translateY(-1px);}
+  .table-toggle .label-active{display:none;}
+  .table-toggle-checkbox:checked ~ .table-toggle .label-default{display:none;}
+  .table-toggle-checkbox:checked ~ .table-toggle .label-active{display:inline;}
+  .table-toggle-checkbox:focus-visible ~ .table-toggle{outline:2px solid var(--accent); outline-offset:2px;}
+
+  /* Tabs — same pure-CSS pattern as the table toggle above: radio inputs + label pills,
+     sibling-selector-driven, so switching tabs never depends on JS timing/errors. */
+  .tab-radio{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
+  .tab-bar{display:flex; gap:8px; flex-wrap:wrap;}
+  .tab-pill{
+    display:inline-flex; align-items:center; border:1px solid var(--border); background:var(--card);
+    color:var(--ink-2); font-size:13px; font-weight:700; padding:9px 16px; border-radius:100px;
+    cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .tab-pill:hover{color:var(--ink); border-color:var(--ink-3);}
+  .tab-panel{display:none; flex-direction:column; gap:28px;}
+  #tabMarkt:checked ~ #panelMarkt{display:flex;}
+  #tabAltcoins:checked ~ #panelAltcoins{display:flex;}
+  #tabPump:checked ~ #panelPump{display:flex;}
+  #tabMarkt:checked ~ .tab-bar label[for="tabMarkt"],
+  #tabAltcoins:checked ~ .tab-bar label[for="tabAltcoins"],
+  #tabPump:checked ~ .tab-bar label[for="tabPump"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  #tabMarkt:focus-visible ~ .tab-bar label[for="tabMarkt"],
+  #tabAltcoins:focus-visible ~ .tab-bar label[for="tabAltcoins"],
+  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"]{outline:2px solid var(--accent); outline-offset:2px;}
+  .tab-status{font-size:13px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
+
+  /* market strip */
+  .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow); min-width:0;}
+  .stat .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
+  .stat .value{font-size:24px; font-weight:700; margin-top:6px;}
+  .stat .ctx{font-size:12.5px; color:var(--ink-2); margin-top:4px; line-height:1.4;}
+  .gauge{height:6px; border-radius:3px; background:var(--border); margin-top:10px; overflow:hidden; position:relative;}
+  .gauge > i{display:block; height:100%; background:var(--neutral); border-radius:3px;}
+  .gauge .thresh{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink-3);}
+
+  /* legend */
+  .legend{display:flex; gap:10px; flex-wrap:wrap;}
+  .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
+  .chip i{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .chip.good{color:var(--good); background:var(--good-bg); border-color:var(--good-bg);} .chip.good i{background:var(--good);}
+  .chip.caution{color:var(--caution); background:var(--caution-bg); border-color:var(--caution-bg);} .chip.caution i{background:var(--caution);}
+  .chip.critical{color:var(--critical); background:var(--critical-bg); border-color:var(--critical-bg);} .chip.critical i{background:var(--critical);}
+  .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
+
+  /* grid of cards */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px;}
+  .tile-thumb{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:var(--inset); border:1px solid var(--border); display:block;}
+  a.card{text-decoration:none; color:inherit;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 18px 16px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow);
+    position:relative; min-width:0;
+  }
+  .card.critical{box-shadow:var(--shadow), inset 0 0 0 1.5px var(--critical-bg);}
+  .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .ticker-block{display:flex; align-items:center; gap:10px;}
+  .ticker-block .ticker{font-size:19px; font-weight:800; letter-spacing:.01em;}
+  .ticker-block .name{font-size:12.5px; color:var(--ink-3); margin-top:1px;}
+  .ticker-block .since{font-size:10.5px; color:var(--ink-3); margin-top:2px; font-style:italic;}
+
+  .avatar{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--inset); border:1px solid var(--border); flex:none; display:block;}
+  .avatar-fallback{
+    width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#fff; flex:none; letter-spacing:.02em;
+  }
+
+  .score-block{display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:96px;}
+  .score-num{font-size:13px; font-weight:700;}
+  .score-num .of{color:var(--ink-3); font-weight:600;}
+  .meter{display:flex; gap:2px;}
+  .meter i{width:5px; height:14px; border-radius:1.5px; background:var(--border); display:block;}
+
+  .price-head{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .price-head .cur{font-size:20px; font-weight:800;}
+  .price-head .chg{font-size:12px; font-weight:700; padding:2px 8px; border-radius:100px;}
+  .price-head .chg.up{color:var(--good); background:var(--good-bg);}
+  .price-head .chg.down{color:var(--critical); background:var(--critical-bg);}
+  .price-head .chg.flat{color:var(--ink-3); background:var(--border);}
+  .price-head .range-note{font-size:10.5px; color:var(--ink-3); margin-left:auto;}
+
+  .range-btns{display:flex; gap:6px; margin-top:-4px;}
+  .range-btn{
+    font-size:11px; font-weight:700; padding:4px 11px; border-radius:100px;
+    border:1px solid var(--border); background:transparent; color:var(--ink-2); cursor:pointer;
+  }
+  .range-btn.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .range-btn:hover:not(.active):not(.disabled){border-color:var(--ink-3); color:var(--ink);}
+  .range-btn.disabled{opacity:.35; color:var(--ink-3);}
+  .range-btn.disabled.active{background:transparent; color:var(--ink-3); border-color:var(--border);}
+
+  .chart-wrap.no-data{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; aspect-ratio:300/118;}
+  .chart-wrap.no-data .no-data-label{font-size:13px; font-weight:700; color:var(--ink-3);}
+  .chart-wrap.no-data .no-data-sub{font-size:10.5px; color:var(--ink-3);}
+
+  .card-note{font-size:12.8px; line-height:1.5; color:var(--ink-2);}
+  .card-note b{color:var(--ink); font-weight:700;}
+  .flag-box{
+    font-size:12.3px; line-height:1.5; color:var(--critical); background:var(--critical-bg);
+    border-radius:8px; padding:9px 11px; display:flex; gap:8px; align-items:flex-start;
+  }
+  .flag-box svg{flex:none; margin-top:1px;}
+
+  .chart-wrap{position:relative; background:var(--inset); border-radius:10px; padding:10px 12px 6px; transition:opacity .15s ease;}
+  .chart-wrap.loading{opacity:.4;}
+  .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+  .chart-cap{display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:2px;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(2,1fr); gap:8px 14px;}
+  .stat-row div{display:flex; flex-direction:column; gap:1px; padding:4px 6px; margin:-4px -6px; border-radius:6px; transition:background .15s ease;}
+  .stat-row div:hover{background:var(--inset);}
+  .stat-row .k{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:600;}
+  .stat-row .v{font-size:13.5px; font-weight:700;}
+
+  .signals{display:flex; flex-direction:column; gap:5px;}
+  .signal-row{display:flex; justify-content:space-between; gap:10px; font-size:12.3px; color:var(--ink-2); line-height:1.4; padding:3px 6px; margin:-3px -6px; border-radius:6px; transition:background .15s ease;}
+  .signal-row:hover{background:var(--inset);}
+  .signal-row .pts{font-weight:700; color:var(--ink); flex:none;}
+
+  .score-block .chip, .score-num, .meter{cursor:help;}
+
+  .card-link{font-size:12px;}
+  .card-link a{color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600; transition:gap .15s ease;}
+  .card-link a:hover{text-decoration:underline; gap:6px;}
+  .card-link svg{flex:none;}
+
+  .card-sources{font-size:11px; color:var(--ink-3);}
+  .card-sources a{color:var(--accent); text-decoration:none;}
+  .card-sources a:hover{text-decoration:underline;}
+
+  /* tooltip */
+  .tip{
+    position:absolute; pointer-events:none; background:var(--ink); color:var(--bg);
+    font-size:11.5px; padding:5px 8px; border-radius:6px; transform:translate(-50%,-115%);
+    white-space:nowrap; opacity:0; transition:opacity .08s ease; z-index:5; font-weight:600;
+  }
+  :root[data-theme="dark"] .tip, @media (prefers-color-scheme:dark){.tip{background:var(--ink); color:var(--bg);}}
+  .tip.show{opacity:1;}
+
+  /* table view */
+  .table-view{display:none; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow-x:auto; box-shadow:var(--shadow);}
+  .table-toggle-checkbox:checked ~ .table-view{display:block;}
+  table{border-collapse:collapse; width:100%; min-width:720px; font-size:13px;}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-weight:700;}
+  td.note{white-space:normal; color:var(--ink-2); min-width:260px;}
+  tr:last-child td{border-bottom:none;}
+
+  /* methodology + sources */
+  .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;}
+  .panel h2{font-size:16px; margin:0; font-weight:700;}
+  .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
+  .method-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
+  .method-list li{display:flex; justify-content:space-between; gap:12px; font-size:13px; color:var(--ink-2); padding:6px 10px; background:var(--inset); border-radius:8px;}
+  .method-list li b{color:var(--good); font-weight:700; flex:none;}
+  .method-list.flags li b{color:var(--critical);}
+  .method-note{font-size:12px; color:var(--ink-3); font-style:italic;}
+  .sources ol{margin:0; padding-left:20px; display:flex; flex-direction:column; gap:5px;}
+  .sources li{font-size:12.8px; color:var(--ink-2);}
+  .sources a{color:var(--accent); text-decoration:none; word-break:break-word;}
+  .sources a:hover{text-decoration:underline;}
+
+  footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+  /* Below this width, auto-fit/minmax columns of different sizes (.strip: 220px, .grid: 320px)
+     can no longer both shrink to the same column width, causing mismatched card widths and,
+     once .grid's 320px floor exceeds the viewport, horizontal page overflow. Force both to a
+     single full-width column so they always match and never overflow. */
+  @media (max-width: 700px){
+    .strip{grid-template-columns:1fr;}
+    .grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="wrap">
+
+    <input type="radio" name="dashTab" id="tabMarkt" class="tab-radio" checked>
+    <input type="radio" name="dashTab" id="tabAltcoins" class="tab-radio">
+    <input type="radio" name="dashTab" id="tabPump" class="tab-radio">
+    <input type="radio" name="dashTab" id="tabProjekte" class="tab-radio">
+
+    <header>
+      <div>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 05.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <h1>Kandidaten-Dashboard</h1>
+      </div>
+    </header>
+
+    <nav class="tab-bar">
+      <label for="tabMarkt" class="tab-pill">Markt</label>
+      <label for="tabAltcoins" class="tab-pill">Altcoins</label>
+      <label for="tabPump" class="tab-pill">Pump-Potentials</label>
+      <label for="tabProjekte" class="tab-pill">Projekte</label>
+    </nav>
+
+    <section class="tab-panel" id="panelMarkt">
+      <section class="strip">
+        <div class="stat">
+          <div class="label">Bitcoin</div>
+          <div class="value mono">$63.000–65.000</div>
+          <div class="ctx">Hält sich über $64k (+0,98% heute), Gesamtmarkt +0,7% auf $2,27 Bio.</div>
+        </div>
+        <div class="stat">
+          <div class="label">Altcoin Season Index</div>
+          <div class="value mono">52 / 100</div>
+          <div class="ctx">Keine neue datierte Messung für heute gefunden — letzter bestätigter Wert (31. Jul) beibehalten, neutrale Zone</div>
+          <div class="gauge"><i style="width:52%"></i><span class="thresh" style="left:75%"></span></div>
+        </div>
+        <div class="stat">
+          <div class="label">BTC-Dominanz</div>
+          <div class="value mono">~56,3%</div>
+          <div class="ctx">Unverändert bei ~56,3%, breite Short-Squeeze-Welle treibt kleinere Altcoins wie CYS deutlich an</div>
+        </div>
+        <div class="stat" id="statFearGreed">
+          <div class="label">Fear &amp; Greed Index</div>
+          <div class="value mono" id="fngValue">Lädt …</div>
+          <div class="ctx" id="fngCtx">Live via alternative.me</div>
+          <div class="gauge" id="fngGauge" style="display:none"><i style="width:0%"></i><span class="thresh" style="left:50%"></span></div>
+        </div>
+        <div class="stat" id="statMarketCap">
+          <div class="label">Gesamt-Marktkapitalisierung</div>
+          <div class="value mono" id="mcapValue">Lädt …</div>
+          <div class="ctx" id="mcapCtx">Live via CoinGecko</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="panelAltcoins">
+      <div class="tab-status" id="altcoinsStatus">Lade die zehn wichtigsten Coins nach Marktkapitalisierung …</div>
+      <section class="grid" id="altcoinsGrid"></section>
+    </section>
+
+    <section class="tab-panel" id="panelPump">
+      <input type="checkbox" id="tableToggleCheckbox" class="table-toggle-checkbox">
+      <label for="tableToggleCheckbox" class="table-toggle" aria-controls="tableView">
+        <span class="label-default">Tabellenansicht anzeigen</span>
+        <span class="label-active">Tabellenansicht ausblenden</span>
+      </label>
+
+      <div class="table-view" id="tableView">
+        <table>
+          <thead><tr><th>Coin</th><th>Score</th><th>Status</th><th>Kennzahl</th><th>Notiz</th><th>Quelle</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <section class="grid" id="cardGrid"></section>
+
+      <section class="panel" id="methodology">
+        <p class="sub">Jede Kachel zeigt einen Coin aus der laufenden Pump-Watchlist. Basis-Kursreihen sind aus zitierten Nachrichten-Snapshots rekonstruiert; wo ein CoinGecko-Kürzel bekannt ist, lädt der Chart zusätzlich echte Live-Kurse (Umschalter 1T / 1W / 1M / 1J / 5J) direkt im Browser nach.</p>
+        <h2>Wie wird der Score berechnet?</h2>
+        <p>Jeder Kandidat startet bei 0 Punkten (Maximum 12). Punkte gibt es für folgende Signale:</p>
+        <ul class="method-list">
+          <li><span>Exchange-Listing (Upbit/Binance/Coinbase), neu oder frisch angekündigt</span><b>+3</b></li>
+          <li><span>KOL-/Whale-Kauf on-chain sichtbar (z. B. CZ, Arthur Hayes, bekannte Wallets)</span><b>+2</b></li>
+          <li><span>Aktives KI- oder Agentic-DeFi-Narrativ</span><b>+2</b></li>
+          <li><span>Short-Squeeze-Setup (hohes Open Interest, neutrale/bearishe Funding Rate)</span><b>+2</b></li>
+          <li><span>Neues Feature / Produkt-Launch in den letzten 48 Stunden</span><b>+1</b></li>
+          <li><span>Token-Burn oder Supply-Shock-Event</span><b>+1</b></li>
+          <li><span>Aktive bezahlte Social-Media-Kampagne (z. B. Kaito Yap-to-Earn)</span><b>+1</b></li>
+        </ul>
+        <p>Red Flags ziehen Punkte ab oder disqualifizieren den Kandidaten direkt:</p>
+        <ul class="method-list flags">
+          <li><span>Top-10-Holder halten &gt;60 % des Supply</span><b>Disqualifikation</b></li>
+          <li><span>Market Cap &gt;$300 Mio. bei TVL &lt;$1 Mio.</span><b>Disqualifikation</b></li>
+          <li><span>RSI &gt;92</span><b>Disqualifikation</b></li>
+          <li><span>Kein Whitepaper oder kein Audit auffindbar</span><b>Disqualifikation</b></li>
+        </ul>
+        <p><b>Status-Einordnung:</b> Score ≥4 ohne Red-Flag-Verdacht → <b>Watchlist</b>. Unter 4 oder Red-Flag-Verdacht → <b>Risiko</b>. Klarer Scam-/Betrugsverdacht → <b>Kritisch</b> (Score kann negativ sein). Kein frisches Signal heute → <b>Kontext</b>, nicht gescort.</p>
+        <div class="legend">
+          <span class="chip good"><i></i>Watchlist — Score ≥ 4, keine Red Flags</span>
+          <span class="chip caution"><i></i>Risiko — unter Schwelle / Red-Flag-Verdacht</span>
+          <span class="chip critical"><i></i>Kritisch — Scam-Verdacht, meiden</span>
+          <span class="chip neutral"><i></i>Kontext — kein frisches Signal heute</span>
+        </div>
+      </section>
+
+      <section class="panel sources" id="sourcesSection" style="display:none">
+        <h2>Quellen</h2>
+        <ol id="sourcesList"></ol>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="panelProjekte">
+      <section class="grid">
+        <a class="card" href="../btc/" target="_blank" rel="noopener">
+          <img class="tile-thumb" src="../screenshots/btc.png" alt="">
+          <div class="card-head">
+            <div class="ticker-block">
+              <div>
+                <div class="ticker">Bitcoin On-Chain Dashboard</div>
+                <div class="name">Live-Kurs, Mempool &amp; Netzwerk-Metriken</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-link"><span>Öffnen →</span></div>
+        </a>
+        <a class="card" href="../bitcoin-3d/" target="_blank" rel="noopener">
+          <img class="tile-thumb" src="../screenshots/bitcoin-3d.png" alt="">
+          <div class="card-head">
+            <div class="ticker-block">
+              <div>
+                <div class="ticker">Bitcoin 3D</div>
+                <div class="name">3D Candlestick-Visualisierung</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-link"><span>Öffnen →</span></div>
+        </a>
+      </section>
+    </section>
+
+    <footer>
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–5.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+    </footer>
+
+  </div>
+</div>
+<script>
+(function(){
+  // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
+  const DASHBOARD_VERSION = 32;
+
+  const coins = [
+    {
+      ticker:"OPG", name:"OpenGradient", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3, firstSeen:"08.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"opengradient", link:"https://cryptobriefing.com/upbit-opg-krw-listing-july/",
+      series:[
+        {label:"1. Jul", value:0.133},
+        {label:"3. Jul", value:0.121},
+        {label:"5. Jul", value:0.118},
+        {label:"6. Jul", value:0.127},
+        {label:"7. Jul", value:0.132},
+        {label:"8. Jul", value:0.1509}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$28,6 Mio."},
+        {k:"24h Vol.",v:"$65,7 Mio."},
+        {k:"FDV",v:"$150,7 Mio."},
+        {k:"Top-10-Holder",v:"~97%"}
+      ],
+      signals:[
+        ["Frisches Upbit-KRW-Listing (7. Jul, zusätzlich zu BTC/USDT seit 15. Jun)","+3"],
+        ["Aktives KI-Infrastruktur-Narrativ (verifizierbare AI-Ausführung, CertiK 4.3★)","+2"]
+      ],
+      flag:"Top-10-Holder halten ~97% des Supply (Gini ~0,999) — laut On-Chain-Analyse aber größtenteils Vesting-/Team-/Bridge-Contracts, keine reinen Whale-Wallets. Dennoch hohes Entsperrungsrisiko und ein Red Flag nach unserem Framework (Top-10 &gt;60%).",
+      note:"Frisches AI-Infra-Listing mit <b>starkem 24h-Volumen</b> ($65,7 Mio.) — Score bleibt wegen extremer Holder-Konzentration unter der Watchlist-Schwelle. Vesting-Unlocks im Auge behalten.",
+      sourceRefs:[1,2,3]
+    },
+    {
+      ticker:"MPLX", name:"Metaplex", status:"good", statusLabel:"Watchlist", score:4, firstSeen:"07.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"metaplex", link:null,
+      series:[
+        {label:"30. Jun", value:0.019},
+        {label:"1. Jul", value:0.020},
+        {label:"2. Jul", value:0.0317},
+        {label:"3. Jul", value:0.035},
+        {label:"4. Jul", value:0.038},
+        {label:"5. Jul", value:0.040}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$20,8 Mio."},
+        {k:"24h Vol.",v:"$19,25 Mio."},
+        {k:"Holder",v:"24.090"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (3. Jul, BTC/USDT)","+3"],
+        ["DAO-Buyback bindet 23% Supply","+1"]
+      ],
+      flag:null,
+      note:"Bereits <b>+100% seit Listing</b> gelaufen — Nachkaufrisiko, enger Stop empfohlen.",
+      sourceRefs:[]
+    },
+    {
+      ticker:"SYN", name:"Synapse", status:"caution", statusLabel:"Unter Schwelle", score:2, firstSeen:"07.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:null,
+      series:[
+        {label:"1. Jun", value:6},
+        {label:"10. Jun", value:20},
+        {label:"20. Jun", value:40},
+        {label:"28. Jun", value:55},
+        {label:"29. Jun", value:67},
+        {label:"1. Jul", value:94},
+        {label:"6. Jul", value:150}
+      ],
+      stats:[
+        {k:"Juni-Rally",v:"+1.000%"},
+        {k:"Seit Hayes-Kauf (Ende Jun)",v:"−55%"},
+        {k:"Hayes-Einstiegspreis",v:"~$0,357"},
+        {k:"Hayes-Position",v:"~28% im Minus"}
+      ],
+      signals:[
+        ["Arthur Hayes kauft $2,2 Mio. SYN (KOL-Signal)","+2"]
+      ],
+      flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben. Bestätigt: Kurs ist seit Ende Juni bereits &gt;55% gefallen.",
+      note:"<b>Update:</b> Der Überkauft-Verdacht hat sich bestätigt — SYN ist seit Ende Juni bereits &gt;55% gefallen, Hayes' Position liegt ~28% im Minus. Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — als Warnbeispiel, nicht als Trade-Idee zu sehen.",
+      sourceRefs:[9]
+    },
+    {
+      ticker:"BDAG", name:"BlockDAG", status:"critical", statusLabel:"Scam-Verdacht", score:-1, firstSeen:"07.07.2026",
+      chartType:"bar", unit:"$Mio.", logo:null, coingeckoId:null, link:null,
+      series:[
+        {label:"Website-Behauptung", value:442},
+        {label:"CEO-Aussage", value:200},
+        {label:"On-Chain verifiziert*", value:95}
+      ],
+      stats:[
+        {k:"Bewertungssprung",v:"+$500 Mio."},
+        {k:"Katalysator",v:"Eigene Exchange startet 17. Jul"},
+        {k:"Vorwurf",v:"ZachXBT: >$300 Mio."},
+        {k:"Audit-Umfang",v:"nur Vesting-Contracts"}
+      ],
+      signals:[
+        ["Eigene Exchange „BlockDAG Exchange“ — Start bestätigt für 17. Jul, 14:00 UTC","+1"]
+      ],
+      flag:"ZachXBT wirft dem Team >$300 Mio. Unterschlagung vor; Audits (Halborn/CertiK) deckten nur Vesting-Contracts ab, nicht den Mainnet-Code; Whitepaper-Plagiatsvorwürfe; unbezahlte Gehälter (Dez. 2025).",
+      note:"Eigene Exchange öffnet zwar am 17. Jul, tatsächlicher BDAG-Handel dort wird laut Analysten aber erst für August erwartet — Exchange-Start und BDAG-Listing sind zwei getrennte Meilensteine. Ändert nichts an den ungeklärten Betrugsvorwürfen. Trotz Hype in „Top Gainer“-Listen: <b>klar meiden.</b> *On-Chain-Schätzung laut ZachXBT-Recherche.",
+      sourceRefs:[]
+    },
+    {
+      ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null, firstSeen:"07.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2", link:null,
+      series:[
+        {label:"17. Sep '25", value:0.08},
+        {label:"24. Sep '25", value:1.20},
+        {label:"Jan '26", value:1.80},
+        {label:"Mär '26", value:2.10},
+        {label:"Jul '26", value:2.42}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$4 Mrd."},
+        {k:"Seit Launch",v:"+2.900%"},
+        {k:"Unterstützt von",v:"CZ / YZi Labs"},
+        {k:"Segment",v:"Hyperliquid-Rivale"}
+      ],
+      signals:[
+        ["CZ-Endorsement + Exchange-Listings","bereits eingepreist"]
+      ],
+      flag:null,
+      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort.",
+      sourceRefs:[]
+    },
+    {
+      ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2, firstSeen:"07.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai", link:null,
+      series:[
+        {label:"ATH '25", value:0.1605},
+        {label:"Q4 '25", value:0.090},
+        {label:"Q1 '26", value:0.050},
+        {label:"Q2 '26", value:0.025},
+        {label:"6. Jul '26", value:0.0103}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$36,1 Mio."},
+        {k:"Vom ATH",v:"−92,7%"},
+        {k:"Narrativ",v:"AI-Copilot / DeFi"}
+      ],
+      signals:[
+        ["Aktives KI-Narrativ (Sorin AI Copilot)","+2"]
+      ],
+      flag:null,
+      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung.",
+      sourceRefs:[]
+    },
+    {
+      ticker:"GAL", name:"Galxe (migriert zu Gravity)", status:"caution", statusLabel:"Unter Schwelle / Migrations-Unsicherheit", score:3, firstSeen:"09.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"galxe", link:"https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token",
+      series:[
+        {label:"4. Jul", value:0.251},
+        {label:"6. Jul", value:0.258},
+        {label:"7. Jul", value:0.270},
+        {label:"9. Jul", value:0.269},
+        {label:"11. Jul", value:0.270}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$34,5 Mio."},
+        {k:"7-Tage",v:"+4,5%"},
+        {k:"Ankündigung",v:"+8,63% Spike"},
+        {k:"Listing",v:"Upbit KRW, seit 11. Jul live"}
+      ],
+      signals:[
+        ["Upbit-KRW-Listing am 11. Jul live gegangen (Ankündigung löste bereits +8,63% Kursreaktion aus)","+3"]
+      ],
+      flag:"GAL wurde technisch bereits zu einem neuen Token „Gravity (G)” migriert — Upbit listet weiterhin das alte GAL-Kürzel. Das deutet eher auf einen Legacy-/Liquiditäts-Listing-Fall als auf einen reinen Momentum-Trade hin; vor dem Kauf unbedingt prüfen, welches Kürzel/Contract tatsächlich gehandelt wird.",
+      note:"Upbit-Listing ist wie angekündigt am 11. Jul live gegangen, die Kursreaktion blieb bislang aber verhalten (~stabil bei $0,27) — die laufende Migration zu Gravity (G) macht die Situation weiterhin ungewöhnlich. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
+      sourceRefs:[4,5]
+    },
+    {
+      ticker:"OXT", name:"Orchid Protocol", status:"neutral", statusLabel:"Bereits gelaufen — kein Vorab-Signal", score:null, firstSeen:"17.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"orchid-protocol", link:null,
+      series:[
+        {label:"9. Jul '26", value:0.0035},
+        {label:"14. Jul '26", value:0.0055},
+        {label:"17. Jul '26", value:0.0072}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$5–31 Mio.*"},
+        {k:"Kursreaktion",v:"+90 bis +190%*"},
+        {k:"Exchange-Status",v:"Von Binance (Monitoring-Tag), Upbit, OKX, Bitget delistet/eingeschränkt"}
+      ],
+      signals:[
+        ["Technische Erholung nach Delisting-Crash (RSI ~32, überverkauft)","kein Score"],
+        ["DePIN-Sektor-Momentum (Top-Gainer am 9. Jul, +5,47%)","kein Score"],
+        ["Vermutetes Short-Covering bei dünner Liquidität","kein Score"]
+      ],
+      flag:"Kursangaben zwischen Börsen/Aggregatoren aktuell extrem widersprüchlich ($0,0065–$0,053 je nach Quelle, teils >90% Abweichung) — typisches Zeichen fragmentierter, dünner Liquidität nach den Delistings. Keine belastbare Einzelzahl verfügbar.",
+      note:"Auf Nutzeranfrage recherchiert, nicht Teil des täglichen Scans: OXT ist deutlich gestiegen (Quellen uneinig zwischen +93% in 24h und +93% in 7 Tagen), aber <b>kein fundamentaler Katalysator</b> (kein neues Listing, keine Partnerschaft) auffindbar — wirkt getrieben von überverkaufter technischer Gegenbewegung und mutmaßlichem Short-Covering, nicht von einem im Voraus erkennbaren Ereignis. Strukturelle Delisting-Risiken (Binance-Monitoring-Tag seit 6. Mär, Upbit-Delisting 29. Jun) bleiben bestehen. Retrospektive Analyse ohne aktionables Vorab-Signal — daher bewusst <b>nicht gescort</b>.",
+      sourceRefs:[6,7,8]
+    },
+    {
+      ticker:"AERO", name:"Aerodrome Finance", status:"good", statusLabel:"Watchlist", score:4, firstSeen:"22.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"aerodrome-finance", link:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/",
+      series:[
+        {label:"16. Jul", value:0.40},
+        {label:"17. Jul", value:0.525},
+        {label:"19. Jul", value:0.45},
+        {label:"21. Jul", value:0.45}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$433,7 Mio."},
+        {k:"TVL",v:"&gt;$1 Mrd."},
+        {k:"Holder",v:"740.000+"},
+        {k:"Seit Listing-Peak",v:"−14%"}
+      ],
+      signals:[
+        ["Frisches Binance-Listing mit Seed Tag (17. Jul, AERO/USDT+USDC+TRY)","+3"],
+        ["Laufendes Buyback-Programm (Protocol Growth Fund, &gt;190 Mio. AERO gesamt gelockt)","+1"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Binance listete AERO am 17. Jul mit Seed Tag (erhöhtes Volatilitätsrisiko) — Kurs spitzte auf $0,525, fiel binnen 36h um 14% auf ~$0,45. Aerodrome ist mit &gt;$1 Mrd. TVL die führende Base-DEX, TVL übersteigt die Market Cap deutlich (kein Red-Flag-Verhältnis), Holder breit gestreut (740.000+). Laufendes Buyback-Programm stützt den Token. <b>Nachkaufrisiko nach dem Pop beachten</b> — Seed Tag signalisiert bewusst hohe Schwankungsbreite.",
+      sourceRefs:[10,11]
+    },
+    {
+      ticker:"DRV", name:"Derive", status:"caution", statusLabel:"Unter Schwelle / Konzentrationsrisiko", score:3, firstSeen:"22.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"derive", link:"https://cryptobriefing.com/upbit-lists-derive-drv-token/",
+      series:[
+        {label:"13. Jul", value:0.116},
+        {label:"14. Jul", value:0.150},
+        {label:"21. Jul", value:0.151}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$151,2 Mio."},
+        {k:"TVL",v:"&gt;$100 Mio."},
+        {k:"Top-10-Holder",v:"82,55%"},
+        {k:"Ausstehende Unlocks",v:"762 Mio. Token"}
+      ],
+      signals:[
+        ["Frisches Upbit- und Bithumb-Listing (14. Jul, KRW/BTC/USDT-Märkte, zusätzlich zum bestehenden Coinbase-Listing)","+3"]
+      ],
+      flag:"Top-10-Wallets halten 82,55% des On-Chain-Supply — klares Red Flag nach unserem Framework (Top-10 &gt;60%). Zusätzlich stehen noch 762 Mio. Token aus Unlocks/Emissionen aus, plus eine vorgeschlagene 50%-Supply-Erhöhung im Raum.",
+      note:"<b>Neu:</b> Upbit und Bithumb haben DRV am 14. Jul zusätzlich zum bestehenden Coinbase-Listing gelistet, Kurs stieg dadurch um fast 30%. TVL liegt bei &gt;$100 Mio. (solide im Verhältnis zur Market Cap von ~$151 Mio.), aber die extreme Holder-Konzentration (82,55% bei 10 Wallets) und die geplante Supply-Erhöhung sind ernste Risikofaktoren. <b>Score bleibt unter der Watchlist-Schwelle.</b>",
+      sourceRefs:[12,13]
+    },
+    {
+      ticker:"O", name:"o1.exchange", status:"caution", statusLabel:"Unter Schwelle / Dilution-Risiko", score:3, firstSeen:"23.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"o1-exchange", link:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news",
+      series:[
+        {label:"Vor Ankündigung", value:0.675},
+        {label:"Vor Listing", value:0.518},
+        {label:"23. Jul (Listing)", value:0.519}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$83,0 Mio."},
+        {k:"FDV",v:"~$518,5 Mio. (16% im Umlauf)"},
+        {k:"24h Vol.",v:"$39,4 Mio."},
+        {k:"Audit",v:"Ja (xors.xyz, Contract+Vesting)"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (23. Jul, KRW/BTC/USDT — zusätzlich zu Coinbase)","+3"]
+      ],
+      flag:"Nur 16% des 1-Mrd.-Supply im Umlauf (FDV ~6x Market Cap) — hohes Verwässerungsrisiko bei künftigen Freischaltungen. Team/Seed-Investoren-Konzentration vom Projekt selbst offengelegt, aber ohne konkrete Top-10-Prozentzahl verifizierbar (daher kein hartes Red-Flag-Scoring, nur Caution).",
+      note:"<b>Neu:</b> o1.exchange (DEX-Aggregator/Trading-Terminal auf Base &amp; Solana) wurde heute auf Upbit gelistet (KRW/BTC/USDT), zusätzlich zum bestehenden Coinbase-Listing. Ungewöhnlich: Der Kurs ist im Vorfeld der Ankündigung bereits von ~$0,675 auf ~$0,52 gefallen — die Listing-News wirkte bislang nicht als Kurstreiber. Audit vorhanden, aber niedriger Free Float (16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b> — als Beobachtungsposten aufgenommen.",
+      sourceRefs:[14,15]
+    },
+    {
+      ticker:"EUL", name:"Euler", status:"caution", statusLabel:"Unter Schwelle / RSI-Extremwert (Disqualifikation)", score:3, firstSeen:"26.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"euler", link:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/",
+      series:[
+        {label:"Vor Ausbruch", value:1.02},
+        {label:"Vor 24h", value:1.02},
+        {label:"26. Jul (Peak)", value:1.74}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$41,2 Mio."},
+        {k:"24h Vol.",v:"$60,3 Mio. (&gt;126% v. MC)"},
+        {k:"RSI (4h)",v:"92,96 (extrem überkauft)"},
+        {k:"Top-100-Holder",v:"93,13% des Supply"}
+      ],
+      signals:[
+        ["Frisches Upbit-KRW-Listing (26. Jul, DeFi-Lending-Expansion)","+3"],
+        ["Short-Squeeze-Setup bestätigt (Ausbruch aus monatelangem Abwärtskanal, ~$4,77 Mio. Short-Liquidationen in 24h)","+2"]
+      ],
+      flag:"RSI (4h) bei 92,96 — klare Disqualifikation nach unserem Framework (RSI &gt;92). Zusätzlich extreme Holder-Konzentration: Top-100-Wallets halten 93,13% des Supply (Gini 0,988), auch wenn ein Teil davon Protocol-Contracts sein dürfte.",
+      note:"<b>Neu:</b> Euler wurde heute (26. Jul) auf Upbit im KRW-Markt gelistet, zeitgleich tobt ein heftiger Short-Squeeze — Kurs +70% in 24h, ~$4,77 Mio. Short-Positionen liquidiert, Ausbruch aus monatelangem Abwärtskanal. Trotz starker Rohsignale (Listing +3, Squeeze +2) reißt der 4h-RSI von 92,96 unsere Disqualifikations-Schwelle klar — <b>Score bleibt unter der Watchlist-Schwelle</b>. Nach einem Move dieser Größe extrem hohes Rückschlagrisiko, kein Nachkauf empfohlen.",
+      sourceRefs:[16,17]
+    },
+    {
+      ticker:"MORPHO", name:"Morpho", status:"caution", statusLabel:"Unter Schwelle / Large-Cap", score:3, firstSeen:"26.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"morpho", link:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/",
+      series:[
+        {label:"Vor Ankündigung", value:1.86},
+        {label:"25. Jul (Listing)", value:1.95}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$1,0–1,3 Mrd."},
+        {k:"Rang",v:"~Top 50–60 nach Market Cap"},
+        {k:"Kursreaktion",v:"+4,8% (Listing-Ankündigung)"},
+        {k:"Feature",v:"Morpho Midnight (Fixed-Rate-Lending, Base, 22. Jul)"}
+      ],
+      signals:[
+        ["Frisches Upbit-KRW-Listing (25. Jul, DeFi-Lending-Expansion, zeitgleich mit EUL)","+3"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Upbit listete MORPHO am 25. Jul im KRW-Markt (zusammen mit EUL einen Tag später), Kursreaktion moderat (+4,8%). Mit $1–1,3 Mrd. Market Cap ist Morpho ein etablierter Large-Cap-DeFi-Player (Top 50–60), kein klassisches Pump-Setup. <b>Score bleibt unter der Watchlist-Schwelle</b> — primär als Kontext zur DeFi-Lending-Listing-Welle aufgenommen.",
+      sourceRefs:[16]
+    },
+    {
+      ticker:"KAITO", name:"Kaito", status:"caution", statusLabel:"Unter Schwelle / Chase-Risiko (überkauft)", score:2, firstSeen:"28.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"kaito", link:"https://cryptobriefing.com/kaito-ai-data-agreement-x/",
+      series:[
+        {label:"Vor Ankündigung", value:1.00},
+        {label:"24. Jul", value:1.05},
+        {label:"28. Jul", value:1.32}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$291,2 Mio."},
+        {k:"RSI (täglich)",v:"77,14 (überkauft)"},
+        {k:"Open Interest",v:"$70,9 Mio. (Jahreshoch)"},
+        {k:"Unlock (20. Jul)",v:"$17,1 Mio. (+7–8% Supply)"}
+      ],
+      signals:[
+        ["Aktives KI-/Agentic-Narrativ (offizielle X-Datenkooperation für KI-/Social-Intelligence, bestätigt)","+2"]
+      ],
+      flag:"Täglicher RSI bei 77,14 — deutlich überkauft (unter der 92er-Disqualifikationsschwelle, aber Vorsicht geboten). Erst am 20. Jul lief ein Token-Unlock (~1,8% des Supply) — zusätzlicher Verwässerungsdruck bei gleichzeitigem Kursanstieg.",
+      note:"<b>Neu:</b> Kaito sicherte sich eine offizielle Datenkooperation mit X zur Stärkung seiner KI-/Social-Intelligence-Produkte — Kurs zieht seither an, heute allein +12–16% auf $1,32. Kein frisches Exchange-Listing (Kaito ist bereits etabliert), daher nur der Narrativ-Punkt. <b>Score bleibt unter der Watchlist-Schwelle</b> — nach dem Run und bei überkauftem RSI kein Nachkauf-Kandidat, eher als Beispiel für ein laufendes KI-Narrativ aufgenommen.",
+      sourceRefs:[18]
+    },
+    {
+      ticker:"BEAT", name:"Audiera", status:"caution", statusLabel:"Unter Schwelle / Unlock ohne Crash verkraftet", score:3, firstSeen:"30.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"audiera", link:"https://www.coingabbar.com/en/price-prediction/audiera-price-prediction-beat-token-unlock-risk-analysis",
+      series:[
+        {label:"27. Jul", value:4.08},
+        {label:"29. Jul", value:3.61},
+        {label:"30. Jul", value:3.84},
+        {label:"1. Aug (nach Unlock)", value:4.23}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$1,1 Mrd."},
+        {k:"Wochenumsatz",v:"~$2,9 Mio. (801.000 BEAT)"},
+        {k:"Verbrannt (kumuliert)",v:">17,8 Mio. BEAT"},
+        {k:"Unlock (1. Aug, erfolgt)",v:"21,25 Mio. BEAT (~$67,8 Mio.)"}
+      ],
+      signals:[
+        ["Aktives Agentic-Narrativ (KI-Agenten als gleichberechtigte Plattform-Teilnehmer, verifizierbarer Umsatz)","+2"],
+        ["Laufender Token-Burn (~800.000 BEAT/Woche, kumuliert &gt;17,8 Mio.)","+1"]
+      ],
+      flag:"Der befürchtete Unlock ist am 1. Aug wie geplant erfolgt (21,25 Mio. BEAT, ~$67,8 Mio.) — der Kurs reagierte trotzdem positiv (+8,29% heute auf $4,23), Markt scheint das Risiko bereits eingepreist zu haben. Kein Audit auffindbar (nicht bestätigt disqualifizierend, da etabliertes Coinbase-Listing mit belegtem Umsatz).",
+      note:"<b>Update:</b> Der befürchtete Unlock vom 1. Aug (~$67,8 Mio.) ist ohne Kurseinbruch verlaufen — BEAT steht heute bei $4,23 (+8,29%), getragen von echtem Umsatz (~$2,9 Mio./Woche) und laufenden Burns. Die vielzitierte „AI-Partnership“-Meldung bleibt von Anfang Juni und nicht mehr frisch. <b>Score bleibt unter der Watchlist-Schwelle</b> — kein neues Signal seit gestern, aber das Unlock-Risiko hat sich nicht materialisiert.",
+      sourceRefs:[19,20,23]
+    },
+    {
+      ticker:"GRVT", name:"GRVT (On-Chain Wealth Platform / Perp-DEX)", status:"caution", statusLabel:"Unter Schwelle / Audit nicht verifizierbar", score:3, firstSeen:"31.07.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"grvt", link:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/",
+      series:[
+        {label:"29. Jul", value:0.15},
+        {label:"30. Jul (Launch)", value:0.15},
+        {label:"31. Jul (Peak)", value:0.2436}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$35,0 Mio."},
+        {k:"FDV",v:"$306,3 Mio. (11% im Umlauf)"},
+        {k:"Private-Sale-Anteil",v:"19,9% (~$33 Mio. eingesammelt)"},
+        {k:"Community/Airdrop",v:"28%"}
+      ],
+      signals:[
+        ["Multi-Exchange-Listing (Binance Alpha, Bybit, MEXC, KuCoin, Bitget, Coinbase-Deposits — 30. Jul)","+3"]
+      ],
+      flag:"Kein Audit für den GRVT-Token-Contract auffindbar (nicht zu verwechseln mit dem unabhängigen Projekt „Gravitoken/GRV”). Nur 11% des 1-Mrd.-Supply im Umlauf — FDV liegt beim ~8,75-Fachen der Market Cap, hohes Verwässerungsrisiko bei künftigen Freischaltungen.",
+      note:"<b>Neu:</b> GRVT (selbstverwahrende On-Chain-Wealth-Plattform, seit Dez. 2024 als lizenzierte Perp-DEX aktiv) startete den Token gestern (30. Jul) zeitgleich auf Binance Alpha, Bybit, MEXC, KuCoin, Bitget und mit Coinbase-Einzahlungen — Kurs heute +62%. Bereits am 21. Jul als Kandidat geprüft und mangels bestätigtem Tier-1-Listing zurückgestellt; das ist jetzt nachgeholt. <b>Score bleibt unter der Watchlist-Schwelle</b> — kein auffindbarer Audit und starkes Dilution-Risiko (nur 11% Floating Supply) bremsen trotz des breiten Exchange-Rollouts.",
+      sourceRefs:[21,22]
+    },
+    {
+      ticker:"CYS", name:"Cysic (ZK-Proof-/ComputeFi-Infrastruktur)", status:"caution", statusLabel:"Unter Schwelle / kein Einzeltitel-Katalysator", score:2, firstSeen:"05.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"cysic", link:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises",
+      series:[
+        {label:"Vor Ausbruch", value:0.29},
+        {label:"4. Aug", value:0.29},
+        {label:"5. Aug (Peak)", value:0.547}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$85,4–87,6 Mio."},
+        {k:"FDV",v:"$545 Mio. (~16% im Umlauf)"},
+        {k:"24h-Liquidationen",v:"$2,29 Mio. (67% Shorts)"},
+        {k:"Audit",v:"CertiK 4,4/5"}
+      ],
+      signals:[
+        ["Short-Squeeze-Dynamik im breiten Markt (67% der Liquidationen Shorts, CYS-Volumen +71%)","+2"]
+      ],
+      flag:"Nur ~16% des 1-Mrd.-Supply im Umlauf (FDV ~6,2x Market Cap) — hohes Verwässerungsrisiko. Kein Cysic-spezifischer Katalysator identifizierbar, Kursbewegung wird von Analysten als „positive Beta” zur allgemeinen Marktrally beschrieben, nicht als eigenständiges Signal.",
+      note:"<b>Neu:</b> Cysic (ZK-Proof-/ComputeFi-Infrastruktur) sprang um bis zu 93% im Zuge einer breiten Short-Squeeze-Welle im Markt (67% der $2,29-Mio.-Liquidationen betrafen Shorts). Kein projekteigener Katalysator auffindbar — Analysten stufen den Move als Beta zur allgemeinen Bitcoin-Rally ein, nicht als Cysic-spezifisches Ereignis. Audit vorhanden (CertiK 4,4/5), aber niedriger Free Float (~16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
+      sourceRefs:[24]
+    }
+  ];
+
+  // Numbered footnote sources for today's research. Populated by the daily scan; empty = section hidden.
+  const sources = [
+    {n:1, label:"Upbit listet OpenGradient (OPG) im KRW-Markt, 7. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-opg-krw-listing-july/"},
+    {n:2, label:"OpenGradient Preis-Prognose: OPG steigt nach Upbit-Listing — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/opengradient-price-prediction-upbit-listing-opg-price-surge"},
+    {n:3, label:"OpenGradient On-Chain Decode (Holder-Konzentration) — ChainWard", url:"https://chainward.ai/decodes/opengradient-on-chain"},
+    {n:4, label:"Upbit kündigt GAL-Listing im KRW-Markt für 11. Juli an — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/upbit-lists-gal-token"},
+    {n:5, label:"Galxe (GAL) Kursdaten und Migrationshinweis zu Gravity (G) — CoinGecko", url:"https://www.coingecko.com/en/coins/galxe"},
+    {n:6, label:"Orchid Protocol (OXT) Preis, Marktkapitalisierung und News — CoinGecko", url:"https://www.coingecko.com/en/coins/orchid-protocol"},
+    {n:7, label:"Orchid (OXT) Preis-Analyse (RSI, Volumen) — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/price-analysis/"},
+    {n:8, label:"Neuigkeiten zu Orchid (OXT), inkl. Upbit-Delisting 29. Jun und Binance-Monitoring-Tag — CoinMarketCap CMC AI", url:"https://coinmarketcap.com/cmc-ai/orchid/latest-updates/"},
+    {n:9, label:"SYN-Token fällt >55% nach Arthur-Hayes-Empfehlung, Position ~28% im Minus — BeInCrypto", url:"https://beincrypto.com/arthur-hayes-buys-eth-again/"},
+    {n:10, label:"Binance listet Aerodrome (AERO) mit Seed Tag, 17. Juli 2026 — BlockchainReporter", url:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/"},
+    {n:11, label:"Aerodrome (AERO) TVL und Protocol-Growth-Fund-Buybacks — DefiLlama", url:"https://defillama.com/protocol/aerodrome"},
+    {n:12, label:"Upbit listet Derive (DRV) im KRW/BTC/USDT-Markt, 14. Juli 2026 — CryptoBriefing", url:"https://cryptobriefing.com/upbit-lists-derive-drv-token/"},
+    {n:13, label:"Derive (DRV): Upbit- und Bithumb-Listing lässt Kurs um fast 30% steigen, Holder-Konzentration 82,55% bei Top-10-Wallets — CryptoRank", url:"https://cryptorank.io/news/feed/9e19d-derive-drv-rally-upbit-bithumb-listings"},
+    {n:14, label:"o1 Exchange Listing auf Upbit heute (23. Juli 2026) — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/o1-exchange-listing-on-upbit-today-o-price-react-news"},
+    {n:15, label:"o1.exchange (O) Preis, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/o1-exchange"},
+    {n:16, label:"Upbit listet Morpho (25. Juli) und Euler (26. Juli) im KRW-Markt — CryptoBriefing", url:"https://cryptobriefing.com/upbit-morpho-euler-krw-listing/"},
+    {n:17, label:"Euler (EUL) Short-Squeeze-Rally, RSI 92,96, Liquidationen — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/euler-eul-price-prediction-token-rallies-on-short-squeeze-surge"},
+    {n:18, label:"Kaito AI enters data agreement with X to enhance use cases — CryptoBriefing", url:"https://cryptobriefing.com/kaito-ai-data-agreement-x/"},
+    {n:19, label:"Audiera Price Prediction: $BEAT 23% Rally vs. Big Token Unlock Fears — CoinGabbar", url:"https://www.coingabbar.com/en/price-prediction/audiera-price-prediction-beat-token-unlock-risk-analysis"},
+    {n:20, label:"Audiera's BEAT Jumps 30% on Verifiable Revenue and Burns With an August Unlock Next — Coinspeaker", url:"https://partners.coinspeaker.com/audieras-beat-jumps-30-on-verifiable-revenue-and-burns-with-an-august-unlock-next-the-calendar"},
+    {n:21, label:"MEXC lists Grvt (GRVT) mit $60.000 GRVT und 10.000 USDT Airdrop+ — CryptoBriefing", url:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/"},
+    {n:22, label:"GRVT Token Price, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/grvt"},
+    {n:23, label:"Audiera BEAT Token Rips 30% as Traders Price in Reduced Risk From Early-August Unlock — ICOBench", url:"https://icobench.com/news/press-releases/audieras-beat-rips-30-on-revenue-and-burn-data-as-traders-price-in-an-early-august-unlock/"},
+    {n:24, label:"Crypto News Today August 5: Bitcoin Holds $64K, Cysic Token Soars 93% — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises"}
+  ];
+
+  const NS = "http://www.w3.org/2000/svg";
+  const grid = document.getElementById("cardGrid");
+  const tableBody = document.getElementById("tableBody");
+  const statusColorVar = {good:"--good", caution:"--caution", critical:"--critical", neutral:"--neutral", market:"--accent"};
+  const liveCache = new Map();
+
+  // CoinGecko's free/no-key API throttles hard against bursts of parallel requests.
+  // Both tabs' cards (up to ~16 total) build in the background on page load regardless
+  // of which tab is visible, and each auto-loads its default range immediately — without
+  // this queue that fires ~16 simultaneous requests and most get rejected (429 / connection
+  // reset) except for the handful that slip through first. Cap concurrency and space out
+  // request starts so they all get a fair chance to succeed.
+  const COINGECKO_MAX_CONCURRENT = 2;
+  const COINGECKO_MIN_GAP_MS = 350;
+  let coinGeckoActive = 0;
+  let coinGeckoLastStart = 0;
+  const coinGeckoQueue = [];
+
+  function coinGeckoScheduleNext(){
+    if(coinGeckoActive >= COINGECKO_MAX_CONCURRENT || coinGeckoQueue.length === 0) return;
+    const wait = Math.max(0, coinGeckoLastStart + COINGECKO_MIN_GAP_MS - Date.now());
+    setTimeout(()=>{
+      if(coinGeckoActive >= COINGECKO_MAX_CONCURRENT || coinGeckoQueue.length === 0) return;
+      const job = coinGeckoQueue.shift();
+      coinGeckoActive++;
+      coinGeckoLastStart = Date.now();
+      job();
+      coinGeckoScheduleNext();
+    }, wait);
+  }
+
+  function coinGeckoFetch(url){
+    return new Promise((resolve, reject)=>{
+      coinGeckoQueue.push(()=>{
+        fetch(url).then(resolve, reject).finally(()=>{
+          coinGeckoActive--;
+          coinGeckoScheduleNext();
+        });
+      });
+      coinGeckoScheduleNext();
+    });
+  }
+
+  // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
+  const versionTag = document.getElementById("versionTag");
+  if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
+
+  function fmt(n, unit){
+    if(unit === "$" ){
+      if(Math.abs(n) < 1) return "$" + n.toFixed(4).replace(/0+$/,"").replace(/\.$/,"");
+      return "$" + n.toLocaleString("de-DE",{maximumFractionDigits:2});
+    }
+    return n + " " + unit;
+  }
+
+  function monogramColor(ticker){
+    let hash = 0;
+    for(const ch of ticker) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return `hsl(${hash % 360} 55% 42%)`;
+  }
+
+  function buildAvatar(coin){
+    const wrap = document.createElement("div");
+    if(coin.logo){
+      const img = document.createElement("img");
+      img.className = "avatar";
+      img.loading = "lazy";
+      img.alt = coin.ticker + " Logo";
+      img.src = coin.logo;
+      img.addEventListener("error", ()=>{ wrap.replaceChildren(buildMonogram(coin)); }, {once:true});
+      wrap.appendChild(img);
+    } else {
+      wrap.appendChild(buildMonogram(coin));
+    }
+    return wrap;
+  }
+
+  function buildMonogram(coin){
+    const div = document.createElement("div");
+    div.className = "avatar-fallback";
+    div.style.background = monogramColor(coin.ticker);
+    div.textContent = coin.ticker.slice(0,2).toUpperCase();
+    return div;
+  }
+
+  function formatTs(ts, days){
+    const d = new Date(ts);
+    if(days === "1"){
+      return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    }
+    const month = d.toLocaleDateString("de-DE",{month:"short"}).replace(/\.$/,"");
+    if(Number(days) >= 365){
+      return d.getDate() + ". " + month + " " + d.getFullYear().toString().slice(-2);
+    }
+    return d.getDate() + ". " + month;
+  }
+
+  function fmtCompactUsd(n){
+    if(n === null || n === undefined || isNaN(n)) return "—";
+    const abs = Math.abs(n);
+    if(abs >= 1e12) return "$" + (n/1e12).toFixed(2).replace(/\.00$/,"") + " Bio.";
+    if(abs >= 1e9) return "$" + (n/1e9).toFixed(2).replace(/\.00$/,"") + " Mrd.";
+    if(abs >= 1e6) return "$" + (n/1e6).toFixed(2).replace(/\.00$/,"") + " Mio.";
+    return "$" + n.toLocaleString("de-DE",{maximumFractionDigits:0});
+  }
+
+  // Distinguishable failure reasons so the UI never shows one blanket "not available"
+  // message for both a permanently bad CoinGecko ID and a passing rate-limit hiccup.
+  const LIVE_ERROR_MESSAGES = {
+    "not-found": "CoinGecko-ID nicht gefunden · Research-Daten",
+    "rate-limited": "Kurzzeitig überlastet, bitte später erneut versuchen · Research-Daten",
+    "no-data": "Keine Daten für diesen Zeitraum · Research-Daten",
+    "network-error": "Verbindungsfehler beim Laden · Research-Daten"
+  };
+
+  function fetchLiveSeries(id, days){
+    const key = id + ":" + days;
+    if(liveCache.has(key)) return liveCache.get(key);
+    const p = coinGeckoFetch(`https://api.coingecko.com/api/v3/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=${days}`)
+      .then(res=>{
+        if(!res.ok){
+          const err = new Error("HTTP " + res.status);
+          err.code = res.status === 404 ? "not-found" : res.status === 429 ? "rate-limited" : "network-error";
+          throw err;
+        }
+        return res.json();
+      })
+      .then(data=>{
+        const prices = data.prices || [];
+        if(!prices.length){
+          const err = new Error("empty");
+          err.code = "no-data";
+          throw err;
+        }
+        const step = Math.max(1, Math.floor(prices.length / 60));
+        const sampled = prices.filter((_,i)=> i % step === 0 || i === prices.length - 1);
+        return sampled.map(([ts,value])=>({label: formatTs(ts, days), value}));
+      })
+      .catch(err=>{
+        if(!err.code) err.code = "network-error";
+        throw err;
+      });
+    liveCache.set(key, p);
+    p.catch(()=> liveCache.delete(key));
+    return p;
+  }
+
+  function buildChart(coin, series){
+    const w = 300, h = 118, padL = 6, padR = 6, padT = 10, padB = 18;
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label", coin.ticker + " Chart");
+
+    const color = `var(${statusColorVar[coin.status]})`;
+    const gradId = "grad-" + coin.ticker + "-" + Math.random().toString(36).slice(2,8);
+
+    const defs = document.createElementNS(NS,"defs");
+    const grad = document.createElementNS(NS,"linearGradient");
+    grad.setAttribute("id", gradId);
+    grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","0"); grad.setAttribute("y2","1");
+    grad.innerHTML = `<stop offset="0%" stop-color="${color}" stop-opacity="0.35"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/>`;
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+
+    const vals = series.map(d=>d.value);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const range = (max - min) || 1;
+
+    // baseline
+    const base = document.createElementNS(NS,"line");
+    base.setAttribute("x1",padL); base.setAttribute("x2", w-padR);
+    base.setAttribute("y1", h-padB); base.setAttribute("y2", h-padB);
+    base.setAttribute("stroke","var(--border)"); base.setAttribute("stroke-width","1");
+    base.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(base);
+
+    const tip = document.createElement("div");
+    tip.className = "tip";
+
+    let capLeft, capRight;
+
+    if(coin.chartType === "line"){
+      const n = series.length;
+      const stepX = (w - padL - padR) / (n - 1);
+      const pts = series.map((d,i)=>{
+        const x = padL + i*stepX;
+        const y = padT + (1 - (d.value - min)/range) * (h - padT - padB);
+        return {x,y,...d};
+      });
+
+      const path = "M" + pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+      const areaPath = path + ` L${pts[pts.length-1].x.toFixed(1)},${h-padB} L${pts[0].x.toFixed(1)},${h-padB} Z`;
+
+      const area = document.createElementNS(NS,"path");
+      area.setAttribute("d", areaPath);
+      area.setAttribute("fill", `url(#${gradId})`);
+      svg.appendChild(area);
+
+      const line = document.createElementNS(NS,"path");
+      line.setAttribute("d", path);
+      line.setAttribute("fill","none");
+      line.setAttribute("stroke", color);
+      line.setAttribute("stroke-width","2");
+      line.setAttribute("stroke-linecap","round");
+      line.setAttribute("stroke-linejoin","round");
+      line.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(line);
+
+      // endpoint emphasis
+      const last = pts[pts.length-1];
+      const ring = document.createElementNS(NS,"circle");
+      ring.setAttribute("cx", last.x); ring.setAttribute("cy", last.y); ring.setAttribute("r","5");
+      ring.setAttribute("fill","var(--card)"); ring.setAttribute("stroke", color); ring.setAttribute("stroke-width","2");
+      ring.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(ring);
+
+      pts.forEach(p=>{
+        const hit = document.createElementNS(NS,"circle");
+        hit.setAttribute("cx",p.x); hit.setAttribute("cy",p.y); hit.setAttribute("r","10");
+        hit.setAttribute("fill","transparent");
+        hit.style.cursor = "crosshair";
+        hit.addEventListener("mouseenter", (e)=>showTip(e, wrap, tip, `${p.label}: ${fmt(p.value, coin.unit)}`, p, w, h));
+        hit.addEventListener("mouseleave", ()=> tip.classList.remove("show"));
+        svg.appendChild(hit);
+      });
+
+      capLeft = series[0].label; capRight = series[series.length-1].label;
+    } else {
+      // bar chart
+      const n = series.length;
+      const gap = 14;
+      const barW = (w - padL - padR - gap*(n-1)) / n;
+      series.forEach((d,i)=>{
+        const x = padL + i*(barW+gap);
+        const bh = (d.value - 0)/ (max||1) * (h - padT - padB - 14);
+        const y = h - padB - bh;
+        const bar = document.createElementNS(NS,"rect");
+        bar.setAttribute("x",x); bar.setAttribute("y",y);
+        bar.setAttribute("width",barW); bar.setAttribute("height",bh);
+        bar.setAttribute("rx","4");
+        bar.setAttribute("fill", color);
+        bar.setAttribute("fill-opacity", (1 - i*0.22).toFixed(2));
+        svg.appendChild(bar);
+
+        const label = document.createElementNS(NS,"text");
+        label.setAttribute("x", x + barW/2); label.setAttribute("y", y - 6);
+        label.setAttribute("text-anchor","middle");
+        label.setAttribute("font-size","9.5");
+        label.setAttribute("font-weight","700");
+        label.setAttribute("fill","var(--ink-2)");
+        label.setAttribute("class","mono");
+        label.textContent = "$" + d.value + "M";
+        svg.appendChild(label);
+
+        const hit = document.createElementNS(NS,"rect");
+        hit.setAttribute("x",x); hit.setAttribute("y",padT); hit.setAttribute("width",barW); hit.setAttribute("height", h-padT-padB);
+        hit.setAttribute("fill","transparent");
+        hit.style.cursor="crosshair";
+        hit.addEventListener("mouseenter",(e)=>showTip(e, wrap, tip, `${d.label}: $${d.value} Mio.`, {x:x+barW/2,y}, w, h));
+        hit.addEventListener("mouseleave", ()=> tip.classList.remove("show"));
+        svg.appendChild(hit);
+      });
+      capLeft = series[0].label; capRight = series[series.length-1].label;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    wrap.appendChild(tip);
+    const cap = document.createElement("div");
+    cap.className = "chart-cap";
+    cap.innerHTML = `<span>${capLeft}</span><span>${capRight}</span>`;
+    wrap.appendChild(cap);
+    return wrap;
+  }
+
+  function showTip(e, wrap, tip, text, p, w, h){
+    const rect = wrap.getBoundingClientRect();
+    const scaleX = rect.width / w;
+    tip.style.left = (p.x*scaleX) + "px";
+    tip.style.top = (p.y*(rect.height/h)) + "px";
+    tip.textContent = text;
+    tip.classList.add("show");
+  }
+
+  function updatePriceHead(el, series, unit, sourceLabel){
+    if(!series || series.length < 2){ el.innerHTML = ""; return; }
+    const first = series[0].value, last = series[series.length-1].value;
+    const pct = first ? ((last - first) / Math.abs(first) * 100) : 0;
+    const dir = pct > 0.05 ? "up" : pct < -0.05 ? "down" : "flat";
+    const sign = pct > 0 ? "+" : "";
+    el.innerHTML = `<span class="cur mono">${fmt(last, unit)}</span><span class="chg ${dir} mono">${sign}${pct.toFixed(1)}%</span><span class="range-note">${sourceLabel}</span>`;
+  }
+
+  function resolveCoinLink(coin){
+    if(coin.link){
+      return {url: coin.link, label: /coingecko\.com/i.test(coin.link) ? "Zur CoinGecko-Seite" : "Zur Hauptquelle"};
+    }
+    if(coin.coingeckoId){
+      return {url: `https://www.coingecko.com/en/coins/${encodeURIComponent(coin.coingeckoId)}`, label: "Zur CoinGecko-Seite"};
+    }
+    return null;
+  }
+
+  // Shared by buildCard() (Pump-Potentials) and buildMarketCoinCard() (Altcoins tab):
+  // price head + chart + range buttons, appended onto whatever card element is passed in.
+  function buildChartSection(card, coin, opts){
+    opts = opts || {};
+    let priceHost = null;
+    if(coin.chartType === "line"){
+      priceHost = document.createElement("div");
+      priceHost.className = "price-head";
+      card.appendChild(priceHost);
+    }
+
+    const chartHost = document.createElement("div");
+    card.appendChild(chartHost);
+
+    function renderSeries(series, sourceLabel){
+      chartHost.replaceChildren(buildChart(coin, series));
+      if(priceHost) updatePriceHead(priceHost, series, coin.unit, sourceLabel);
+    }
+
+    // Live fetch failed (or returned nothing usable) — show an honest "no data" state
+    // instead of falling back to the static research series, which could otherwise be
+    // mistaken for a real (e.g. falling) price move that never actually happened.
+    function renderNoData(sourceLabel){
+      const wrap = document.createElement("div");
+      wrap.className = "chart-wrap no-data";
+      wrap.innerHTML = `<span class="no-data-label">Keine Daten</span><span class="no-data-sub">${sourceLabel}</span>`;
+      chartHost.replaceChildren(wrap);
+      if(priceHost) priceHost.innerHTML = `<span class="cur mono">–</span><span class="range-note">${sourceLabel}</span>`;
+    }
+
+    renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
+
+    if(coin.chartType === "line" && coin.coingeckoId){
+      const btnRow = document.createElement("div");
+      btnRow.className = "range-btns";
+      const ranges = [
+        {key:"1", label:"1T", title:"Letzte 24 Stunden"},
+        {key:"7", label:"1W", title:"Letzte 7 Tage"},
+        {key:"30", label:"1M", title:"Letzte 30 Tage"},
+        {key:"365", label:"1J", title:"Letztes Jahr"},
+        {key:"1825", label:"5J", title:"Letzte 5 Jahre"}
+      ];
+      const defaultRange = opts.defaultRange || "7";
+      function setButtonsDisabled(disabled){
+        [...btnRow.children].forEach(b=> b.classList.toggle("disabled", disabled));
+      }
+      function loadRange(days){
+        [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
+        chartHost.classList.add("loading");
+        fetchLiveSeries(coin.coingeckoId, days).then(series=>{
+          chartHost.classList.remove("loading");
+          setButtonsDisabled(false);
+          renderSeries(series, "Live · CoinGecko");
+        }).catch(err=>{
+          chartHost.classList.remove("loading");
+          setButtonsDisabled(true);
+          renderNoData(LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"]);
+        });
+      }
+      ranges.forEach(r=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "range-btn" + (r.key === defaultRange ? " active" : "");
+        b.textContent = r.label;
+        b.title = r.title;
+        b.dataset.range = r.key;
+        b.addEventListener("click", ()=> loadRange(r.key));
+        btnRow.appendChild(b);
+      });
+      card.appendChild(btnRow);
+      loadRange(defaultRange);
+    }
+  }
+
+  function buildCard(coin){
+    const card = document.createElement("article");
+    card.className = "card" + (coin.status === "critical" ? " critical" : "");
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+    const tickerBlock = document.createElement("div");
+    tickerBlock.className = "ticker-block";
+    tickerBlock.appendChild(buildAvatar(coin));
+    const tickerText = document.createElement("div");
+    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>` + (coin.firstSeen ? `<div class="since">Auf der Liste seit ${coin.firstSeen}</div>` : "");
+    tickerBlock.appendChild(tickerText);
+    head.appendChild(tickerBlock);
+
+    const statusHint = {
+      good: "Score ≥ 4 und keine Red Flags → Watchlist",
+      caution: "Unter der Watchlist-Schwelle oder Red-Flag-Verdacht → Risiko",
+      critical: "Klarer Scam-/Betrugsverdacht → meiden",
+      neutral: "Kein frisches Signal im heutigen Scan → nur Kontext"
+    }[coin.status] || "";
+
+    const scoreBlock = document.createElement("div");
+    scoreBlock.className = "score-block";
+    const scoreLabel = coin.score === null ? "—" : coin.score + '<span class="of"> /12</span>';
+    const filled = coin.score === null ? 0 : Math.max(0, coin.score);
+    let ticks = "";
+    for(let i=0;i<12;i++){
+      ticks += `<i style="${i<filled ? `background:var(${statusColorVar[coin.status]})` : ""}"></i>`;
+    }
+    scoreBlock.innerHTML = `
+      <span class="chip ${coin.status}" title="${statusHint}"><i></i>${coin.statusLabel}</span>
+      <span class="score-num mono" title="Pump-Signal-Score, siehe Score-Erklärung unten">${scoreLabel}</span>
+      <span class="meter" title="${coin.score === null ? "Nicht gescort" : coin.score + " von max. 12 Punkten"}">${ticks}</span>
+    `;
+    head.appendChild(scoreBlock);
+    card.appendChild(head);
+
+    buildChartSection(card, coin, {defaultRange:"7"});
+
+    const statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.innerHTML = coin.stats.map(s=>`<div><span class="k">${s.k}</span><span class="v mono">${s.v}</span></div>`).join("");
+    card.appendChild(statRow);
+
+    const sig = document.createElement("div");
+    sig.className = "signals";
+    sig.innerHTML = coin.signals.map(([label,pts])=>`<div class="signal-row"><span>${label}</span><span class="pts mono">${pts}</span></div>`).join("");
+    card.appendChild(sig);
+
+    if(coin.flag){
+      const fb = document.createElement("div");
+      fb.className = "flag-box";
+      fb.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg><span>${coin.flag}</span>`;
+      card.appendChild(fb);
+    }
+
+    const note = document.createElement("p");
+    note.className = "card-note";
+    note.innerHTML = coin.note;
+    card.appendChild(note);
+
+    if(coin.sourceRefs && coin.sourceRefs.length){
+      const src = document.createElement("div");
+      src.className = "card-sources";
+      src.innerHTML = "Quellen: " + coin.sourceRefs.map(n=>`<a href="#source-${n}">[${n}]</a>`).join(" ");
+      card.appendChild(src);
+    }
+
+    const link = resolveCoinLink(coin);
+    if(link){
+      const linkEl = document.createElement("div");
+      linkEl.className = "card-link";
+      linkEl.innerHTML = `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
+      card.appendChild(linkEl);
+    }
+
+    return card;
+  }
+
+  // Slimmer card for the Altcoins tab: same avatar/price/chart/range-button/stat-row
+  // building blocks as buildCard(), but no score, signals, flag box, note or source refs —
+  // those pump-scan concepts don't apply to a plain top-10-by-market-cap listing.
+  function buildMarketCoinCard(coin){
+    const card = document.createElement("article");
+    card.className = "card";
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+    const tickerBlock = document.createElement("div");
+    tickerBlock.className = "ticker-block";
+    tickerBlock.appendChild(buildAvatar(coin));
+    const tickerText = document.createElement("div");
+    tickerText.innerHTML = `<div class="ticker mono">${coin.ticker}</div><div class="name">${coin.name}</div>`;
+    tickerBlock.appendChild(tickerText);
+    head.appendChild(tickerBlock);
+
+    const rank = document.createElement("div");
+    rank.className = "score-num mono";
+    rank.style.color = "var(--ink-3)";
+    rank.textContent = "Rang #" + coin.rank;
+    head.appendChild(rank);
+    card.appendChild(head);
+
+    buildChartSection(card, coin, {defaultRange:"7"});
+
+    const statRow = document.createElement("div");
+    statRow.className = "stat-row";
+    statRow.innerHTML = coin.stats.map(s=>`<div><span class="k">${s.k}</span><span class="v mono">${s.v}</span></div>`).join("");
+    card.appendChild(statRow);
+
+    const link = resolveCoinLink(coin);
+    if(link){
+      const linkEl = document.createElement("div");
+      linkEl.className = "card-link";
+      linkEl.innerHTML = `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`;
+      card.appendChild(linkEl);
+    }
+
+    return card;
+  }
+
+  function taggedHttpError(res){
+    const err = new Error("HTTP " + res.status);
+    err.code = res.status === 429 ? "rate-limited" : res.status === 404 ? "not-found" : "network-error";
+    return err;
+  }
+
+  // Same failure vocabulary as LIVE_ERROR_MESSAGES, reworded for the summary fetches
+  // (top-10 list / global market data) rather than a single coin's chart.
+  const SUMMARY_ERROR_MESSAGES = {
+    "rate-limited": "CoinGecko ist gerade überlastet (Rate-Limit). Bitte kurz warten und erneut versuchen.",
+    "no-data": "Keine Daten erhalten. Bitte erneut versuchen.",
+    "network-error": "Verbindung zu CoinGecko fehlgeschlagen (Netzwerkfehler oder von diesem Browser aus blockiert). Bitte erneut versuchen."
+  };
+
+  function fetchGlobalMarketData(){
+    return coinGeckoFetch("https://api.coingecko.com/api/v3/global")
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
+      .then(json=> json.data);
+  }
+
+  function fetchFearGreed(){
+    return fetch("https://api.alternative.me/fng/")
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
+      .then(json=> (json.data && json.data[0]) || null);
+  }
+
+  function fetchTop10Markets(){
+    return coinGeckoFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); });
+  }
+
+  function buildRetryLink(label, onClick){
+    const a = document.createElement("a");
+    a.href = "#";
+    a.textContent = label;
+    a.style.marginLeft = "6px";
+    a.addEventListener("click", (e)=>{ e.preventDefault(); onClick(); });
+    return a;
+  }
+
+  // Live client-side tiles for the Markt tab — these are not authored by the daily scan
+  // routine, so an honest error text on failure beats showing stale/fake numbers. Each
+  // tile can be retried independently without reloading the whole page.
+  function loadMarketCapTile(){
+    const valueEl = document.getElementById("mcapValue");
+    const ctxEl = document.getElementById("mcapCtx");
+    valueEl.textContent = "Lädt …";
+    ctxEl.textContent = "Live via CoinGecko";
+    fetchGlobalMarketData().then(data=>{
+      const mcap = data.total_market_cap && data.total_market_cap.usd;
+      const chg = data.market_cap_change_percentage_24h_usd;
+      valueEl.textContent = fmtCompactUsd(mcap);
+      ctxEl.textContent = typeof chg === "number"
+        ? (chg > 0 ? "+" : "") + chg.toFixed(2) + "% in 24h · Live via CoinGecko"
+        : "Live via CoinGecko";
+    }).catch(err=>{
+      console.error("Gesamt-Marktkapitalisierung konnte nicht geladen werden:", err);
+      valueEl.textContent = "Nicht verfügbar";
+      ctxEl.textContent = "";
+      ctxEl.appendChild(document.createTextNode((SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " "));
+      ctxEl.appendChild(buildRetryLink("Erneut versuchen", loadMarketCapTile));
+    });
+  }
+
+  function loadFearGreedTile(){
+    const valueEl = document.getElementById("fngValue");
+    const ctxEl = document.getElementById("fngCtx");
+    valueEl.textContent = "Lädt …";
+    ctxEl.textContent = "Live via alternative.me";
+    fetchFearGreed().then(entry=>{
+      if(!entry){ const err = new Error("empty"); err.code = "no-data"; throw err; }
+      const value = Number(entry.value);
+      valueEl.textContent = value + " / 100";
+      ctxEl.textContent = (entry.value_classification || "") + " · Live via alternative.me";
+      const gauge = document.getElementById("fngGauge");
+      gauge.style.display = "";
+      gauge.querySelector("i").style.width = Math.max(0, Math.min(100, value)) + "%";
+    }).catch(err=>{
+      console.error("Fear & Greed Index konnte nicht geladen werden:", err);
+      valueEl.textContent = "Nicht verfügbar";
+      ctxEl.textContent = "";
+      ctxEl.appendChild(document.createTextNode((SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " "));
+      ctxEl.appendChild(buildRetryLink("Erneut versuchen", loadFearGreedTile));
+    });
+  }
+
+  function renderMarketTiles(){
+    loadMarketCapTile();
+    loadFearGreedTile();
+  }
+
+  function renderAltcoinsTab(){
+    const statusEl = document.getElementById("altcoinsStatus");
+    const altGrid = document.getElementById("altcoinsGrid");
+    statusEl.textContent = "Lade die zehn wichtigsten Coins nach Marktkapitalisierung …";
+    statusEl.style.display = "";
+    altGrid.replaceChildren();
+    fetchTop10Markets().then(list=>{
+      statusEl.style.display = "none";
+      list.forEach((m,i)=>{
+        try{
+          const pct = typeof m.price_change_percentage_24h === "number" ? m.price_change_percentage_24h : 0;
+          const price = m.current_price;
+          const prevPrice = price / (1 + pct/100);
+          const coin = {
+            ticker: (m.symbol || "").toUpperCase(),
+            name: m.name,
+            status: "market",
+            chartType: "line",
+            unit: "$",
+            logo: m.image || null,
+            coingeckoId: m.id,
+            rank: m.market_cap_rank || (i+1),
+            series: [{label:"vor 24h", value: prevPrice}, {label:"jetzt", value: price}]
+          };
+          coin.stats = [
+            {k:"Market Cap", v: fmtCompactUsd(m.market_cap)},
+            {k:"24h Vol.", v: fmtCompactUsd(m.total_volume)},
+            {k:"24h Änderung", v: (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%"}
+          ];
+          altGrid.appendChild(buildMarketCoinCard(coin));
+        } catch(err){
+          console.error("Konnte Marktcoin nicht rendern:", m && m.id, err);
+        }
+      });
+    }).catch(err=>{
+      console.error("Top-10-Coins konnten nicht geladen werden:", err);
+      statusEl.textContent = "Top-10-Coins konnten nicht geladen werden: " + (SUMMARY_ERROR_MESSAGES[err && err.code] || SUMMARY_ERROR_MESSAGES["network-error"]) + " ";
+      statusEl.appendChild(buildRetryLink("Erneut versuchen", renderAltcoinsTab));
+    });
+  }
+
+  function renderSources(){
+    const section = document.getElementById("sourcesSection");
+    const list = document.getElementById("sourcesList");
+    if(!sources.length){ section.style.display = "none"; return; }
+    section.style.display = "";
+    list.innerHTML = sources.map(s=>`<li id="source-${s.n}"><a href="${s.url}" target="_blank" rel="noopener">${s.label}</a></li>`).join("");
+  }
+
+  // Rolling watchlist: highest score first (regardless of authoring order), so the
+  // most promising candidates always surface at the top. null scores (unscored /
+  // context entries) sink to the bottom.
+  const sortedCoins = coins.slice().sort((a,b)=> (b.score ?? -Infinity) - (a.score ?? -Infinity));
+
+  sortedCoins.forEach(c=>{
+    try{
+      grid.appendChild(buildCard(c));
+      const tr = document.createElement("tr");
+      const key = c.stats[0] || {k:"—",v:"—"};
+      const link = resolveCoinLink(c);
+      const linkCell = link ? `<a href="${link.url}" target="_blank" rel="noopener" title="${link.url}">${link.label.replace("Zur ", "")} ↗</a>` : "—";
+      tr.innerHTML = `<td class="mono">${c.ticker}</td><td class="mono">${c.score===null?"—":c.score+"/12"}</td><td>${c.statusLabel}</td><td class="mono">${key.k}: ${key.v}</td><td class="note">${c.note.replace(/<\/?b>/g,"")}</td><td>${linkCell}</td>`;
+      tableBody.appendChild(tr);
+    } catch(err){
+      console.error("Konnte Coin nicht rendern:", c && c.ticker, err);
+    }
+  });
+
+  renderSources();
+  renderMarketTiles();
+  renderAltcoinsTab();
+})();
+</script>
+</body>
+</html>
