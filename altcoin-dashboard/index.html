@@ -89,6 +89,22 @@
   #tabPump:focus-visible ~ .tab-bar label[for="tabPump"]{outline:2px solid var(--accent); outline-offset:2px;}
   .tab-status{font-size:13px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 
+  /* market ticker — daily commentary, always visible above the tabs */
+  .market-ticker{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:22px 26px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+  }
+  .market-ticker::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--accent);
+  }
+  .ticker-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .ticker-label{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:700;}
+  .ticker-date{font-size:11px; color:var(--ink-3); font-weight:600;}
+  .ticker-text{
+    font-size:clamp(22px,3vw,34px); font-weight:800; line-height:1.3; letter-spacing:-.01em;
+    margin:0; color:var(--ink);
+  }
+
   /* market strip */
   .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
   .stat{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow); min-width:0;}
@@ -262,6 +278,14 @@
       <label for="tabProjekte" class="tab-pill">Projekte</label>
     </nav>
 
+    <section class="market-ticker" id="marketTicker">
+      <div class="ticker-head">
+        <span class="ticker-label">Marktkommentar</span>
+        <span class="ticker-date mono" id="tickerDate"></span>
+      </div>
+      <p class="ticker-text" id="tickerText"></p>
+    </section>
+
     <section class="tab-panel" id="panelMarkt">
       <section class="strip">
         <div class="stat">
@@ -388,7 +412,11 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 33;
+  const DASHBOARD_VERSION = 34;
+
+  // 3-sentence market commentary from the daily scan routine — shown in the large ticker banner above the tabs.
+  const MARKET_COMMENTARY_DATE = "06.08.2026";
+  const MARKET_COMMENTARY = "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke.";
 
   const coins = [
     {
@@ -845,6 +873,11 @@
   // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
   const versionTag = document.getElementById("versionTag");
   if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
+
+  const tickerDate = document.getElementById("tickerDate");
+  if(tickerDate) tickerDate.textContent = MARKET_COMMENTARY_DATE;
+  const tickerText = document.getElementById("tickerText");
+  if(tickerText) tickerText.textContent = MARKET_COMMENTARY;
 
   function fmt(n, unit){
     if(unit === "$" ){
