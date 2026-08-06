@@ -85,7 +85,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- data/mvrv; then
+          # git diff only compares already-tracked files, so it silently ignores data/mvrv/latest.json
+          # on its very first write (untracked). git status --porcelain catches untracked files too.
+          if [ -z "$(git status --porcelain -- data/mvrv)" ]; then
             echo "No data changes since last run, nothing to commit."
             exit 0
           fi
