@@ -81,15 +81,21 @@
   #tabMarkt:checked ~ #panelMarkt{display:flex;}
   #tabAltcoins:checked ~ #panelAltcoins{display:flex;}
   #tabPump:checked ~ #panelPump{display:flex;}
+  #tabNews:checked ~ #panelNews{display:flex;}
+  #tabProjekte:checked ~ #panelProjekte{display:flex;}
   #tabMarkt:checked ~ .tab-bar label[for="tabMarkt"],
   #tabAltcoins:checked ~ .tab-bar label[for="tabAltcoins"],
-  #tabPump:checked ~ .tab-bar label[for="tabPump"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  #tabPump:checked ~ .tab-bar label[for="tabPump"],
+  #tabNews:checked ~ .tab-bar label[for="tabNews"],
+  #tabProjekte:checked ~ .tab-bar label[for="tabProjekte"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
   #tabMarkt:focus-visible ~ .tab-bar label[for="tabMarkt"],
   #tabAltcoins:focus-visible ~ .tab-bar label[for="tabAltcoins"],
-  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"]{outline:2px solid var(--accent); outline-offset:2px;}
+  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"],
+  #tabNews:focus-visible ~ .tab-bar label[for="tabNews"],
+  #tabProjekte:focus-visible ~ .tab-bar label[for="tabProjekte"]{outline:2px solid var(--accent); outline-offset:2px;}
   .tab-status{font-size:13px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 
-  /* market ticker — daily commentary, always visible above the tabs */
+  /* market ticker — latest daily commentary, shown at the top of the News tab */
   .market-ticker{
     background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:22px 26px; box-shadow:var(--shadow); position:relative; overflow:hidden;
@@ -104,6 +110,15 @@
     font-size:clamp(22px,3vw,34px); font-weight:800; line-height:1.3; letter-spacing:-.01em;
     margin:0; color:var(--ink);
   }
+
+  /* news history — older reports, listed chronologically below the latest commentary */
+  .news-history{display:flex; flex-direction:column; gap:14px;}
+  .news-entry{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:16px 20px; box-shadow:var(--shadow);
+  }
+  .news-entry-date{font-size:11px; color:var(--ink-3); font-weight:700; margin-bottom:6px;}
+  .news-entry-text{font-size:14.5px; line-height:1.55; color:var(--ink-2); margin:0;}
 
   /* market strip */
   .strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
@@ -262,6 +277,7 @@
     <input type="radio" name="dashTab" id="tabMarkt" class="tab-radio" checked>
     <input type="radio" name="dashTab" id="tabAltcoins" class="tab-radio">
     <input type="radio" name="dashTab" id="tabPump" class="tab-radio">
+    <input type="radio" name="dashTab" id="tabNews" class="tab-radio">
     <input type="radio" name="dashTab" id="tabProjekte" class="tab-radio">
 
     <header>
@@ -275,16 +291,9 @@
       <label for="tabMarkt" class="tab-pill">Markt</label>
       <label for="tabAltcoins" class="tab-pill">Altcoins</label>
       <label for="tabPump" class="tab-pill">Pump-Potentials</label>
+      <label for="tabNews" class="tab-pill">News</label>
       <label for="tabProjekte" class="tab-pill">Projekte</label>
     </nav>
-
-    <section class="market-ticker" id="marketTicker">
-      <div class="ticker-head">
-        <span class="ticker-label">Marktkommentar</span>
-        <span class="ticker-date mono" id="tickerDate"></span>
-      </div>
-      <p class="ticker-text" id="tickerText"></p>
-    </section>
 
     <section class="tab-panel" id="panelMarkt">
       <section class="strip">
@@ -374,6 +383,10 @@
       </section>
     </section>
 
+    <section class="tab-panel" id="panelNews">
+      <div id="newsList"></div>
+    </section>
+
     <section class="tab-panel" id="panelProjekte">
       <section class="grid">
         <a class="card" href="../btc/" target="_blank" rel="noopener">
@@ -412,11 +425,15 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 34;
+  const DASHBOARD_VERSION = 35;
 
-  // 3-sentence market commentary from the daily scan routine — shown in the large ticker banner above the tabs.
-  const MARKET_COMMENTARY_DATE = "06.08.2026";
-  const MARKET_COMMENTARY = "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke.";
+  // Rolling news history from the daily scan routine, newest first. Each day prepends a new
+  // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
+  // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
+  // chronological list underneath.
+  const MARKET_NEWS = [
+    { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." }
+  ];
 
   const coins = [
     {
@@ -874,10 +891,36 @@
   const versionTag = document.getElementById("versionTag");
   if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
 
-  const tickerDate = document.getElementById("tickerDate");
-  if(tickerDate) tickerDate.textContent = MARKET_COMMENTARY_DATE;
-  const tickerText = document.getElementById("tickerText");
-  if(tickerText) tickerText.textContent = MARKET_COMMENTARY;
+  function renderNews(){
+    const list = document.getElementById("newsList");
+    if(!list || !MARKET_NEWS.length) return;
+    const [latest, ...older] = MARKET_NEWS;
+    list.innerHTML = "";
+
+    const latestEl = document.createElement("section");
+    latestEl.className = "market-ticker";
+    latestEl.innerHTML =
+      `<div class="ticker-head"><span class="ticker-label">Marktkommentar</span><span class="ticker-date mono"></span></div>` +
+      `<p class="ticker-text"></p>`;
+    latestEl.querySelector(".ticker-date").textContent = latest.date;
+    latestEl.querySelector(".ticker-text").textContent = latest.text;
+    list.appendChild(latestEl);
+
+    if(older.length){
+      const histWrap = document.createElement("div");
+      histWrap.className = "news-history";
+      older.forEach(entry => {
+        const item = document.createElement("div");
+        item.className = "news-entry";
+        item.innerHTML = `<div class="news-entry-date mono"></div><p class="news-entry-text"></p>`;
+        item.querySelector(".news-entry-date").textContent = entry.date;
+        item.querySelector(".news-entry-text").textContent = entry.text;
+        histWrap.appendChild(item);
+      });
+      list.appendChild(histWrap);
+    }
+  }
+  renderNews();
 
   function fmt(n, unit){
     if(unit === "$" ){
