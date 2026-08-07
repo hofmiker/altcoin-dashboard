@@ -199,6 +199,10 @@
     .readout{align-items:flex-start; margin-left:0;}
     .readout-row{justify-content:flex-start;}
     h1{font-size:26px;}
+    /* svg has preserveAspectRatio="none", so an explicit height just stretches the chart to fill it -
+       without this, height:auto derives from the fixed 1000x380 viewBox ratio, which on a narrow phone
+       width comes out barely taller than a strip of text and is hard to read. */
+    .chart-wrap svg{height:340px;}
   }
 </style>
 </head>
