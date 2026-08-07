@@ -1,0 +1,75 @@
+name: Fetch Altcoin Market Data
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "42 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-altcoin-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch top-10-by-market-cap from CoinGecko (server-side, no CORS involved)
+        id: fetch
+        run: |
+          set -euo pipefail
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          URL="https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h"
+
+          HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -w "%{http_code}" -o /tmp/cg_response.json \
+            -H "User-Agent: $UA" -H "Accept: application/json" -H "Accept-Language: en-US,en;q=0.9" \
+            "$URL")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "CoinGecko fetch returned HTTP $HTTP_CODE - aborting without committing anything. Response body:" >&2
+            cat /tmp/cg_response.json >&2
+            exit 1
+          fi
+          RAW=$(cat /tmp/cg_response.json)
+          ROWCOUNT=$(echo "$RAW" | jq 'length')
+          if [ -z "$ROWCOUNT" ] || [ "$ROWCOUNT" -lt 5 ]; then
+            echo "API returned too few rows ($ROWCOUNT) - aborting without committing anything." >&2
+            exit 1
+          fi
+          FETCHED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          mkdir -p data/altcoins
+          echo "$RAW" | jq --arg fetchedAt "$FETCHED_AT" --arg source "$URL" \
+            '{fetchedAt:$fetchedAt, source:$source, count:(. | length), data:.}' \
+            > data/altcoins/latest.json
+          echo "fetched_at=$FETCHED_AT" >> "$GITHUB_OUTPUT"
+          echo "row_count=$ROWCOUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Commit snapshot and open PR (main is branch-protected, no direct push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # git diff only compares already-tracked files, so it silently ignores data/altcoins/latest.json
+          # on its very first write (untracked). git status --porcelain catches untracked files too.
+          if [ -z "$(git status --porcelain -- data/altcoins)" ]; then
+            echo "No data changes since last run, nothing to commit."
+            exit 0
+          fi
+          # GITHUB_RUN_ID makes every run's branch unique, so a manual dispatch + the daily schedule
+          # landing close together never collide on a stale branch name (same reasoning as fetch-mvrv-data.yml).
+          BRANCH="altcoin-data-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/altcoins
+          git commit -m "Update altcoin market data snapshot (${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows)"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Update altcoin market data snapshot" \
+            --body "Automated CoinGecko /coins/markets fetch, unmodified. Fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
+          git push origin --delete "$BRANCH" || true
