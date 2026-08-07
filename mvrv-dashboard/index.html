@@ -115,7 +115,7 @@
   .chip.critical{color:var(--critical); background:var(--critical-bg); border-color:var(--critical-bg);} .chip.critical i{background:var(--critical);}
   .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
 
-  .controls-row{display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;}
+  .controls-row{display:flex; justify-content:flex-end; align-items:center; gap:14px; flex-wrap:wrap;}
   .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:5px; box-shadow:var(--shadow);}
   .seg button{
     font:inherit; font-family:var(--font-display); font-size:12.8px; font-weight:600; padding:8px 15px; border-radius:9px; border:none;
@@ -123,6 +123,10 @@
   }
   .seg button:hover{color:var(--ink);}
   .seg button.active{background:var(--ink); color:var(--bg);}
+  .seg-sm{background:var(--inset); box-shadow:none; padding:3px;}
+  .seg-sm button{font-size:11px; padding:5px 10px; border-radius:7px;}
+
+  .card-toolbar{display:flex; justify-content:flex-end;}
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
@@ -204,7 +208,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics<span id="eyebrowDate"></span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics</p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -224,6 +228,7 @@
     <section class="strip" id="statStrip"></section>
 
     <section class="panel hero-panel" id="heroPanel">
+      <div class="card-toolbar" id="heroToolbar"></div>
       <div class="hero-head">
         <div class="hero-title-row">
           <h2>MVRV Quantile Bands</h2>
@@ -235,13 +240,6 @@
     </section>
 
     <div class="controls-row">
-      <div class="seg" id="rangeSeg" role="group" aria-label="Zeitraum">
-        <button data-range="all" class="active">Alles</button>
-        <button data-range="1825">5J</button>
-        <button data-range="730">2J</button>
-        <button data-range="365">1J</button>
-        <button data-range="180">6M</button>
-      </div>
       <div class="seg" id="modeSeg" role="group" aria-label="Ansicht">
         <button data-mode="tiles" class="active">Kacheln</button>
         <button data-mode="overlay">Überlagert</button>
@@ -357,6 +355,12 @@
   function fmtPctRaw(v){ return v==null||!isFinite(v) ? "–" : v.toFixed(1)+"%"; }
   function fmtBTC(v){ return v==null||!isFinite(v) ? "–" : (v/1e6).toFixed(3)+"M BTC"; }
   function fmtCompact(v){ return v==null||!isFinite(v) ? "–" : (Math.abs(v)>=1000? v.toFixed(0): v.toFixed(2)); }
+  // Single consistent date format (DD.MM.YYYY) everywhere a date is shown on the page.
+  function fmtDateOnly(dateStr){
+    if(!dateStr) return "unbekannt";
+    const [y,m,d] = dateStr.split("-");
+    return `${d}.${m}.${y}`;
+  }
 
   function lastVal(arr){
     if(!arr) return null;
@@ -775,6 +779,34 @@
     return {wrap, readoutEl: readout.el};
   }
 
+  // ---------- range selector (rendered fresh into every card/panel on each render, so they always
+  // reflect the current global rangeDays and never need separate active-state syncing) ----------
+  const RANGE_OPTIONS = [
+    {value:"all", label:"Alles"},
+    {value:"1825", label:"5J"},
+    {value:"730", label:"2J"},
+    {value:"365", label:"1J"},
+    {value:"180", label:"6M"}
+  ];
+  function buildRangeSeg(){
+    const seg = document.createElement("div");
+    seg.className = "seg seg-sm";
+    seg.setAttribute("role","group"); seg.setAttribute("aria-label","Zeitraum");
+    const currentVal = rangeDays === "all" ? "all" : String(rangeDays);
+    RANGE_OPTIONS.forEach(opt=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = opt.label;
+      if(opt.value === currentVal) btn.classList.add("active");
+      btn.addEventListener("click", ()=>{
+        rangeDays = opt.value === "all" ? "all" : parseInt(opt.value, 10);
+        renderAll();
+      });
+      seg.appendChild(btn);
+    });
+    return seg;
+  }
+
   function normalize(values){
     const vals = values.filter(v=> v!=null && isFinite(v));
     if(!vals.length) return values.map(()=>null);
@@ -789,7 +821,7 @@
       zone(){ return mvrvZoneForCurrent(); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:240, log:false,
+          dates:view.dates, height:380, log:false,
           series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:2.2, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
         });
@@ -802,7 +834,7 @@
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2.2, dashed:true, fmt:fmtUSD},
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.2, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:240, log:true, series});
+        return buildLineChart({dates:view.dates, height:380, log:true, series});
       }
     },
     {
@@ -810,7 +842,7 @@
       zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:240, log:false,
+          dates:view.dates, height:380, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:2.2, fmt:fmtPctFrac}],
           refLines:[
             {value:0, label:"Kapitulation", color:"var(--critical)"},
@@ -826,7 +858,7 @@
       zone(){ return zscoreZone(lastVal(FULL.zscore)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:240, log:false,
+          dates:view.dates, height:380, log:false,
           series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:2.2, fmt:fmtRatio}],
           refLines:[
             {value:0, label:"neutral", color:"var(--ink-3)"},
@@ -844,7 +876,7 @@
           {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:2.2, fmt:fmtUSD},
           {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:2.2, dashed:true, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:240, log:true, series});
+        return buildLineChart({dates:view.dates, height:380, log:true, series});
       }
     },
     {
@@ -853,7 +885,7 @@
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:240, log:false,
+          dates:view.dates, height:380, log:false,
           series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:2.2, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
         });
@@ -863,7 +895,7 @@
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %).",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:240, log:false,
+          dates:view.dates, height:380, log:false,
           series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:2.2, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"ATH", color:"var(--good)"}]
         });
@@ -880,7 +912,7 @@
     const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
     const na = `<span class="chip neutral"><i></i>nicht verfügbar</span>`;
     el.innerHTML = `
-      <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Stand: ${FULL.dates[FULL.dates.length-1]}</div></div>
+      <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Letzter Tages-Schlusskurs</div></div>
       <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}"><i></i>${mz.label}</span>`:"–"}</div></div>
       <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}"><i></i>${nz.label}</span></div></div>
       <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}"><i></i>${zz.label}</span>` : na}</div></div>
@@ -894,14 +926,16 @@
   function renderHero(view){
     const chartHost = document.getElementById("heroChart");
     const readoutHost = document.getElementById("heroReadout");
-    chartHost.innerHTML = ""; readoutHost.innerHTML = "";
+    const toolbarHost = document.getElementById("heroToolbar");
+    chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
+    toolbarHost.appendChild(buildRangeSeg());
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.5, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.5, fmt:fmtUSD},
       {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.5, fmt:fmtUSD},
       {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.5, fmt:fmtUSD},
       {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.5, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.8, fmt:fmtUSD}
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2, fmt:fmtUSD}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -946,6 +980,11 @@
         return;
       }
 
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      toolbar.appendChild(buildRangeSeg());
+      card.appendChild(toolbar);
+
       const zone = tile.zone ? tile.zone() : null;
       const head = document.createElement("div");
       head.className = "card-head";
@@ -970,6 +1009,10 @@
     host.innerHTML = "";
     const panel = document.createElement("div");
     panel.className = "panel overlay-panel";
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildRangeSeg());
+    panel.appendChild(toolbar);
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Kennzahlen überlagern</h3>`;
@@ -1022,7 +1065,7 @@
         width:2.2
       }));
       const built = buildLineChart({
-        dates:view.dates, series, log:false, height:360,
+        dates:view.dates, series, log:false, height:380,
         axisFmt: v=> (v*100).toFixed(0)+"%",
         compactReadout: series.length > 3
       });
@@ -1044,27 +1087,33 @@
   }
 
   // ---------- status banner ----------
+  // Same DD.MM.YYYY convention as fmtDateOnly, plus a local time-of-day.
   function fmtTs(iso){
     if(!iso) return "unbekannt";
-    try{ return new Date(iso).toLocaleString("de-DE", {dateStyle:"medium", timeStyle:"short"}); }catch(e){ return iso; }
+    try{
+      const d = new Date(iso);
+      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const hh = String(d.getHours()).padStart(2,"0");
+      const min = String(d.getMinutes()).padStart(2,"0");
+      return `${dd}.${mm}.${d.getFullYear()}, ${hh}:${min} Uhr`;
+    }catch(e){ return iso; }
   }
 
   function setStatus(kind, extra){
     const el = document.getElementById("statusBanner");
-    const eyebrow = document.getElementById("eyebrowDate");
     if(kind === "loading"){
       el.className = "tab-status";
       el.innerHTML = "Lade Onchain-Daten von Coin Metrics …";
     } else if(kind === "ok"){
-      const asOf = FULL.dates[FULL.dates.length-1];
+      const asOf = fmtDateOnly(FULL.dates[FULL.dates.length-1]);
       const isSnapshot = extra.source === "snapshot";
       el.className = "tab-status";
       if(isSnapshot){
-        el.innerHTML = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (Live-Abruf direkt aus dem Browser wird von Coin Metrics per CORS blockiert) — <b>abgeholt am ${fmtTs(extra.fetchedAt)}</b> · Datenstand: <b>${asOf}</b> · ${extra.count} Handelstage.`;
+        el.innerHTML = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (Live-Abruf direkt aus dem Browser wird von Coin Metrics per CORS blockiert) — abgeholt am <b>${fmtTs(extra.fetchedAt)}</b>, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage.`;
       } else {
-        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache)" : ""} · Datenstand: <b>${asOf}</b> · ${extra.count} Handelstage seit ${FULL.dates[0]}.`;
+        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache)" : ""}, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage seit ${fmtDateOnly(FULL.dates[0])}.`;
       }
-      if(eyebrow) eyebrow.textContent = " · Datenstand: " + asOf;
     } else if(kind === "error"){
       el.className = "tab-status error";
       el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Snapshot. <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
@@ -1079,12 +1128,6 @@
     btn.classList.add("active");
   }
   function wireControls(){
-    document.getElementById("rangeSeg").addEventListener("click", e=>{
-      const btn = e.target.closest("button"); if(!btn) return;
-      rangeDays = btn.dataset.range === "all" ? "all" : parseInt(btn.dataset.range,10);
-      setActive("rangeSeg", btn);
-      renderAll();
-    });
     document.getElementById("modeSeg").addEventListener("click", e=>{
       const btn = e.target.closest("button"); if(!btn) return;
       mode = btn.dataset.mode;
