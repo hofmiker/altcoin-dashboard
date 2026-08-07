@@ -91,7 +91,11 @@ jobs:
             echo "No data changes since last run, nothing to commit."
             exit 0
           fi
-          BRANCH="mvrv-data-${{ steps.fetch.outputs.as_of }}"
+          # Keyed only by as_of date, a same-day rerun (manual dispatch + the daily schedule both
+          # landing before the underlying data's date rolls over, as happened in practice) would reuse
+          # a branch name whose remote ref already exists from the earlier run, so a plain push gets
+          # rejected as non-fast-forward. GITHUB_RUN_ID makes every run's branch unique.
+          BRANCH="mvrv-data-${{ steps.fetch.outputs.as_of }}-${{ github.run_id }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
@@ -102,3 +106,4 @@ jobs:
             --body "Automated Coin Metrics Community API fetch, unmodified. Data as of ${{ steps.fetch.outputs.as_of }}, fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows. Metrics available with current credentials: ${{ steps.fetch.outputs.metrics_available }}." \
             --base main --head "$BRANCH"
           gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
+          git push origin --delete "$BRANCH" || true
