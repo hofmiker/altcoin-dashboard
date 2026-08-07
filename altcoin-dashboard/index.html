@@ -9,7 +9,15 @@
 <title>Pump-Signal Dashboard — 06.08.2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Loaded non-blocking on purpose: a plain <link rel="stylesheet"> here would make the
+     browser hold ALL script execution (this page's own script runs at the end of <body>)
+     until this stylesheet resolves — confirmed to add 13+ seconds when the request to
+     fonts.googleapis.com is slow or blocked (ad-blockers, privacy extensions and some
+     networks block Google Fonts by default). The preload+onload swap applies the CSS once
+     it's ready without ever blocking anything; --font-display/--font-body already fall back
+     to system fonts until then, so there's no visible cost either way. -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -109,6 +117,7 @@
   .ticker-label{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:700;}
   .ticker-date{font-size:11px; color:var(--ink-3); font-weight:600;}
   .ticker-text{
+    font-family:var(--font-display);
     font-size:clamp(22px,3vw,34px); font-weight:800; line-height:1.3; letter-spacing:-.01em;
     margin:0; color:var(--ink);
   }
@@ -396,7 +405,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 39;
+  const DASHBOARD_VERSION = 40;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
@@ -1429,8 +1438,13 @@
   // from the browser. If that fails for any reason (network block, rate limit, API change), fall
   // back to the snapshot .github/workflows/fetch-altcoin-data.yml fetches server-side once a day
   // and commits to this repo (same pattern as the MVRV dashboard's Coin Metrics fallback).
+  // Deliberately NOT routed through coinGeckoFetch()'s shared queue: that queue exists to stop
+  // ~16 simultaneous per-coin chart requests from bursting CoinGecko's rate limit, but this is a
+  // single request a visitor is actively waiting on — queuing it behind that background batch
+  // (confirmed: tens of seconds, since it'd wait for the two slots ahead of it to fail/succeed
+  // first) makes the tab look broken/empty far longer than a plain, unthrottled fetch ever would.
   function fetchTop10Markets(){
-    return coinGeckoFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
+    return fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
       .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
       .then(list=> ({list, source:"live", fetchedAt:new Date().toISOString()}))
       .catch(liveErr=>
