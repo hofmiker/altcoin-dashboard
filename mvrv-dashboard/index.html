@@ -155,7 +155,7 @@
   .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
   .card-title-block{display:flex; flex-direction:column; gap:8px;}
   .ticker-row{display:flex; align-items:center; gap:7px;}
-  .card-title-block .ticker{font-family:var(--font-display); font-size:16.5px; font-weight:700; letter-spacing:.01em;}
+  .card-title-block .ticker{font-family:var(--font-display); font-size:26px; font-weight:700; letter-spacing:.01em;}
 
   .readout{display:flex; flex-direction:column; gap:5px; align-items:flex-end; margin-left:auto;}
   .readout-date{font-size:10.5px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
@@ -199,10 +199,6 @@
     .readout{align-items:flex-start; margin-left:0;}
     .readout-row{justify-content:flex-start;}
     h1{font-size:26px;}
-    /* svg has preserveAspectRatio="none", so an explicit height just stretches the chart to fill it -
-       without this, height:auto derives from the fixed 1000x380 viewBox ratio, which on a narrow phone
-       width comes out barely taller than a strip of text and is hard to read. */
-    .chart-wrap svg{height:340px;}
     /* The button's x-position varies with title length (e.g. "Market Cap vs. Realized Cap"), so a
        popup anchored left:0 relative to the button can run off the right edge of a narrow screen.
        Pin it to the viewport with fixed side margins instead, so it always folds back inside. */
@@ -239,7 +235,6 @@
     <section class="strip" id="statStrip"></section>
 
     <section class="panel hero-panel" id="heroPanel">
-      <div class="card-toolbar" id="heroToolbar"></div>
       <div class="hero-head">
         <div class="hero-title-row">
           <h2>MVRV Quantile Bands</h2>
@@ -248,6 +243,7 @@
         <div id="heroReadout"></div>
       </div>
       <div id="heroChart"></div>
+      <div class="card-toolbar" id="heroToolbar"></div>
     </section>
 
     <div class="controls-row">
@@ -601,6 +597,15 @@
     return {el, update};
   }
 
+  // The SVG scales via width:100%/height:auto, which only stays undistorted (equal x/y scale) when
+  // height derives from the viewBox ratio. A CSS-forced pixel height mismatched from that ratio (an
+  // earlier attempt at taller mobile charts) stretched text and everything else non-uniformly. Instead,
+  // pick a taller viewBox height itself on mobile so width:100%/height:auto keeps scaling uniform.
+  function chartHeight(){
+    const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    return mobile ? 1200 : 380;
+  }
+
   // ---------- generic SVG multi-line chart ----------
   function buildLineChart(cfg){
     const w = 1000, h = cfg.height || 240, padL = 54, padR = 14, padT = 16, padB = 24;
@@ -832,8 +837,8 @@
       zone(){ return mvrvZoneForCurrent(); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:380, log:false,
-          series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:2.2, fmt:fmtRatio}],
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:1.4, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
         });
       }
@@ -842,10 +847,10 @@
       title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis (Realized Price) vs. tatsächlicher Kurs, log-skaliert. Liegt der Kurs unter der Realized Price, ist der Markt im Schnitt im Verlust — historisch eher eine Boden- als eine Topregion.",
       build(view){
         const series = [
-          {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2.2, dashed:true, fmt:fmtUSD},
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.2, fmt:fmtUSD}
+          {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:380, log:true, series});
+        return buildLineChart({dates:view.dates, height:chartHeight(), log:true, series});
       }
     },
     {
@@ -853,8 +858,8 @@
       zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:380, log:false,
-          series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:2.2, fmt:fmtPctFrac}],
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
           refLines:[
             {value:0, label:"Kapitulation", color:"var(--critical)"},
             {value:0.75, label:"Euphorie", color:"var(--good)"}
@@ -869,8 +874,8 @@
       zone(){ return zscoreZone(lastVal(FULL.zscore)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:380, log:false,
-          series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:2.2, fmt:fmtRatio}],
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:1.4, fmt:fmtRatio}],
           refLines:[
             {value:0, label:"neutral", color:"var(--ink-3)"},
             {value:7, label:"Top-Zone", color:"var(--critical)"}
@@ -884,10 +889,10 @@
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         const series = [
-          {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:2.2, fmt:fmtUSD},
-          {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:2.2, dashed:true, fmt:fmtUSD}
+          {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:1.4, fmt:fmtUSD},
+          {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:1.4, dashed:true, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:380, log:true, series});
+        return buildLineChart({dates:view.dates, height:chartHeight(), log:true, series});
       }
     },
     {
@@ -896,8 +901,8 @@
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:380, log:false,
-          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:2.2, fmt:fmtPctRaw}],
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
         });
       }
@@ -906,8 +911,8 @@
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %). Tiefe, lang anhaltende Drawdowns markierten historisch eher Akkumulationsphasen als das Ende eines Aufwärtstrends.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:380, log:false,
-          series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:2.2, fmt:fmtPctRaw}],
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"ATH", color:"var(--good)"}]
         });
       }
@@ -941,12 +946,12 @@
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
     toolbarHost.appendChild(buildRangeSeg());
     const series = [
-      {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.5, fmt:fmtUSD},
-      {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.5, fmt:fmtUSD},
-      {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.5, fmt:fmtUSD},
-      {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.5, fmt:fmtUSD},
-      {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.5, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2, fmt:fmtUSD}
+      {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
+      {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
+      {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.1, fmt:fmtUSD},
+      {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.1, fmt:fmtUSD},
+      {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.1, fmt:fmtUSD},
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -954,7 +959,7 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:true, height:380, bandFill, compactReadout:true});
+    const built = buildLineChart({dates:view.dates, series, log:true, height:chartHeight(), bandFill, compactReadout:true});
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
   }
@@ -991,11 +996,6 @@
         return;
       }
 
-      const toolbar = document.createElement("div");
-      toolbar.className = "card-toolbar";
-      toolbar.appendChild(buildRangeSeg());
-      card.appendChild(toolbar);
-
       const zone = tile.zone ? tile.zone() : null;
       const head = document.createElement("div");
       head.className = "card-head";
@@ -1010,6 +1010,12 @@
       head.appendChild(built.readoutEl);
       card.appendChild(head);
       card.appendChild(built.wrap);
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      toolbar.appendChild(buildRangeSeg());
+      card.appendChild(toolbar);
+
       grid.appendChild(card);
     });
     host.appendChild(grid);
@@ -1020,10 +1026,6 @@
     host.innerHTML = "";
     const panel = document.createElement("div");
     panel.className = "panel overlay-panel";
-    const toolbar = document.createElement("div");
-    toolbar.className = "card-toolbar";
-    toolbar.appendChild(buildRangeSeg());
-    panel.appendChild(toolbar);
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Kennzahlen überlagern</h3>`;
@@ -1073,10 +1075,10 @@
         values: normalize(view[key]),
         tooltipValues: view[key],
         fmt: METRICS[key].fmt,
-        width:2.2
+        width:1.4
       }));
       const built = buildLineChart({
-        dates:view.dates, series, log:false, height:380,
+        dates:view.dates, series, log:false, height:chartHeight(),
         axisFmt: v=> (v*100).toFixed(0)+"%",
         compactReadout: series.length > 3
       });
@@ -1087,6 +1089,10 @@
       panel.appendChild(readoutRow);
       panel.appendChild(built.wrap);
     }
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildRangeSeg());
+    panel.appendChild(toolbar);
     host.appendChild(panel);
   }
 
@@ -1150,6 +1156,13 @@
     });
     attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
+    // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
+    // pick up the mobile <-> desktop viewBox switch instead of leaving them at whatever size loaded first.
+    let resizeTimer = null;
+    window.addEventListener("resize", ()=>{
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(()=>{ if(FULL) renderAll(); }, 200);
+    });
   }
 
   async function loadAndRender(force){
