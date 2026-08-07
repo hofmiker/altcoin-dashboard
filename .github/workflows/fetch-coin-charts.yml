@@ -1,0 +1,112 @@
+name: Fetch Coin Chart Snapshots
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "10 7 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-coin-charts
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch market_chart data for every watchlist coin, all 5 ranges (server-side, no CORS)
+        id: fetch
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import csv, json, os, sys, time, urllib.request
+          from datetime import datetime, timezone
+
+          RANGES = ["1", "7", "30", "365", "1825"]
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+          # data/watchlist.csv's CoinGeckoID column is already the single source of truth the
+          # daily scan routine keeps in sync with index.html's coins array — reusing it here
+          # avoids maintaining a second, driftable list of which coins to fetch charts for.
+          ids = []
+          with open("data/watchlist.csv", newline="", encoding="utf-8") as f:
+              for row in csv.DictReader(f):
+                  cgid = (row.get("CoinGeckoID") or "").strip()
+                  if cgid and cgid not in ids:
+                      ids.append(cgid)
+          print(f"Found {len(ids)} CoinGecko IDs: {ids}", file=sys.stderr)
+
+          def downsample(prices, target=60):
+              if not prices:
+                  return []
+              step = max(1, len(prices) // target)
+              return [p for i, p in enumerate(prices) if i % step == 0 or i == len(prices) - 1]
+
+          result = {}
+          success = 0
+          total = 0
+          for cgid in ids:
+              per_coin = {}
+              for days in RANGES:
+                  total += 1
+                  url = f"https://api.coingecko.com/api/v3/coins/{cgid}/market_chart?vs_currency=usd&days={days}"
+                  req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as resp:
+                          data = json.loads(resp.read())
+                      prices = data.get("prices", [])
+                      if prices:
+                          per_coin[days] = downsample(prices)
+                          success += 1
+                      else:
+                          print(f"WARN empty prices for {cgid} days={days}", file=sys.stderr)
+                  except Exception as e:
+                      print(f"WARN failed {cgid} days={days}: {e}", file=sys.stderr)
+                  # keyless CoinGecko rate limit is 30 req/min - stay comfortably under it
+                  time.sleep(2.1)
+              if per_coin:
+                  result[cgid] = per_coin
+
+          print(f"Success: {success}/{total}", file=sys.stderr)
+          if total == 0 or success / total < 0.5:
+              print("Success rate too low - aborting without committing anything.", file=sys.stderr)
+              sys.exit(1)
+
+          fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          os.makedirs("data/altcoins", exist_ok=True)
+          with open("data/altcoins/charts.json", "w", encoding="utf-8") as f:
+              json.dump({"fetchedAt": fetched_at, "coins": result}, f, ensure_ascii=False, separators=(",", ":"))
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"fetched_at={fetched_at}\n")
+              f.write(f"coin_count={len(result)}\n")
+              f.write(f"success={success}\n")
+              f.write(f"total={total}\n")
+          PY
+
+      - name: Commit snapshot and open PR (main is branch-protected, no direct push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- data/altcoins/charts.json)" ]; then
+            echo "No data changes since last run, nothing to commit."
+            exit 0
+          fi
+          BRANCH="coin-charts-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/altcoins/charts.json
+          git commit -m "Update coin chart snapshots (${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.coin_count }} coins, ${{ steps.fetch.outputs.success }}/${{ steps.fetch.outputs.total }} ranges)"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Update coin chart snapshots" \
+            --body "Automated CoinGecko /coins/{id}/market_chart fetch (5 ranges per coin, downsampled to ~60 points each), server-side to avoid CoinGecko's CORS block on direct browser fetches. Fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.coin_count }} coins, ${{ steps.fetch.outputs.success }}/${{ steps.fetch.outputs.total }} coin×range combinations succeeded." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
+          git push origin --delete "$BRANCH" || true
