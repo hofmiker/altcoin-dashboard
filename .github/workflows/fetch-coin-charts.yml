@@ -30,10 +30,22 @@ jobs:
           RANGES = ["1", "7", "30", "365", "1825"]
           UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-          # data/watchlist.csv's CoinGeckoID column is already the single source of truth the
-          # daily scan routine keeps in sync with index.html's coins array — reusing it here
-          # avoids maintaining a second, driftable list of which coins to fetch charts for.
+          # Two sources, both already maintained daily by other jobs, merged so nothing here
+          # needs a third, driftable coin list of its own:
+          # 1. data/altcoins/latest.json - the Altcoins tab's top-10-by-market-cap coins.
+          #    Fetched first since these are the highest-traffic cards on the dashboard.
+          # 2. data/watchlist.csv's CoinGeckoID column - the daily scan routine's pump candidates.
           ids = []
+          try:
+              with open("data/altcoins/latest.json", encoding="utf-8") as f:
+                  top10 = json.load(f)
+              for c in top10.get("data", []):
+                  cgid = (c.get("id") or "").strip()
+                  if cgid and cgid not in ids:
+                      ids.append(cgid)
+          except FileNotFoundError:
+              print("WARN data/altcoins/latest.json not found yet, skipping top-10 coins", file=sys.stderr)
+
           with open("data/watchlist.csv", newline="", encoding="utf-8") as f:
               for row in csv.DictReader(f):
                   cgid = (row.get("CoinGeckoID") or "").strip()
