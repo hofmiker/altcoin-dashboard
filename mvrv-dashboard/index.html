@@ -314,8 +314,8 @@
     supplyGrowth:   {label:"Supply-Wachstum (p.a.)",  color:"var(--c-supply)",   fmt:fmtPctRaw},
     nvt:            {label:"NVT (Adj.)",              color:"var(--c-nvt)",      fmt:fmtRatio},
     activeAddr:     {label:"Aktive Adressen",         color:"var(--c-addr)",     fmt:fmtCount},
-    roi30d:         {label:"ROI 30 Tage",             color:"var(--c-roi30)",    fmt:fmtPctFrac},
-    roi1yr:         {label:"ROI 1 Jahr",              color:"var(--c-roi1y)",    fmt:fmtPctFrac},
+    roi30d:         {label:"ROI 30 Tage",             color:"var(--c-roi30)",    fmt:fmtPctRaw},
+    roi1yr:         {label:"ROI 1 Jahr",              color:"var(--c-roi1y)",    fmt:fmtPctRaw},
     activeSupply1yr:{label:"Aktive Supply (1J)",      color:"var(--c-actsup)",   fmt:fmtBTC}
   };
 
@@ -983,8 +983,8 @@
         const series = [
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD}
         ];
-        if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctFrac});
-        if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctFrac});
+        if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctRaw});
+        if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctRaw});
         return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
       }
     },
