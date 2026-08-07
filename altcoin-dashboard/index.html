@@ -406,7 +406,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 41;
+  const DASHBOARD_VERSION = 42;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
@@ -1020,6 +1020,24 @@
     "network-error": "Verbindungsfehler beim Laden · Research-Daten"
   };
 
+  // data/ is excluded from the published Pages build (see data/README.md), so this is read
+  // from GitHub's raw file host rather than a relative path (same reasoning as ALTCOINS_SNAPSHOT_URL).
+  const CHARTS_SNAPSHOT_URL = "https://raw.githubusercontent.com/hofmiker/altcoin-dashboard/main/data/altcoins/charts.json";
+  let chartsSnapshotPromise = null;
+  function loadChartsSnapshot(){
+    if(!chartsSnapshotPromise){
+      chartsSnapshotPromise = fetch(CHARTS_SNAPSHOT_URL)
+        .then(res=>{ if(!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+        .catch(err=>{ chartsSnapshotPromise = null; throw err; });
+    }
+    return chartsSnapshotPromise;
+  }
+
+  // A live client-side fetch is attempted first. CoinGecko is confirmed to not reliably send
+  // CORS headers for direct browser requests (same class of problem the MVRV dashboard already
+  // works around for Coin Metrics), so on failure this falls back to the snapshot
+  // .github/workflows/fetch-coin-charts.yml fetches server-side once a day (all 5 ranges, every
+  // watchlist coin) and commits to this repo.
   function fetchLiveSeries(id, days){
     const key = id + ":" + days;
     if(liveCache.has(key)) return liveCache.get(key);
@@ -1041,11 +1059,19 @@
         }
         const step = Math.max(1, Math.floor(prices.length / 60));
         const sampled = prices.filter((_,i)=> i % step === 0 || i === prices.length - 1);
-        return sampled.map(([ts,value])=>({label: formatTs(ts, days), value}));
+        return {series: sampled.map(([ts,value])=>({label: formatTs(ts, days), value})), source:"live"};
       })
-      .catch(err=>{
-        if(!err.code) err.code = "network-error";
-        throw err;
+      .catch(liveErr=>{
+        if(!liveErr.code) liveErr.code = "network-error";
+        return loadChartsSnapshot().then(snap=>{
+          const points = snap && snap.coins && snap.coins[id] && snap.coins[id][days];
+          if(!points || !points.length) throw liveErr;
+          return {
+            series: points.map(([ts,value])=>({label: formatTs(ts, days), value})),
+            source: "snapshot",
+            fetchedAt: snap.fetchedAt
+          };
+        }, ()=>{ throw liveErr; });
       });
     liveCache.set(key, p);
     p.catch(()=> liveCache.delete(key));
@@ -1264,10 +1290,11 @@
       function loadRange(days){
         [...btnRow.children].forEach(b=> b.classList.toggle("active", b.dataset.range === days));
         chartHost.classList.add("loading");
-        fetchLiveSeries(coin.coingeckoId, days).then(series=>{
+        fetchLiveSeries(coin.coingeckoId, days).then(({series, source, fetchedAt})=>{
           chartHost.classList.remove("loading");
           setButtonsDisabled(false);
-          renderSeries(series, "Live · CoinGecko");
+          const label = source === "snapshot" ? ("Snapshot vom " + fmtSnapshotTs(fetchedAt) + " · CoinGecko") : "Live · CoinGecko";
+          renderSeries(series, label);
         }).catch(err=>{
           chartHost.classList.remove("loading");
           setButtonsDisabled(true);
