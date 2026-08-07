@@ -7,6 +7,9 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Pump-Signal Dashboard — 06.08.2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -14,6 +17,8 @@
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
+    --font-body:"Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-display:"Space Grotesk", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -42,16 +47,16 @@
   body{margin:0; background:var(--bg); overflow-x:hidden;}
   .page{
     background:var(--bg); color:var(--ink); min-height:100%;
-    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--font-body);
     padding:28px 20px 60px;
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:28px;}
-  .mono{font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace; font-variant-numeric:tabular-nums;}
+  .mono{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
 
   /* header */
   header{display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px;}
   .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin:0 0 6px;}
-  h1{font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  h1{font-family:var(--font-display); font-size:26px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
   .sub{color:var(--ink-2); font-size:13.5px; margin-top:6px; max-width:64ch; line-height:1.5;}
   /* Pure-CSS toggle (checkbox + label) so the table view can never break due to JS timing/errors. */
   .table-toggle-checkbox{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
@@ -73,7 +78,7 @@
   .tab-bar{display:flex; gap:8px; flex-wrap:wrap;}
   .tab-pill{
     display:inline-flex; align-items:center; border:1px solid var(--border); background:var(--card);
-    color:var(--ink-2); font-size:13px; font-weight:700; padding:9px 16px; border-radius:100px;
+    color:var(--ink-2); font-family:var(--font-display); font-size:13px; font-weight:700; padding:9px 16px; border-radius:100px;
     cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
   }
   .tab-pill:hover{color:var(--ink); border-color:var(--ink-3);}
@@ -241,7 +246,7 @@
 
   /* methodology + sources */
   .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px;}
-  .panel h2{font-size:16px; margin:0; font-weight:700;}
+  .panel h2{font-family:var(--font-display); font-size:16px; margin:0; font-weight:700;}
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;}
   .method-list li{display:flex; justify-content:space-between; gap:12px; font-size:13px; color:var(--ink-2); padding:6px 10px; background:var(--inset); border-radius:8px;}
@@ -391,7 +396,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 36;
+  const DASHBOARD_VERSION = 37;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
