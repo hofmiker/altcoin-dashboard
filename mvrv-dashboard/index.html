@@ -203,6 +203,13 @@
        without this, height:auto derives from the fixed 1000x380 viewBox ratio, which on a narrow phone
        width comes out barely taller than a strip of text and is hard to read. */
     .chart-wrap svg{height:340px;}
+    /* The button's x-position varies with title length (e.g. "Market Cap vs. Realized Cap"), so a
+       popup anchored left:0 relative to the button can run off the right edge of a narrow screen.
+       Pin it to the viewport with fixed side margins instead, so it always folds back inside. */
+    .info-pop{
+      position:fixed; left:16px; right:16px; top:auto; bottom:16px;
+      width:auto; max-width:none; max-height:70vh; overflow-y:auto; z-index:50;
+    }
   }
 </style>
 </head>
@@ -821,7 +828,7 @@
   // ---------- tile definitions ----------
   const TILES = [
     {
-      title:"MVRV-Ratio", desc:"Market Value ÷ Realized Value. >1 = Markt im Schnitt im Gewinn.",
+      title:"MVRV-Ratio", desc:"Market Cap ÷ Realized Cap. Zeigt, wie weit der Kurs vom durchschnittlichen Einstandspreis aller Coins entfernt ist: >1 = Markt im Schnitt im Gewinn, <1 = im Schnitt im Verlust. Sehr hohe Werte fielen historisch mit überhitzten, teuren Marktphasen zusammen, Werte nahe oder unter 1 mit unterbewerteten Phasen.",
       zone(){ return mvrvZoneForCurrent(); },
       build(view){
         return buildLineChart({
@@ -832,7 +839,7 @@
       }
     },
     {
-      title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis vs. tatsächlicher Kurs (log-skaliert).",
+      title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis (Realized Price) vs. tatsächlicher Kurs, log-skaliert. Liegt der Kurs unter der Realized Price, ist der Markt im Schnitt im Verlust — historisch eher eine Boden- als eine Topregion.",
       build(view){
         const series = [
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:2.2, dashed:true, fmt:fmtUSD},
@@ -842,7 +849,7 @@
       }
     },
     {
-      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn. = 1 − 1/MVRV.",
+      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn (= 1 − 1/MVRV). Negative/niedrige Werte zeigen kollektive Verlustphasen (Kapitulation), sehr hohe Werte kollektive Gewinneuphorie — historisch die Extremzonen an Markttiefs und -hochs.",
       zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
         return buildLineChart({
@@ -856,7 +863,7 @@
       }
     },
     {
-      title:"MVRV Z-Score", desc:"(Market Cap − Realized Cap) ÷ erweiternde Standardabweichung(Market Cap).",
+      title:"MVRV Z-Score", desc:"(Market Cap − Realized Cap) ÷ erweiternde Standardabweichung(Market Cap). Misst, wie stark der Kurs statistisch vom Realized-Cap-Mittel abweicht — extreme positive Ausschläge fielen historisch mit Marktzyklus-Höchstständen zusammen, negative mit Tiefpunkten.",
       requires:"hasZScore",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
       zone(){ return zscoreZone(lastVal(FULL.zscore)); },
@@ -872,7 +879,7 @@
       }
     },
     {
-      title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert. Verhältnis der beiden Linien = MVRV.",
+      title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert — das Verhältnis der beiden Linien ist die MVRV-Ratio. Klafft die Market Cap weit über die Realized Cap, sitzt viel Kapital auf großen Buchgewinnen; nähern sie sich an oder kreuzen sie, hat der Markt einen Großteil seiner Gewinne bereits abgegeben.",
       requires:"hasMarketCapAndRealizedCap",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
@@ -884,7 +891,7 @@
       }
     },
     {
-      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage).",
+      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving und nähert sich langfristig 0 %.",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
@@ -896,7 +903,7 @@
       }
     },
     {
-      title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %).",
+      title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %). Tiefe, lang anhaltende Drawdowns markierten historisch eher Akkumulationsphasen als das Ende eines Aufwärtstrends.",
       build(view){
         return buildLineChart({
           dates:view.dates, height:380, log:false,
