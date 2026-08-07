@@ -199,6 +199,7 @@
   .chart-wrap.no-data{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; aspect-ratio:300/118;}
   .chart-wrap.no-data .no-data-label{font-size:13px; font-weight:700; color:var(--ink-3);}
   .chart-wrap.no-data .no-data-sub{font-size:10.5px; color:var(--ink-3);}
+  .no-data-detail{opacity:.7;}
 
   .card-note{font-size:12.8px; line-height:1.5; color:var(--ink-2);}
   .card-note b{color:var(--ink); font-weight:700;}
@@ -405,7 +406,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 40;
+  const DASHBOARD_VERSION = 41;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
@@ -1231,12 +1232,17 @@
     // Live fetch failed (or returned nothing usable) — show an honest "no data" state
     // instead of falling back to the static research series, which could otherwise be
     // mistaken for a real (e.g. falling) price move that never actually happened.
-    function renderNoData(sourceLabel){
+    // detail carries the raw fetch failure (e.g. "HTTP 401", "Failed to fetch") so the actual
+    // cause is visible on the page itself — without this, "Verbindungsfehler beim Laden" covers
+    // both a genuine network block AND e.g. CoinGecko now requiring an API key, and there was no
+    // way to tell those apart without opening the browser console.
+    function renderNoData(sourceLabel, detail){
       const wrap = document.createElement("div");
       wrap.className = "chart-wrap no-data";
-      wrap.innerHTML = `<span class="no-data-label">Keine Daten</span><span class="no-data-sub">${sourceLabel}</span>`;
+      const detailHtml = detail ? ` <span class="no-data-detail">(${detail})</span>` : "";
+      wrap.innerHTML = `<span class="no-data-label">Keine Daten</span><span class="no-data-sub">${sourceLabel}${detailHtml}</span>`;
       chartHost.replaceChildren(wrap);
-      if(priceHost) priceHost.innerHTML = `<span class="cur mono">–</span><span class="range-note">${sourceLabel}</span>`;
+      if(priceHost) priceHost.innerHTML = `<span class="cur mono">–</span><span class="range-note">${sourceLabel}${detailHtml}</span>`;
     }
 
     renderSeries(coin.series, coin.coingeckoId ? "Research-Daten (lädt Live-Chart …)" : "Research-Daten");
@@ -1265,7 +1271,8 @@
         }).catch(err=>{
           chartHost.classList.remove("loading");
           setButtonsDisabled(true);
-          renderNoData(LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"]);
+          console.error("Live-Chart konnte nicht geladen werden:", coin.coingeckoId, err);
+          renderNoData(LIVE_ERROR_MESSAGES[err && err.code] || LIVE_ERROR_MESSAGES["network-error"], err && err.message);
         });
       }
       ranges.forEach(r=>{
