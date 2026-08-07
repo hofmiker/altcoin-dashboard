@@ -30,8 +30,11 @@ jobs:
           # on the keyless community tier even though PriceUSD works fine - Coin Metrics' free/paid split
           # isn't what earlier research assumed. Probe every metric we want individually (cheap, page_size=2)
           # and only request what's actually free, instead of failing the whole fetch over one paid metric.
+          # NVTAdj/AdrActCnt/ROI30d/ROI1yr/SplyAct1yr requested for new "vs. price" tiles.
+          # SplyAdrBalUSD1M/AdrBalUSD1MCnt are exploratory probes for a large-holder ("whale") supply
+          # concentration tile - unconfirmed whether Coin Metrics grants these on the keyless tier at all.
           AVAILABLE=""
-          for METRIC in PriceUSD CapMVRVCur CapRealUSD SplyCur CapMrktCurUSD; do
+          for METRIC in PriceUSD CapMVRVCur CapRealUSD SplyCur CapMrktCurUSD NVTAdj AdrActCnt ROI30d ROI1yr SplyAct1yr SplyAdrBalUSD1M AdrBalUSD1MCnt; do
             CODE=$(curl -sS --retry 3 --retry-delay 5 -o /tmp/probe.json -w "%{http_code}" \
               -H "User-Agent: $UA" -H "Accept: application/json" -H "Accept-Language: en-US,en;q=0.9" \
               "${BASE}&metrics=${METRIC}&page_size=2")
