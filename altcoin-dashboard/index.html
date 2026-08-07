@@ -396,7 +396,7 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 37;
+  const DASHBOARD_VERSION = 38;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
@@ -1379,9 +1379,29 @@
       .then(json=> (json.data && json.data[0]) || null);
   }
 
+  // data/ is excluded from the published Pages build (see data/README.md), so the fallback below
+  // is read from GitHub's raw file host (public, permissive CORS) rather than a relative path.
+  const ALTCOINS_SNAPSHOT_URL = "https://raw.githubusercontent.com/hofmiker/altcoin-dashboard/main/data/altcoins/latest.json";
+
+  // A live client-side fetch is attempted first — CoinGecko's public API is generally reachable
+  // from the browser. If that fails for any reason (network block, rate limit, API change), fall
+  // back to the snapshot .github/workflows/fetch-altcoin-data.yml fetches server-side once a day
+  // and commits to this repo (same pattern as the MVRV dashboard's Coin Metrics fallback).
   function fetchTop10Markets(){
     return coinGeckoFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h")
-      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); });
+      .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
+      .then(list=> ({list, source:"live", fetchedAt:new Date().toISOString()}))
+      .catch(liveErr=>
+        fetch(ALTCOINS_SNAPSHOT_URL)
+          .then(res=>{ if(!res.ok) throw taggedHttpError(res); return res.json(); })
+          .then(json=> ({list: json.data || [], source:"snapshot", fetchedAt: json.fetchedAt || null}))
+          .catch(()=>{ throw liveErr; })
+      );
+  }
+
+  function fmtSnapshotTs(iso){
+    if(!iso) return "unbekannt";
+    try{ return new Date(iso).toLocaleString("de-DE", {dateStyle:"medium", timeStyle:"short"}); }catch(e){ return iso; }
   }
 
   function buildRetryLink(label, onClick){
@@ -1450,8 +1470,16 @@
     statusEl.textContent = "Lade die zehn wichtigsten Coins nach Marktkapitalisierung …";
     statusEl.style.display = "";
     altGrid.replaceChildren();
-    fetchTop10Markets().then(list=>{
-      statusEl.style.display = "none";
+    fetchTop10Markets().then(({list, source, fetchedAt})=>{
+      statusEl.style.display = source === "snapshot" ? "" : "none";
+      if(source === "snapshot"){
+        statusEl.textContent = "";
+        statusEl.appendChild(document.createTextNode(
+          "Live-Abruf aus dem Browser fehlgeschlagen — zeige den täglichen Snapshot vom "
+          + fmtSnapshotTs(fetchedAt) + ". "
+        ));
+        statusEl.appendChild(buildRetryLink("Live erneut versuchen", renderAltcoinsTab));
+      }
       list.forEach((m,i)=>{
         try{
           const pct = typeof m.price_change_percentage_24h === "number" ? m.price_change_percentage_24h : 0;
