@@ -78,21 +78,18 @@
   }
   .tab-pill:hover{color:var(--ink); border-color:var(--ink-3);}
   .tab-panel{display:none; flex-direction:column; gap:28px;}
+  #tabNews:checked ~ #panelNews{display:flex;}
   #tabMarkt:checked ~ #panelMarkt{display:flex;}
   #tabAltcoins:checked ~ #panelAltcoins{display:flex;}
   #tabPump:checked ~ #panelPump{display:flex;}
-  #tabNews:checked ~ #panelNews{display:flex;}
-  #tabProjekte:checked ~ #panelProjekte{display:flex;}
+  #tabNews:checked ~ .tab-bar label[for="tabNews"],
   #tabMarkt:checked ~ .tab-bar label[for="tabMarkt"],
   #tabAltcoins:checked ~ .tab-bar label[for="tabAltcoins"],
-  #tabPump:checked ~ .tab-bar label[for="tabPump"],
-  #tabNews:checked ~ .tab-bar label[for="tabNews"],
-  #tabProjekte:checked ~ .tab-bar label[for="tabProjekte"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  #tabPump:checked ~ .tab-bar label[for="tabPump"]{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  #tabNews:focus-visible ~ .tab-bar label[for="tabNews"],
   #tabMarkt:focus-visible ~ .tab-bar label[for="tabMarkt"],
   #tabAltcoins:focus-visible ~ .tab-bar label[for="tabAltcoins"],
-  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"],
-  #tabNews:focus-visible ~ .tab-bar label[for="tabNews"],
-  #tabProjekte:focus-visible ~ .tab-bar label[for="tabProjekte"]{outline:2px solid var(--accent); outline-offset:2px;}
+  #tabPump:focus-visible ~ .tab-bar label[for="tabPump"]{outline:2px solid var(--accent); outline-offset:2px;}
   .tab-status{font-size:13px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 
   /* market ticker — latest daily commentary, shown at the top of the News tab */
@@ -274,11 +271,10 @@
 <div class="page">
   <div class="wrap">
 
-    <input type="radio" name="dashTab" id="tabMarkt" class="tab-radio" checked>
+    <input type="radio" name="dashTab" id="tabNews" class="tab-radio" checked>
+    <input type="radio" name="dashTab" id="tabMarkt" class="tab-radio">
     <input type="radio" name="dashTab" id="tabAltcoins" class="tab-radio">
     <input type="radio" name="dashTab" id="tabPump" class="tab-radio">
-    <input type="radio" name="dashTab" id="tabNews" class="tab-radio">
-    <input type="radio" name="dashTab" id="tabProjekte" class="tab-radio">
 
     <header>
       <div>
@@ -288,12 +284,15 @@
     </header>
 
     <nav class="tab-bar">
+      <label for="tabNews" class="tab-pill">News</label>
       <label for="tabMarkt" class="tab-pill">Markt</label>
       <label for="tabAltcoins" class="tab-pill">Altcoins</label>
       <label for="tabPump" class="tab-pill">Pump-Potentials</label>
-      <label for="tabNews" class="tab-pill">News</label>
-      <label for="tabProjekte" class="tab-pill">Projekte</label>
     </nav>
+
+    <section class="tab-panel" id="panelNews">
+      <div id="newsList"></div>
+    </section>
 
     <section class="tab-panel" id="panelMarkt">
       <section class="strip">
@@ -383,39 +382,6 @@
       </section>
     </section>
 
-    <section class="tab-panel" id="panelNews">
-      <div id="newsList"></div>
-    </section>
-
-    <section class="tab-panel" id="panelProjekte">
-      <section class="grid">
-        <a class="card" href="../btc/" target="_blank" rel="noopener">
-          <img class="tile-thumb" src="../screenshots/btc.png" alt="">
-          <div class="card-head">
-            <div class="ticker-block">
-              <div>
-                <div class="ticker">Bitcoin On-Chain Dashboard</div>
-                <div class="name">Live-Kurs, Mempool &amp; Netzwerk-Metriken</div>
-              </div>
-            </div>
-          </div>
-          <div class="card-link"><span>Öffnen →</span></div>
-        </a>
-        <a class="card" href="../bitcoin-3d/" target="_blank" rel="noopener">
-          <img class="tile-thumb" src="../screenshots/bitcoin-3d.png" alt="">
-          <div class="card-head">
-            <div class="ticker-block">
-              <div>
-                <div class="ticker">Bitcoin 3D</div>
-                <div class="name">3D Candlestick-Visualisierung</div>
-              </div>
-            </div>
-          </div>
-          <div class="card-link"><span>Öffnen →</span></div>
-        </a>
-      </section>
-    </section>
-
     <footer>
       Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–6.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
@@ -425,14 +391,21 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 35;
+  const DASHBOARD_VERSION = 36;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
-    { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." }
+    { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." },
+    { date: "05.08.2026", text: "Bitcoin hält sich über $64k (+0,98%), der Gesamtmarkt legt leicht um 0,7% auf $2,27 Billionen zu. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3% — eine breite Short-Squeeze-Welle treibt kleinere Altcoins wie CYS deutlich stärker an als den Gesamtmarkt." },
+    { date: "04.08.2026", text: "Bitcoin bleibt stabil um ~$63k, ein ruhiger Handelstag ohne große Bewegung. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3%. Insgesamt keine neuen frischen Pump-Signale." },
+    { date: "03.08.2026", text: "Bitcoin bleibt stabil bei ~$63,5k (+1,12%), der Gesamtmarkt legt leicht um 1,2% auf $2,25 Billionen zu. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3%. Insgesamt eine breite, moderate Erholung ohne dominanten Einzeltitel-Katalysator." },
+    { date: "02.08.2026", text: "Bitcoin erholt sich leicht auf ~$63,5k nach dem Rückgang vom Vortag. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56%. Insgesamt ein unauffälliger Tag ohne neue Einzeltitel-Katalysatoren." },
+    { date: "01.08.2026", text: "Bitcoin rutscht auf ~$62,9k (−3,25%), der Gesamtmarkt gibt um 2,4% auf $2,25 Billionen nach — ein breiter Rückgang ohne einzelnen positiven Sektor-Ausreißer. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz stabil bei ~56%." },
+    { date: "31.07.2026", text: "Bitcoin zieht auf ~$65,0k an (+2,1%), der Gesamtmarkt legt um 1,4% auf $2,3 Billionen zu. UNI (+12%) und INJ (+10%) führen die Erholung an. Der Altcoin Season Index bleibt unverändert bei 52 (neutrale Zone), BTC-Dominanz stabil bei ~56,3%." },
+    { date: "30.07.2026", text: "Bitcoin bleibt stabil bei ~$63,9k, der Gesamtmarkt kaum verändert bei $2,27 Billionen. Der Altcoin Season Index zieht leicht von 52 auf 53 an, verharrt aber klar in der neutralen Zone. Auffällig: Der DeFi-Sektor fällt heute deutlich um 11,5% — die Altcoin-Rotation bleibt weiterhin selektiv statt breit angelegt." }
   ];
 
   const coins = [
