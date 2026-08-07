@@ -283,7 +283,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 06.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -303,19 +303,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$63.500–66.000</div>
-          <div class="ctx">Klettert auf ~$64,6–64,8k (+0,8% heute), gestützt von ETF-Zuflüssen (BlackRock IBIT $170 Mio.)</div>
+          <div class="value mono">$63.000–65.500</div>
+          <div class="ctx">Pendelt bei ~$64,3k (−0,3% heute), Gesamtmarkt bei $2,28 Billionen (−0,5%)</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">57 / 100</div>
-          <div class="ctx">Anstieg von 52 auf 57 (CoinMarketCap) — gemischte Signale, noch klar unter der Altseason-Schwelle von 75</div>
+          <div class="ctx">Unverändert bei 57 (keine neue verlässlich datierte Messung gefunden) — weiter klar unter der Altseason-Schwelle von 75</div>
           <div class="gauge"><i style="width:57%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56,3%</div>
-          <div class="ctx">Unverändert bei ~56,3%, DeFi-Sektor bricht heute um 38,7% ein — Fear &amp; Greed Index fällt auf 25 (Extreme Fear)</div>
+          <div class="value mono">~56,7%</div>
+          <div class="ctx">Leicht von ~56,3% auf ~56,7% gestiegen — Fear &amp; Greed Index steigt auf 29 (Fear), von 25 gestern</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -388,7 +388,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–6.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–7.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -396,13 +396,14 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 38;
+  const DASHBOARD_VERSION = 39;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "07.08.2026", text: "Bitcoin pendelt seitwärts um ~$64,3k (−0,3%), der Gesamtmarkt gibt leicht um 0,5% auf $2,28 Billionen nach — ein ruhiger, durchwachsener Handelstag. Der Fear & Greed Index klettert von 25 auf 29 (weiterhin Fear-Zone), BTC-Dominanz steigt leicht auf ~56,7%. Auffällig: Zwei frische Zweit- bzw. Erstlistings (CAP auf Upbit, QUID auf Binance Alpha) sorgten für kurze, kräftige Kurssprünge, ohne dass sich ein breiterer Alt-Trend abzeichnet." },
     { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." },
     { date: "05.08.2026", text: "Bitcoin hält sich über $64k (+0,98%), der Gesamtmarkt legt leicht um 0,7% auf $2,27 Billionen zu. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3% — eine breite Short-Squeeze-Welle treibt kleinere Altcoins wie CYS deutlich stärker an als den Gesamtmarkt." },
     { date: "04.08.2026", text: "Bitcoin bleibt stabil um ~$63k, ein ruhiger Handelstag ohne große Bewegung. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3%. Insgesamt keine neuen frischen Pump-Signale." },
@@ -791,6 +792,44 @@
       flag:"Nur ~16% des 1-Mrd.-Supply im Umlauf (FDV ~6,2x Market Cap) — hohes Verwässerungsrisiko. Kein Cysic-spezifischer Katalysator identifizierbar, Kursbewegung wird von Analysten als „positive Beta” zur allgemeinen Marktrally beschrieben, nicht als eigenständiges Signal.",
       note:"<b>Neu:</b> Cysic (ZK-Proof-/ComputeFi-Infrastruktur) sprang um bis zu 93% im Zuge einer breiten Short-Squeeze-Welle im Markt (67% der $2,29-Mio.-Liquidationen betrafen Shorts). Kein projekteigener Katalysator auffindbar — Analysten stufen den Move als Beta zur allgemeinen Bitcoin-Rally ein, nicht als Cysic-spezifisches Ereignis. Audit vorhanden (CertiK 4,4/5), aber niedriger Free Float (~16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
       sourceRefs:[24]
+    },
+    {
+      ticker:"CAP", name:"Cap (Covered Agent Protocol / cUSD)", status:"caution", statusLabel:"Unter Schwelle / nur Einzelsignal", score:3, firstSeen:"07.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:"https://coingape.com/upbit-launches-cap-listing-across-krw-btc-and-usdt-trading-pairs/",
+      series:[
+        {label:"vor 24h", value:0.0237},
+        {label:"jetzt", value:0.02735}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$42,5 Mio."},
+        {k:"FDV (Juni-IDO)",v:"$106,5 Mio."},
+        {k:"Private Funding",v:"$11 Mio. (u. a. Sandeep Nailwal, GSR, RockawayX)"}
+      ],
+      signals:[
+        ["Frisches Upbit-Zweitlisting (6. Aug, KRW/BTC/USDT, nach Bithumb im Juni)","+3"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Upbit listete CAP am 6. August auf KRW/BTC/USDT (Bithumb hatte den Titel bereits im Juni) — Kurs sprang binnen einer Minute um 34,5%. Cap ist ein besichertes Kreditprotokoll rund um den Stablecoin cUSD, mehrfach auditiert (Trail of Bits, Zellic, Certora u. a.) und von Investoren wie Sandeep Nailwal und GSR unterstützt. Kein Red Flag identifiziert, aber nur das Listing selbst als Signal — <b>Score bleibt unter der Watchlist-Schwelle</b>. CoinGecko-Kürzel nicht eindeutig verifizierbar (Ticker-Kollision mit einem älteren, unabhängigen Arbitrum-Projekt gleichen Namens) — daher kein Live-Chart.",
+      sourceRefs:[25]
+    },
+    {
+      ticker:"QUID", name:"Squid", status:"caution", statusLabel:"Unter Schwelle / nur Einzelsignal", score:3, firstSeen:"07.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"squid", link:"https://onekey.so/blog/ecosystem/binance-alpha-to-list-squid-quid-on-august-4-what-users-should-know-20260803171713/",
+      series:[
+        {label:"Public-Sale-Preis", value:0.045},
+        {label:"jetzt", value:0.1024}
+      ],
+      stats:[
+        {k:"FDV",v:"$102 Mio."},
+        {k:"24h Vol.",v:"$81,4 Mio."},
+        {k:"Audits",v:"9 (ConsenSys Diligence, Ackee, n-var)"}
+      ],
+      signals:[
+        ["Frisches Binance-Alpha-Erstlisting (4. Aug)","+3"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Binance Alpha listete QUID am 4. August als Debüt-Listing des Tokens. Squid ist etablierte Cross-Chain-Infrastruktur (100+ Chains, $6,2 Mrd. Volumen seit 2023, u. a. in MetaMask und Ledger integriert), 9 unabhängige Audits, kein Team-/Investoren-Unlock beim TGE. Kein Red Flag identifiziert, aber nur das Listing selbst als Signal — <b>Score bleibt unter der Watchlist-Schwelle</b>.",
+      sourceRefs:[26]
     }
   ];
 
@@ -819,7 +858,10 @@
     {n:21, label:"MEXC lists Grvt (GRVT) mit $60.000 GRVT und 10.000 USDT Airdrop+ — CryptoBriefing", url:"https://cryptobriefing.com/mexc-lists-grvt-grvt-with-60000-worth-of-grvt-and-10000-usdt-in-airdrop-rewards/"},
     {n:22, label:"GRVT Token Price, Market Cap und Supply-Daten — CoinGecko", url:"https://www.coingecko.com/en/coins/grvt"},
     {n:23, label:"Audiera BEAT Token Rips 30% as Traders Price in Reduced Risk From Early-August Unlock — ICOBench", url:"https://icobench.com/news/press-releases/audieras-beat-rips-30-on-revenue-and-burn-data-as-traders-price-in-an-early-august-unlock/"},
-    {n:24, label:"Crypto News Today August 5: Bitcoin Holds $64K, Cysic Token Soars 93% — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises"}
+    {n:24, label:"Crypto News Today August 5: Bitcoin Holds $64K, Cysic Token Soars 93% — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises"},
+    {n:25, label:"Upbit Launches CAP Listing Across KRW, BTC, and USDT Trading Pairs, 6. Aug 2026 — CoinGape", url:"https://coingape.com/upbit-launches-cap-listing-across-krw-btc-and-usdt-trading-pairs/"},
+    {n:26, label:"Binance Alpha to List Squid (QUID) on August 4 — OneKey Blog", url:"https://onekey.so/blog/ecosystem/binance-alpha-to-list-squid-quid-on-august-4-what-users-should-know-20260803171713/"},
+    {n:27, label:"Crypto News Today: BTC, ETH Fell as Stablecoins and DeFi Market Slides, 7. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-bitcoin-eth-stablecoins-defi-market-drops"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
