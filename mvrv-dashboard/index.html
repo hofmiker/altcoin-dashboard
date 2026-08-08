@@ -1100,7 +1100,13 @@
     host.innerHTML = "";
     const grid = document.createElement("div");
     grid.className = "grid";
-    TILES.forEach(tile=>{
+    // Available tiles first, unavailable ones pushed to the bottom (stable sort keeps each
+    // group's original relative order intact).
+    const orderedTiles = TILES.slice().sort((a,b)=>{
+      const av = tileIsAvailable(a), bv = tileIsAvailable(b);
+      return av===bv ? 0 : av ? -1 : 1;
+    });
+    orderedTiles.forEach(tile=>{
       const card = document.createElement("div");
       card.className = "card";
 
@@ -1172,21 +1178,15 @@
     Object.keys(METRICS).forEach(key=>{
       const m = METRICS[key];
       const available = metricAvailable(key);
-      if(!available) overlaySel[key] = false;
+      if(!available){ overlaySel[key] = false; return; }
       const lab = document.createElement("label");
-      lab.className = "overlay-toggle-chip" + (overlaySel[key] ? " active" : "") + (available ? "" : " disabled");
-      if(!available) lab.style.opacity = "0.4";
+      lab.className = "overlay-toggle-chip" + (overlaySel[key] ? " active" : "");
       lab.style.setProperty("--chip-color", m.color);
-      lab.innerHTML = `<input type="checkbox" ${overlaySel[key] ? "checked" : ""} ${available ? "" : "disabled"}><i></i>${m.label}${available ? "" : " (n/v)"}`;
-      if(available){
-        lab.querySelector("input").addEventListener("change", e=>{
-          overlaySel[key] = e.target.checked;
-          renderAll();
-        });
-      } else {
-        lab.title = "Nicht verfügbar: die zugrunde liegende Metrik wird von Coin Metrics mit den aktuellen Zugangsdaten nicht freigegeben.";
-        lab.style.cursor = "not-allowed";
-      }
+      lab.innerHTML = `<input type="checkbox" ${overlaySel[key] ? "checked" : ""}><i></i>${m.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        overlaySel[key] = e.target.checked;
+        renderAll();
+      });
       legendWrap.appendChild(lab);
     });
     panel.appendChild(legendWrap);
