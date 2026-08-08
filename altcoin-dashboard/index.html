@@ -293,7 +293,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 07.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 08.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -313,8 +313,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$63.000–65.500</div>
-          <div class="ctx">Pendelt bei ~$64,3k (−0,3% heute), Gesamtmarkt bei $2,28 Billionen (−0,5%)</div>
+          <div class="value mono">$63.500–66.000</div>
+          <div class="ctx">Klettert auf ~$65,0k (+1,1% heute), Gesamtmarkt bei $2,29 Billionen</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -324,8 +324,8 @@
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56,7%</div>
-          <div class="ctx">Leicht von ~56,3% auf ~56,7% gestiegen — Fear &amp; Greed Index steigt auf 29 (Fear), von 25 gestern</div>
+          <div class="value mono">~56,8%</div>
+          <div class="ctx">Leicht von ~56,7% auf ~56,8% gestiegen — Fear &amp; Greed Index uneinheitlich (je nach Quelle 28–50)</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–7.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–8.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -406,13 +406,14 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 42;
+  const DASHBOARD_VERSION = 43;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "08.08.2026", text: "Bitcoin klettert weiter auf ~$65,0k (+1,1%), der Gesamtmarkt legt leicht auf $2,29 Billionen zu — die Erholung vom Wochenende setzt sich fort. Der Altcoin Season Index bleibt unverändert bei 57, der Fear & Greed Index zeigt je nach Quelle ein uneinheitliches Bild (28 bis 50). Auffällig: Keine frischen Tier-1-Listings oder neuen KOL-Käufe gefunden — mehrfach zitierte Top-Gainer wie Seeker (SKR) und Biconomy (BICO) laufen ohne erkennbaren, für heute datierten Einzeltitel-Katalysator." },
     { date: "07.08.2026", text: "Bitcoin pendelt seitwärts um ~$64,3k (−0,3%), der Gesamtmarkt gibt leicht um 0,5% auf $2,28 Billionen nach — ein ruhiger, durchwachsener Handelstag. Der Fear & Greed Index klettert von 25 auf 29 (weiterhin Fear-Zone), BTC-Dominanz steigt leicht auf ~56,7%. Auffällig: Zwei frische Zweit- bzw. Erstlistings (CAP auf Upbit, QUID auf Binance Alpha) sorgten für kurze, kräftige Kurssprünge, ohne dass sich ein breiterer Alt-Trend abzeichnet." },
     { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." },
     { date: "05.08.2026", text: "Bitcoin hält sich über $64k (+0,98%), der Gesamtmarkt legt leicht um 0,7% auf $2,27 Billionen zu. Der Altcoin Season Index bleibt bei 52, BTC-Dominanz unverändert bei ~56,3% — eine breite Short-Squeeze-Welle treibt kleinere Altcoins wie CYS deutlich stärker an als den Gesamtmarkt." },
