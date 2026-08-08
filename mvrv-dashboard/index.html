@@ -294,6 +294,14 @@
   const CACHE_KEY = "mvrvDashboard_cache_v1";
   const CACHE_TTL = 6 * 60 * 60 * 1000;
 
+  // Historical Bitcoin block-reward halvings (real dates, fixed - not derived from any API).
+  const HALVING_DATES = [
+    {date:"2012-11-28", label:"Halving"},
+    {date:"2016-07-09", label:"Halving"},
+    {date:"2020-05-11", label:"Halving"},
+    {date:"2024-04-20", label:"Halving"}
+  ];
+
   let FULL = null;
   let mode = "tiles";
   let rangeDays = 1825;
@@ -738,6 +746,28 @@
       svg.appendChild(path);
     });
 
+    // vertical date markers (e.g. halvings) - dashed vertical line + short label at the nearest
+    // available data point; silently skipped if the date falls outside the currently visible range
+    (cfg.vLines||[]).forEach(v=>{
+      if(v.date < cfg.dates[0] || v.date > cfg.dates[n-1]) return;
+      const idx = cfg.dates.findIndex(d=> d >= v.date);
+      if(idx<0) return;
+      const x = xOf(idx);
+      const line = document.createElementNS(NS,"line");
+      line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
+      line.setAttribute("stroke", v.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
+      line.setAttribute("stroke-dasharray","3 3"); line.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(line);
+      if(v.label){
+        const lbl = document.createElementNS(NS,"text");
+        lbl.setAttribute("class","refline-label");
+        lbl.setAttribute("x",x+4); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
+        lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", v.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
+        lbl.textContent = v.label;
+        svg.appendChild(lbl);
+      }
+    });
+
     // reference lines
     (cfg.refLines||[]).forEach(r=>{
       const y = yOf(r.value);
@@ -935,14 +965,15 @@
       }
     },
     {
-      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving und nähert sich langfristig 0 %.",
+      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (gestrichelte vertikale Linien) und nähert sich langfristig 0 %.",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
           dates:view.dates, height:chartHeight(), log:false,
           series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
-          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
+          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}],
+          vLines: HALVING_DATES
         });
       }
     },
