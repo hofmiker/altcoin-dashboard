@@ -296,7 +296,7 @@
 
   let FULL = null;
   let mode = "tiles";
-  let rangeDays = "all";
+  let rangeDays = 1825;
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -710,6 +710,7 @@
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = axisFmt(val);
@@ -748,6 +749,7 @@
       svg.appendChild(line);
       if(r.label){
         const lbl = document.createElementNS(NS,"text");
+        lbl.setAttribute("class","refline-label");
         lbl.setAttribute("x",w-padR); lbl.setAttribute("y",y-4); lbl.setAttribute("text-anchor","end");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", r.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = r.label;
@@ -774,12 +776,15 @@
       svg.appendChild(path);
     });
 
-    // x-axis date labels
-    const xTicks = Math.min(6, n);
+    // x-axis date labels (fewer ticks on narrow screens - the larger legible font size from
+    // fitChartTypography() would otherwise collide at 6 labels crammed into a ~350px-wide mobile card)
+    const mobileTicks = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    const xTicks = Math.min(mobileTicks ? 4 : 6, n);
     for(let k=0;k<xTicks;k++){
       const i = Math.round(k*(n-1)/((xTicks-1)||1));
       const x = xOf(i);
       const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
       lbl.setAttribute("x",x); lbl.setAttribute("y",h-6);
       lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
@@ -1188,11 +1193,27 @@
     host.appendChild(panel);
   }
 
+  // Axis text sits inside a viewBox that's always 1000 wide, so its font-size (set in viewBox units)
+  // renders at wildly different real sizes depending on how wide the chart actually ends up on screen
+  // (a full-width hero chart vs. a ~520px tile in the 2-column grid vs. a full-bleed mobile card). Fix
+  // that up once per render pass, after everything is in the live DOM and has real layout dimensions,
+  // by rescaling each label's font-size to hit a constant, legible CSS pixel size regardless of width.
+  function fitChartTypography(){
+    document.querySelectorAll(".chart-wrap svg").forEach(svg=>{
+      const rect = svg.getBoundingClientRect();
+      if(!rect.width) return;
+      const scaleX = rect.width / 1000;
+      svg.querySelectorAll(".axis-label").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
+      svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
+    });
+  }
+
   function renderAll(){
     const view = sliceRange(FULL, rangeDays);
     renderStatStrip();
     renderHero(view);
     if(mode === "tiles") renderTiles(view); else renderOverlay(view);
+    fitChartTypography();
   }
 
   // ---------- status banner ----------
