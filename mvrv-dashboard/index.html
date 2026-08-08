@@ -126,7 +126,7 @@
   .seg-sm{background:var(--inset); box-shadow:none; padding:3px;}
   .seg-sm button{font-size:11px; padding:5px 10px; border-radius:7px;}
 
-  .card-toolbar{display:flex; justify-content:flex-end;}
+  .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
@@ -305,6 +305,7 @@
   let FULL = null;
   let mode = "tiles";
   let rangeDays = 1825;
+  let logScale = true;
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -892,6 +893,28 @@
     return seg;
   }
 
+  // ---------- log/linear scale selector (only relevant for the charts plotting raw USD price/cap
+  // values across several orders of magnitude - synced globally like the range selector) ----------
+  const SCALE_OPTIONS = [{value:"log", label:"Log"}, {value:"linear", label:"Linear"}];
+  function buildScaleSeg(){
+    const seg = document.createElement("div");
+    seg.className = "seg seg-sm";
+    seg.setAttribute("role","group"); seg.setAttribute("aria-label","Skala");
+    const currentVal = logScale ? "log" : "linear";
+    SCALE_OPTIONS.forEach(opt=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = opt.label;
+      if(opt.value === currentVal) btn.classList.add("active");
+      btn.addEventListener("click", ()=>{
+        logScale = opt.value === "log";
+        renderAll();
+      });
+      seg.appendChild(btn);
+    });
+    return seg;
+  }
+
   function normalize(values){
     const vals = values.filter(v=> v!=null && isFinite(v));
     if(!vals.length) return values.map(()=>null);
@@ -913,13 +936,14 @@
       }
     },
     {
-      title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis (Realized Price) vs. tatsächlicher Kurs, log-skaliert. Liegt der Kurs unter der Realized Price, ist der Markt im Schnitt im Verlust — historisch eher eine Boden- als eine Topregion.",
+      title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis (Realized Price) vs. tatsächlicher Kurs. Liegt der Kurs unter der Realized Price, ist der Markt im Schnitt im Verlust — historisch eher eine Boden- als eine Topregion. Standardmäßig log-skaliert (unten rechts umschaltbar), da beide Werte seit 2010 um mehrere Größenordnungen gewachsen sind.",
+      scaleToggle:true,
       build(view){
         const series = [
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:true, series});
+        return buildLineChart({dates:view.dates, height:chartHeight(), log:logScale, series});
       }
     },
     {
@@ -953,15 +977,16 @@
       }
     },
     {
-      title:"Market Cap vs. Realized Cap", desc:"Beide in USD, log-skaliert — das Verhältnis der beiden Linien ist die MVRV-Ratio. Klafft die Market Cap weit über die Realized Cap, sitzt viel Kapital auf großen Buchgewinnen; nähern sie sich an oder kreuzen sie, hat der Markt einen Großteil seiner Gewinne bereits abgegeben.",
+      title:"Market Cap vs. Realized Cap", desc:"Beide in USD — das Verhältnis der beiden Linien ist die MVRV-Ratio. Klafft die Market Cap weit über die Realized Cap, sitzt viel Kapital auf großen Buchgewinnen; nähern sie sich an oder kreuzen sie, hat der Markt einen Großteil seiner Gewinne bereits abgegeben. Standardmäßig log-skaliert (unten rechts umschaltbar), da beide Werte seit 2010 um mehrere Größenordnungen gewachsen sind.",
       requires:"hasMarketCapAndRealizedCap",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
+      scaleToggle:true,
       build(view){
         const series = [
           {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:1.4, fmt:fmtUSD},
           {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:1.4, dashed:true, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:true, series});
+        return buildLineChart({dates:view.dates, height:chartHeight(), log:logScale, series});
       }
     },
     {
@@ -1063,6 +1088,7 @@
     const readoutHost = document.getElementById("heroReadout");
     const toolbarHost = document.getElementById("heroToolbar");
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
+    toolbarHost.appendChild(buildScaleSeg());
     toolbarHost.appendChild(buildRangeSeg());
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
@@ -1078,7 +1104,7 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:true, height:chartHeight(), bandFill, compactReadout:true});
+    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true});
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
   }
@@ -1142,6 +1168,7 @@
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
+      if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg());
       toolbar.appendChild(buildRangeSeg());
       card.appendChild(toolbar);
 
