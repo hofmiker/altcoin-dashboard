@@ -293,7 +293,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 08.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 09.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -314,7 +314,7 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$63.500–66.000</div>
-          <div class="ctx">Klettert auf ~$65,0k (+1,1% heute), Gesamtmarkt bei $2,29 Billionen</div>
+          <div class="ctx">Pendelt bei ~$64,8k (−0,2% heute), gestützt von 5 Tagen ETF-Zuflüssen in Folge (BTC +$98,85 Mio., ETH +$49,60 Mio. am 7. Aug)</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -324,8 +324,8 @@
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56,8%</div>
-          <div class="ctx">Leicht von ~56,7% auf ~56,8% gestiegen — Fear &amp; Greed Index uneinheitlich (je nach Quelle 28–50)</div>
+          <div class="value mono">~57,3%</div>
+          <div class="ctx">Leicht von ~56,8% auf ~57,3% gestiegen, ETH-Dominanz ~10,2%</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–8.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–9.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -406,13 +406,14 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 43;
+  const DASHBOARD_VERSION = 44;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "09.08.2026", text: "Bitcoin pendelt seitwärts bei ~$64,8k (−0,2%), gestützt von fünf Tagen ETF-Zuflüssen in Folge (BTC +$98,85 Mio., ETH +$49,60 Mio. am 7. Aug). BTC-Dominanz steigt leicht auf ~57,3%, der Altcoin Season Index bleibt unverändert bei 57. Auffällig: Upbit listete mit Block Street (BSB, tokenisierte Real-World-Assets) einen frischen, solide auditierten Kleinst-Cap-Titel — Kurs sprang binnen Minuten um 32,5%, ohne dass sich ein breiterer Trend abzeichnet." },
     { date: "08.08.2026", text: "Bitcoin klettert weiter auf ~$65,0k (+1,1%), der Gesamtmarkt legt leicht auf $2,29 Billionen zu — die Erholung vom Wochenende setzt sich fort. Der Altcoin Season Index bleibt unverändert bei 57, der Fear & Greed Index zeigt je nach Quelle ein uneinheitliches Bild (28 bis 50). Auffällig: Keine frischen Tier-1-Listings oder neuen KOL-Käufe gefunden — mehrfach zitierte Top-Gainer wie Seeker (SKR) und Biconomy (BICO) laufen ohne erkennbaren, für heute datierten Einzeltitel-Katalysator." },
     { date: "07.08.2026", text: "Bitcoin pendelt seitwärts um ~$64,3k (−0,3%), der Gesamtmarkt gibt leicht um 0,5% auf $2,28 Billionen nach — ein ruhiger, durchwachsener Handelstag. Der Fear & Greed Index klettert von 25 auf 29 (weiterhin Fear-Zone), BTC-Dominanz steigt leicht auf ~56,7%. Auffällig: Zwei frische Zweit- bzw. Erstlistings (CAP auf Upbit, QUID auf Binance Alpha) sorgten für kurze, kräftige Kurssprünge, ohne dass sich ein breiterer Alt-Trend abzeichnet." },
     { date: "06.08.2026", text: "Bitcoin klettert auf ~$64,6–64,8k (+0,8%), gestützt von ETF-Zuflüssen (BlackRock IBIT allein $170 Mio.). Der Altcoin Season Index springt von 52 auf 57, bleibt aber klar unter der Altseason-Schwelle von 75. Auffällig: Der DeFi-Sektor bricht heute um 38,7% ein und der Fear & Greed Index fällt auf 25 („Extreme Fear“) — ein deutlicher Kontrast zur Bitcoin-Stärke." },
@@ -841,6 +842,25 @@
       flag:null,
       note:"<b>Neu:</b> Binance Alpha listete QUID am 4. August als Debüt-Listing des Tokens. Squid ist etablierte Cross-Chain-Infrastruktur (100+ Chains, $6,2 Mrd. Volumen seit 2023, u. a. in MetaMask und Ledger integriert), 9 unabhängige Audits, kein Team-/Investoren-Unlock beim TGE. Kein Red Flag identifiziert, aber nur das Listing selbst als Signal — <b>Score bleibt unter der Watchlist-Schwelle</b>.",
       sourceRefs:[26]
+    },
+    {
+      ticker:"BSB", name:"Block Street", status:"caution", statusLabel:"Unter Schwelle / nur Einzelsignal", score:3, firstSeen:"09.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"block-street", link:"https://crypto.news/upbit-lists-block-street-bsb-across-krw-btc-usdt/",
+      series:[
+        {label:"vor Listing", value:0.135},
+        {label:"Kurssprung", value:0.179}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$30,4 Mio."},
+        {k:"Holder",v:"25.807"},
+        {k:"Zirkulierend",v:"~20,8% (207,75 Mio. von 1 Mrd.)"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (7. Aug, KRW/BTC/USDT)","+3"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Upbit listete BSB am 7. August auf KRW/BTC/USDT — Kurs sprang binnen Minuten um ~32,5% von $0,135 auf $0,179. Block Street ist Infrastruktur für tokenisierte Real-World-Assets (u. a. Immobilien), mehrfach auditiert (CertiK, PeckShield, Trail of Bits), Whitepaper vorhanden, 25.807 Holder. Kein Red Flag identifiziert, aber nur das Listing selbst als Signal — <b>Score bleibt unter der Watchlist-Schwelle</b>.",
+      sourceRefs:[28]
     }
   ];
 
@@ -872,7 +892,8 @@
     {n:24, label:"Crypto News Today August 5: Bitcoin Holds $64K, Cysic Token Soars 93% — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises"},
     {n:25, label:"Upbit Launches CAP Listing Across KRW, BTC, and USDT Trading Pairs, 6. Aug 2026 — CoinGape", url:"https://coingape.com/upbit-launches-cap-listing-across-krw-btc-and-usdt-trading-pairs/"},
     {n:26, label:"Binance Alpha to List Squid (QUID) on August 4 — OneKey Blog", url:"https://onekey.so/blog/ecosystem/binance-alpha-to-list-squid-quid-on-august-4-what-users-should-know-20260803171713/"},
-    {n:27, label:"Crypto News Today: BTC, ETH Fell as Stablecoins and DeFi Market Slides, 7. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-bitcoin-eth-stablecoins-defi-market-drops"}
+    {n:27, label:"Crypto News Today: BTC, ETH Fell as Stablecoins and DeFi Market Slides, 7. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-bitcoin-eth-stablecoins-defi-market-drops"},
+    {n:28, label:"Upbit lists Block Street (BSB) across KRW, BTC, USDT, 7. Aug 2026 — crypto.news", url:"https://crypto.news/upbit-lists-block-street-bsb-across-krw-btc-usdt/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
