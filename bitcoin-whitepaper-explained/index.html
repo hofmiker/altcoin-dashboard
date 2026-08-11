@@ -5,91 +5,166 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>bitcoin-whitepaper-explained</title>
 <style>
+@font-face { font-family:'Tinos'; src:url('vendor/fonts/tinos-400.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:'Tinos'; src:url('vendor/fonts/tinos-400-italic.woff2') format('woff2'); font-weight:400; font-style:italic; font-display:swap; }
+@font-face { font-family:'Tinos'; src:url('vendor/fonts/tinos-700.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-400.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-500.woff2') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-600.woff2') format('woff2'); font-weight:600; font-style:normal; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-500.woff2') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-600.woff2') format('woff2'); font-weight:600; font-style:normal; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-700.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
 @font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-400.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-500.woff2') format('woff2'); font-weight:500; font-style:normal; font-display:swap; }
 @font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-600.woff2') format('woff2'); font-weight:600; font-style:normal; font-display:swap; }
-@font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-700.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
 
 :root{
+  --bg:#eeece4;
+  --paper-bg:#fffdf8;
+  --surface:#ffffff;
+  --surface-raised:#f3f1e9;
+  --line:rgba(20,18,12,.14);
+  --line-soft:rgba(20,18,12,.08);
+  --line-strong:rgba(20,18,12,.30);
+  --ink:#1c1b17;
+  --ink-dim:#4c4a41;
+  --ink-faint:#7c7969;
+  --ink-ghost:#a5a290;
+  --accent:#b3123f;
+  --accent-2:#d81b52;
+  --accent-deep:#f4dbe2;
+  --accent-bg:rgba(179,18,63,.08);
+  --accent-bg-strong:rgba(179,18,63,.14);
+  --accent-border:rgba(179,18,63,.45);
+  --shadow:0 1px 3px rgba(30,25,10,.08), 0 10px 30px rgba(30,25,10,.06);
+  --serif:'Tinos','Times New Roman',Times,Georgia,serif;
+  --sans:'Inter',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+  --display:'Space Grotesk',var(--sans);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+  --rail-w:196px;
+  --panel-w:392px;
+  --topbar-h:52px;
+  --doc-fs:17px;
+}
+:root[data-theme="dark"]{
   --bg:#08080a;
-  --bg-raised:#101012;
-  --bg-sunken:#000000;
+  --paper-bg:#111114;
+  --surface:#0c0c0e;
+  --surface-raised:#17171a;
   --line:rgba(255,255,255,.13);
   --line-soft:rgba(255,255,255,.07);
   --line-strong:rgba(255,255,255,.26);
   --ink:rgba(255,255,255,.92);
   --ink-dim:rgba(255,255,255,.62);
-  --ink-faint:rgba(255,255,255,.38);
-  --ink-ghost:rgba(255,255,255,.22);
-  --accent:#e2244f;
-  --accent-2:#ff5470;
+  --ink-faint:rgba(255,255,255,.40);
+  --ink-ghost:rgba(255,255,255,.24);
+  --accent:#ff4d76;
+  --accent-2:#ff7a97;
   --accent-deep:#4a0f27;
-  --accent-bg:rgba(226,36,79,.10);
-  --accent-bg-strong:rgba(226,36,79,.18);
-  --accent-border:rgba(226,36,79,.55);
-  --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, 'Cascadia Code', Consolas, monospace;
-  --rail-w:196px;
-  --panel-w:392px;
-  --topbar-h:52px;
+  --accent-bg:rgba(255,77,118,.12);
+  --accent-bg-strong:rgba(255,77,118,.18);
+  --accent-border:rgba(255,77,118,.5);
+  --shadow:0 1px 3px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.5);
 }
 *{ margin:0; padding:0; box-sizing:border-box; }
 html{ background:var(--bg); }
 body{
   background:var(--bg);
   color:var(--ink-dim);
-  font-family:var(--mono);
+  font-family:var(--sans);
   font-size:14px;
-  line-height:1.65;
+  line-height:1.6;
   -webkit-font-smoothing:antialiased;
+  transition:background .2s ease,color .2s ease;
 }
 ::selection{ background:var(--accent); color:#fff; }
 a{ color:inherit; }
+button{ font-family:inherit; }
 
 /* ---------- top bar ---------- */
 .top-bar{
-  position:sticky; top:0; z-index:40;
+  position:sticky; top:0; z-index:60;
   height:var(--topbar-h);
-  display:flex; align-items:center; gap:16px;
+  display:flex; align-items:center; gap:14px;
   padding:0 18px;
-  background:rgba(8,8,10,.92);
+  background:color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
 }
 .top-bar .back-link{
   display:flex; align-items:center; gap:6px;
-  font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--ink-faint); text-decoration:none;
-  border:1px solid var(--line); border-radius:4px;
+  font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink-faint); text-decoration:none; font-weight:500;
+  border:1px solid var(--line); border-radius:5px;
   padding:6px 10px;
   transition:border-color .15s,color .15s;
   flex:none;
 }
 .top-bar .back-link:hover{ color:var(--ink); border-color:var(--line-strong); }
 .top-bar-title{
-  font-size:13px; font-weight:600; letter-spacing:.03em;
+  font-family:var(--display); font-size:14px; font-weight:600; letter-spacing:-.01em;
   color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  display:flex; align-items:center; gap:2px; min-width:0;
+  min-width:0;
 }
 .top-bar-title .accent{ color:var(--accent); }
-.top-bar-title .cursor{
-  display:inline-block; width:7px; height:15px; margin-left:2px;
-  background:var(--accent); animation:blink 1.1s steps(1) infinite;
+.settings-btn{
+  flex:none; display:flex; align-items:center; gap:6px;
+  font-family:var(--display); font-weight:600; font-size:13px;
+  background:var(--surface-raised); border:1px solid var(--line); color:var(--ink-dim);
+  border-radius:6px; padding:6px 12px; cursor:pointer;
+  transition:border-color .15s,color .15s;
 }
-@keyframes blink{ 50%{ opacity:0; } }
+.settings-btn:hover{ border-color:var(--line-strong); color:var(--ink); }
+.settings-btn svg{ width:14px; height:14px; }
 .top-bar-meta{
-  margin-left:auto; display:flex; align-items:center; gap:14px;
-  font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint);
-  flex:none;
+  margin-left:auto; display:flex; align-items:center; gap:12px;
+  font-size:10.5px; letter-spacing:.04em; color:var(--ink-faint);
+  flex:none; font-weight:500;
 }
 .top-bar-meta .dot{ color:var(--ink-ghost); }
-.top-bar-meta strong{ color:var(--ink-dim); font-weight:600; }
-.progress-track{
-  position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--line-soft);
+.top-bar-meta strong{ color:var(--ink-dim); font-weight:700; }
+.progress-track{ position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--line-soft); }
+.progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); transition:width .15s ease-out; }
+
+/* ---------- settings popover ---------- */
+.settings-pop{
+  position:fixed; top:calc(var(--topbar-h) + 8px); right:18px; z-index:70;
+  width:280px; background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; box-shadow:var(--shadow); padding:16px;
+  opacity:0; transform:translateY(-6px) scale(.98); pointer-events:none;
+  transition:opacity .15s,transform .15s;
 }
-.progress-fill{
-  height:100%; width:0%; background:linear-gradient(90deg,var(--accent-deep),var(--accent));
-  transition:width .15s ease-out;
+.settings-pop.is-open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+.settings-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; }
+.settings-row + .settings-row{ border-top:1px solid var(--line-soft); }
+.settings-label{ font-size:12px; font-weight:600; color:var(--ink-dim); }
+.fs-stepper{ display:flex; align-items:center; gap:8px; }
+.fs-btn{
+  width:26px; height:26px; border-radius:6px; border:1px solid var(--line);
+  background:var(--surface-raised); color:var(--ink-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700;
 }
+.fs-btn:first-child{ font-size:11px; }
+.fs-btn:last-child{ font-size:15px; }
+.fs-btn:hover{ border-color:var(--line-strong); color:var(--ink); }
+.fs-val{ font-size:11px; color:var(--ink-faint); width:32px; text-align:center; font-variant-numeric:tabular-nums; }
+.theme-switch{
+  width:44px; height:24px; border-radius:999px; background:var(--surface-raised);
+  border:1px solid var(--line); cursor:pointer; padding:2px; display:flex; align-items:center;
+}
+.theme-switch-thumb{
+  width:18px; height:18px; border-radius:50%; background:var(--ink-dim);
+  color:var(--surface); display:flex; align-items:center; justify-content:center; font-size:10px;
+  transform:translateX(0); transition:transform .2s ease;
+}
+:root[data-theme="dark"] .theme-switch-thumb{ transform:translateX(20px); }
+.seg{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+.seg button{
+  background:var(--surface-raised); color:var(--ink-faint); border:none; padding:5px 12px;
+  font-size:11px; font-weight:700; letter-spacing:.03em; cursor:pointer; font-family:var(--display);
+}
+.seg button.is-active{ background:var(--accent); color:#fff; }
+.settings-hint{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line-soft); font-size:10.5px; color:var(--ink-ghost); line-height:1.6; }
 
 /* ---------- layout ---------- */
 .layout{
@@ -117,210 +192,159 @@ a{ color:inherit; }
   border-right:1px solid var(--line-soft);
 }
 .rail::-webkit-scrollbar{ width:0; }
-.rail-heading{
-  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--ink-ghost); margin-bottom:10px;
-}
+.rail-heading{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-ghost); margin-bottom:10px; font-weight:600; }
 .rail-item{
-  display:flex; align-items:baseline; gap:8px;
-  width:100%; text-align:left; background:none; border:none; cursor:pointer;
-  font-family:var(--mono); color:var(--ink-faint);
-  padding:5px 6px; border-radius:3px; font-size:11.5px;
-  border-left:2px solid transparent;
-  transition:color .15s,border-color .15s,background .15s;
+  display:flex; align-items:baseline; gap:8px; width:100%; text-align:left; background:none; border:none; cursor:pointer;
+  color:var(--ink-faint); padding:5px 6px; border-radius:5px; font-size:12px;
+  border-left:2px solid transparent; transition:color .15s,border-color .15s,background .15s;
 }
-.rail-item:hover{ color:var(--ink); background:var(--bg-raised); }
+.rail-item:hover{ color:var(--ink); background:var(--surface-raised); }
 .rail-item .n{ color:var(--ink-ghost); font-size:10px; flex:none; }
-.rail-item.is-current{ color:var(--ink); border-left-color:var(--accent); background:var(--accent-bg); }
+.rail-item.is-current{ color:var(--ink); border-left-color:var(--accent); background:var(--accent-bg); font-weight:600; }
 .rail-item.is-current .n{ color:var(--accent); }
 
-/* ---------- document ---------- */
-.doc-col{ min-width:0; padding:28px 30px 120px; }
-.cover{
-  border:1px solid var(--line); border-radius:6px;
-  padding:34px 30px; margin-bottom:26px;
-  background:linear-gradient(160deg,var(--bg-raised),var(--bg));
-  position:relative; overflow:hidden;
+/* ---------- document / paper ---------- */
+.doc-col{ min-width:0; padding:34px 30px 120px; }
+.paper{
+  background:var(--paper-bg); border:1px solid var(--line-soft); border-radius:3px;
+  box-shadow:var(--shadow);
+  padding:56px clamp(24px,6vw,72px) 70px;
+  color:var(--ink);
+  font-family:var(--serif);
 }
-.cover::before{
-  content:""; position:absolute; inset:0;
-  background:
-    linear-gradient(var(--line-soft) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
-  background-size:26px 26px; opacity:.35; pointer-events:none;
-}
-.cover-eyebrow{
-  position:relative; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--accent); margin-bottom:14px;
-}
-.cover h1{
-  position:relative; font-size:26px; font-weight:700; letter-spacing:-.01em;
-  color:var(--ink); line-height:1.25; margin-bottom:10px;
-}
-.cover .author{ position:relative; font-size:12px; color:var(--ink-faint); }
-.cover .author strong{ color:var(--ink-dim); font-weight:500; }
+.cover{ text-align:center; margin-bottom:40px; }
+.cover-eyebrow{ font-family:var(--sans); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:18px; font-weight:600; }
+.cover h1{ font-size:calc(var(--doc-fs) * 1.7); font-weight:700; line-height:1.3; margin-bottom:14px; }
+.cover .author{ font-size:calc(var(--doc-fs) * 0.88); color:var(--ink-faint); font-style:italic; }
+.cover .rule{ width:70px; height:2px; background:var(--line-strong); margin:26px auto 0; }
 
 .howto{
-  border:1px dashed var(--line-strong); border-radius:6px;
-  padding:16px 18px; margin-bottom:30px;
-  font-size:12px; color:var(--ink-faint); line-height:1.75;
-  display:flex; gap:12px; align-items:flex-start;
+  border:1px solid var(--line); border-radius:6px; background:var(--surface-raised);
+  padding:14px 16px; margin-bottom:34px; font-family:var(--sans);
+  font-size:11.5px; color:var(--ink-faint); line-height:1.7;
 }
-.howto svg{ flex:none; width:18px; height:18px; color:var(--accent); margin-top:1px; }
 .howto b{ color:var(--ink-dim); font-weight:600; }
 
 .sectionhead{
-  display:flex; align-items:baseline; gap:12px;
-  margin:44px 0 16px; padding-bottom:10px; border-bottom:1px solid var(--line);
-  scroll-margin-top:calc(var(--topbar-h) + 14px);
+  margin:44px 0 18px; scroll-margin-top:calc(var(--topbar-h) + 14px);
 }
-.sectionhead .num{
-  font-size:12px; color:var(--accent); font-weight:700; letter-spacing:.04em; flex:none;
-}
-.sectionhead h2{
-  font-size:16px; font-weight:600; color:var(--ink); letter-spacing:.01em;
-}
-.sectionhead.is-plain h2{ font-size:14px; color:var(--ink-dim); font-weight:600; text-transform:uppercase; letter-spacing:.1em; }
+.sectionhead h2{ font-size:calc(var(--doc-fs) * 1.15); font-weight:700; letter-spacing:.01em; }
+.sectionhead.is-plain h2{ font-size:calc(var(--doc-fs) * 1.05); }
 
 .divider{
-  display:flex; align-items:center; gap:12px;
-  margin:34px 0; color:var(--ink-ghost); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  display:flex; align-items:center; gap:12px; margin:30px 0;
+  font-family:var(--sans); color:var(--ink-ghost); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
 }
 .divider::before,.divider::after{ content:""; flex:1; height:1px; background:var(--line-soft); }
 
-.block{
-  position:relative;
-  display:block; width:100%; text-align:left;
-  background:var(--bg-raised);
-  border:1px solid var(--line);
-  border-radius:6px;
-  padding:16px 46px 16px 46px;
-  margin-bottom:14px;
-  cursor:pointer;
-  font-family:var(--mono);
-  color:var(--ink-dim);
-  transition:border-color .15s, background .15s, transform .1s;
+.para-wrap{ position:relative; }
+.para{
+  position:relative; display:block; width:100%; text-align:justify; hyphens:auto;
+  font-size:var(--doc-fs); line-height:1.72; color:var(--ink);
+  cursor:pointer; border-radius:3px; margin-bottom:1.15em;
+  padding:3px 10px; margin-left:-10px; margin-right:-10px;
+  transition:background .15s;
 }
-.block:hover{ border-color:var(--line-strong); background:#141417; }
-.block:active{ transform:scale(.997); }
-.block:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-.block.is-active{ border-color:var(--accent-border); background:var(--accent-bg); }
-.block.is-visited::after{
-  content:""; position:absolute; top:14px; right:14px;
-  width:6px; height:6px; border-radius:50%; background:var(--ink-ghost);
+.para p{ text-indent:0; }
+.para.indent p:first-child{ text-indent:1.8em; }
+.para:hover{ background:var(--accent-bg); }
+.para.is-active{ background:var(--accent-bg-strong); box-shadow:inset 3px 0 0 var(--accent); }
+.para .runin{ font-weight:700; font-style:italic; }
+.para .gutter-mark{
+  position:absolute; left:-38px; top:5px; font-family:var(--sans); font-size:10px;
+  color:var(--ink-ghost); opacity:0; transition:opacity .15s; user-select:none;
 }
-.block.is-active.is-visited::after{ background:var(--accent); }
-.block .pilcrow{
-  position:absolute; left:14px; top:16px;
-  font-size:10px; color:var(--ink-ghost); letter-spacing:.02em;
-}
-.block.is-active .pilcrow{ color:var(--accent); }
-.block .icon-chip{
-  position:absolute; right:12px; top:12px;
-  width:26px; height:26px; border-radius:5px;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--bg-sunken); border:1px solid var(--line);
-  color:var(--ink-faint);
-}
-.block .icon-chip svg{ width:14px; height:14px; }
-.block.is-active .icon-chip{ background:var(--accent-deep); border-color:var(--accent-border); color:var(--accent-2); }
-.block p{ font-size:12.6px; line-height:1.8; color:var(--ink-dim); }
-.block p + p{ margin-top:10px; }
-.block .original-tag{
-  font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-ghost);
-  margin-bottom:8px;
-}
-.block .explain-hint{
-  margin-top:12px; display:flex; align-items:center; gap:6px;
-  font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-ghost);
-}
-.block .explain-hint svg{ width:11px; height:11px; }
-.block.is-active .explain-hint{ color:var(--accent-2); }
+.para:hover .gutter-mark, .para.is-active .gutter-mark{ opacity:1; }
+.para.is-active .gutter-mark{ color:var(--accent); }
+@media (max-width:1100px){ .para .gutter-mark{ display:none; } }
 
-.step-list{ list-style:none; counter-reset:step; margin-top:4px; }
-.step-list li{
-  counter-increment:step; position:relative; padding-left:26px; font-size:12.6px; color:var(--ink-dim);
-  margin-bottom:8px; line-height:1.7;
-}
-.step-list li::before{
-  content:counter(step); position:absolute; left:0; top:1px;
-  width:17px; height:17px; border-radius:3px; background:var(--bg-sunken); border:1px solid var(--line);
-  font-size:9.5px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint);
-}
+.step-list{ list-style:none; counter-reset:step; }
+.step-list li{ position:relative; padding-left:2.1em; margin-bottom:.5em; }
+.step-list li::before{ content:counter(step) ")"; counter-increment:step; position:absolute; left:0; font-weight:700; }
 
 .formula-box, .code-box, .table-box{
-  margin-top:12px; border:1px solid var(--line); border-radius:5px;
-  background:var(--bg-sunken); padding:12px 14px; font-size:12px; overflow-x:auto;
+  margin:14px 0; border:1px solid var(--line); border-radius:5px;
+  background:var(--surface-raised); padding:12px 14px; font-family:var(--mono);
+  font-size:calc(var(--doc-fs) * 0.72); overflow-x:auto; text-align:left;
 }
 .formula-box .fl{ color:var(--ink-faint); }
 .formula-box .fv{ color:var(--accent-2); }
 .formula-box div{ white-space:nowrap; margin:3px 0; }
-.code-box pre{ font-size:11.5px; color:var(--ink-dim); white-space:pre; }
-.table-box table{ border-collapse:collapse; width:100%; font-size:11.5px; }
+.code-box pre{ white-space:pre; color:var(--ink-dim); }
+.table-box table{ border-collapse:collapse; width:100%; }
 .table-box th{ text-align:left; color:var(--ink-faint); font-weight:600; padding:3px 10px 6px 0; border-bottom:1px solid var(--line); }
-.table-box td{ padding:2px 10px 2px 0; color:var(--ink-dim); }
-.table-box tr.hi td{ color:var(--accent-2); }
+.table-box td{ padding:2px 10px 2px 0; }
+.table-box tr.hi td{ color:var(--accent-2); font-weight:700; }
 
-.doc-diagram{ margin-top:14px; border:1px solid var(--line-soft); border-radius:5px; background:var(--bg-sunken); padding:14px; }
-.doc-diagram svg{ width:100%; height:auto; display:block; color:var(--ink-faint); }
-.doc-diagram .d-cap{ margin-top:8px; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-ghost); text-align:center; }
+.math-defs{ margin:14px 0 4px; font-size:calc(var(--doc-fs) * 0.92); }
+.math-defs div{ margin:2px 0; }
+.math-defs i{ font-style:italic; }
+.formula-visual{
+  margin:16px 0; border:1px solid var(--line); border-radius:5px;
+  background:var(--surface-raised); padding:18px 16px; overflow-x:auto;
+  display:flex; justify-content:center;
+}
+.formula-visual svg{ display:block; max-width:100%; height:auto; color:var(--ink); flex:none; }
+.formula-visual svg text{ fill:currentColor; font-family:var(--serif); }
+.formula-visual .cap{ font-family:var(--sans); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-ghost); text-align:center; margin-top:10px; }
+.formula-wrap{ display:flex; flex-direction:column; align-items:center; width:100%; }
 
 footer.doc-end{
-  margin-top:60px; padding-top:20px; border-top:1px solid var(--line-soft);
-  font-size:10.5px; color:var(--ink-ghost); letter-spacing:.06em; text-transform:uppercase; text-align:center;
+  margin-top:50px; padding-top:18px; border-top:1px solid var(--line-soft);
+  font-family:var(--sans); font-size:10.5px; color:var(--ink-ghost); letter-spacing:.06em; text-transform:uppercase; text-align:center;
 }
+
+/* ---------- glossary popover ---------- */
+.gloss-pop{
+  position:fixed; z-index:80; max-width:300px; background:var(--surface); border:1px solid var(--accent-border);
+  border-radius:8px; box-shadow:var(--shadow); padding:12px 14px; font-family:var(--sans);
+  opacity:0; transform:translateY(4px); pointer-events:none; transition:opacity .12s,transform .12s;
+}
+.gloss-pop.is-open{ opacity:1; transform:translateY(0); pointer-events:auto; }
+.gloss-pop .g-eyebrow{ font-family:var(--display); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:4px; font-weight:700; }
+.gloss-pop .g-term{ font-family:var(--display); font-size:14px; font-weight:700; color:var(--ink); margin-bottom:6px; text-transform:capitalize; }
+.gloss-pop .g-def{ font-size:12px; line-height:1.6; color:var(--ink-dim); }
 
 /* ---------- panel ---------- */
 .panel-col{ position:sticky; top:var(--topbar-h); height:calc(100vh - var(--topbar-h)); border-left:1px solid var(--line-soft); }
-.panel{ height:100%; overflow-y:auto; padding:26px 24px 60px; }
+.panel{ height:100%; overflow-y:auto; padding:26px 24px 60px; font-family:var(--sans); }
 .panel::-webkit-scrollbar{ width:6px; }
 .panel::-webkit-scrollbar-thumb{ background:var(--line-strong); border-radius:3px; }
 
 .panel-empty{ display:flex; flex-direction:column; align-items:flex-start; gap:14px; color:var(--ink-ghost); padding-top:40px; }
-.panel-empty svg{ width:30px; height:30px; color:var(--ink-ghost); }
-.panel-empty p{ font-size:12px; line-height:1.8; color:var(--ink-faint); max-width:280px; }
+.panel-empty svg{ width:28px; height:28px; color:var(--ink-ghost); }
+.panel-empty p{ font-size:12.5px; line-height:1.75; color:var(--ink-faint); max-width:280px; }
 .panel-empty .kbd{ font-size:10px; border:1px solid var(--line); border-radius:3px; padding:2px 6px; color:var(--ink-faint); }
 
 .panel-content{ display:none; }
 .panel-content.is-visible{ display:block; }
-.panel-eyebrow{
-  display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:16px;
-}
-.panel-eyebrow span{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-ghost); }
-.panel-close{
-  display:none; background:none; border:1px solid var(--line); color:var(--ink-faint);
-  border-radius:4px; width:26px; height:26px; align-items:center; justify-content:center; cursor:pointer; font-family:var(--mono);
-}
+.panel-eyebrow{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:16px; }
+.panel-eyebrow span{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-ghost); font-weight:600; }
+.panel-close{ display:none; background:none; border:1px solid var(--line); color:var(--ink-faint); border-radius:4px; width:26px; height:26px; align-items:center; justify-content:center; cursor:pointer; }
 .panel-head{ display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
-.panel-icon{
-  flex:none; width:40px; height:40px; border-radius:8px; background:var(--accent-deep);
-  border:1px solid var(--accent-border); display:flex; align-items:center; justify-content:center; color:var(--accent-2);
-}
+.panel-icon{ flex:none; width:40px; height:40px; border-radius:8px; background:var(--accent-deep); border:1px solid var(--accent-border); display:flex; align-items:center; justify-content:center; color:var(--accent); }
+:root[data-theme="dark"] .panel-icon{ color:var(--accent-2); }
 .panel-icon svg{ width:20px; height:20px; }
-.panel-title{ font-size:16px; font-weight:600; color:var(--ink); line-height:1.4; }
-.panel-original{
-  font-size:10.5px; color:var(--ink-ghost); border-left:2px solid var(--line); padding-left:10px; margin-bottom:16px; line-height:1.6;
-  font-style:normal;
-}
-.panel-body p{ font-size:12.8px; line-height:1.85; color:var(--ink-dim); margin-bottom:12px; }
-.panel-diagram{ margin-top:6px; margin-bottom:16px; border:1px solid var(--line); border-radius:6px; background:var(--bg-sunken); padding:16px; }
-.panel-diagram .cap{ font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-2); margin-bottom:10px; }
+.panel-title{ font-family:var(--display); font-size:17px; font-weight:700; color:var(--ink); line-height:1.35; }
+.panel-body p{ font-size:13px; line-height:1.85; color:var(--ink-dim); margin-bottom:12px; }
+.panel-diagram{ margin-top:6px; margin-bottom:16px; border:1px solid var(--line); border-radius:6px; background:var(--surface-raised); padding:16px; }
+.panel-diagram .cap{ font-family:var(--display); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; font-weight:700; }
 .panel-diagram svg{ width:100%; height:auto; display:block; }
 
 /* ---------- diagram shared ---------- */
-.d-box rect{ fill:var(--bg-raised); stroke:var(--line-strong); stroke-width:1; }
+.d-box rect{ fill:var(--surface); stroke:var(--line-strong); stroke-width:1; }
 .d-box.hi rect{ fill:var(--accent-deep); stroke:var(--accent-border); }
-.d-box text{ font-family:var(--mono); fill:var(--ink-dim); }
+.d-box text{ font-family:var(--sans); fill:var(--ink-dim); }
 .d-box .lbl{ font-size:8px; fill:var(--ink-ghost); letter-spacing:.03em; }
 .d-line{ stroke:var(--ink-ghost); stroke-width:1; fill:none; }
-.d-arrow{ stroke:var(--accent-2); stroke-width:1.4; fill:none; }
-.d-arrowhead{ fill:var(--accent-2); }
-.d-txt{ font-family:var(--mono); fill:var(--ink-faint); font-size:9px; }
-.d-txt.accent{ fill:var(--accent-2); }
+.d-arrow{ stroke:var(--accent); stroke-width:1.4; fill:none; }
+.d-arrowhead{ fill:var(--accent); }
+.d-txt{ font-family:var(--sans); fill:var(--ink-faint); font-size:9px; }
+.d-txt.accent{ fill:var(--accent); }
 .d-dash{ stroke:var(--ink-ghost); stroke-width:1; stroke-dasharray:3 3; fill:none; }
 
 /* ---------- mobile overlay ---------- */
-.backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.65); opacity:0; pointer-events:none; transition:opacity .2s; z-index:48; }
+.backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .2s; z-index:48; }
 .backdrop.is-open{ opacity:1; pointer-events:auto; }
 
 @media (max-width:480px){
@@ -329,14 +353,16 @@ footer.doc-end{
   .top-bar-title{ font-size:11.5px; }
   .top-bar-meta{ gap:6px; font-size:9px; }
   #progress-indicator{ display:none; }
+  .settings-pop{ right:10px; left:10px; width:auto; }
 }
 @media (max-width:880px){
-  .doc-col{ padding:20px 16px 100px; }
+  .doc-col{ padding:20px 14px 100px; }
+  .paper{ padding:32px 20px 50px; }
   .panel-col{
     position:fixed; left:0; right:0; bottom:0; top:auto; height:auto;
     max-height:82vh; z-index:50; border-left:none;
     border-top:1px solid var(--line-strong); border-radius:14px 14px 0 0;
-    background:var(--bg); box-shadow:0 -12px 40px rgba(0,0,0,.6);
+    background:var(--surface); box-shadow:0 -12px 40px rgba(0,0,0,.35);
     transform:translateY(102%); transition:transform .28s cubic-bezier(.32,.72,0,1);
     display:block !important;
   }
@@ -345,12 +371,9 @@ footer.doc-end{
   .panel-close{ display:flex; }
 }
 @media (min-width:881px){
-  .panel-empty{ display:none; }
+  .panel-empty{ display:flex; }
   .panel-content{ display:none; }
   .panel-content.is-visible{ display:block; }
-}
-@media (min-width:881px) and (max-width:99999px){
-  .panel-empty{ display:flex; }
 }
 </style>
 </head>
@@ -358,36 +381,60 @@ footer.doc-end{
 
 <div class="top-bar">
   <a class="back-link" href="../">&larr; Projekte</a>
-  <div class="top-bar-title">bitcoin-whitepaper<span class="accent">.explained</span><span class="cursor"></span></div>
+  <div class="top-bar-title">bitcoin-whitepaper<span class="accent">.explained</span></div>
+  <button class="settings-btn" id="settings-btn" aria-label="Einstellungen">Aa</button>
   <div class="top-bar-meta">
     <span id="page-indicator">SEITE 1 / 9</span>
     <span class="dot">&middot;</span>
-    <span id="progress-indicator"><strong>0</strong> / 31 erklärt</span>
+    <span id="progress-indicator"><strong>0</strong> / 32 erkl&auml;rt</span>
   </div>
   <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
 </div>
 
+<div class="settings-pop" id="settings-pop">
+  <div class="settings-row">
+    <span class="settings-label" id="lbl-fontsize">Schriftgr&ouml;&szlig;e</span>
+    <div class="fs-stepper">
+      <button class="fs-btn" id="fs-minus" aria-label="Kleiner">A</button>
+      <span class="fs-val" id="fs-val">17px</span>
+      <button class="fs-btn" id="fs-plus" aria-label="Gr&ouml;&szlig;er">A</button>
+    </div>
+  </div>
+  <div class="settings-row">
+    <span class="settings-label" id="lbl-theme">Design</span>
+    <button class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus"><span class="theme-switch-thumb" id="theme-thumb">&#9728;</span></button>
+  </div>
+  <div class="settings-row">
+    <span class="settings-label" id="lbl-lang">Sprache</span>
+    <div class="seg" id="lang-seg">
+      <button data-lang="de" class="is-active">DE</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </div>
+  <div class="settings-hint" id="settings-hint">Text markieren zeigt eine kurze Begriffserkl&auml;rung. Auf einen Absatz klicken &ouml;ffnet die ausf&uuml;hrliche Erkl&auml;rung rechts.</div>
+</div>
+
 <div class="layout">
   <nav class="rail" id="rail">
-    <div class="rail-heading">Inhalt</div>
+    <div class="rail-heading" id="rail-heading">Inhalt</div>
     <div id="rail-list"></div>
   </nav>
 
   <main class="doc-col">
-    <div class="cover">
-      <div class="cover-eyebrow">Original-Whitepaper &middot; 2008</div>
-      <h1>Bitcoin: A Peer-to-Peer Electronic Cash System</h1>
-      <div class="author">von <strong>Satoshi Nakamoto</strong> &middot; satoshin@gmx.com &middot; www.bitcoin.org</div>
+    <div class="paper" id="paper">
+      <div class="cover">
+        <div class="cover-eyebrow" id="cover-eyebrow">Original-Whitepaper &middot; 2008</div>
+        <h1 id="cover-title">Bitcoin: A Peer-to-Peer Electronic Cash System</h1>
+        <div class="author" id="cover-author">von <strong>Satoshi Nakamoto</strong> &middot; satoshin@gmx.com &middot; www.bitcoin.org</div>
+        <div class="rule"></div>
+      </div>
+
+      <div class="howto" id="howto"></div>
+
+      <div id="document"></div>
+
+      <footer class="doc-end" id="doc-footer">&mdash; Ende des Dokuments &middot; Seite 9 / 9 &mdash;</footer>
     </div>
-
-    <div class="howto">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7 3.5 3.5 0 0 1 1.5 2.8v.5h5v-.5a3.5 3.5 0 0 1 1.5-2.8A7 7 0 0 0 12 2Z"/></svg>
-      <div><b>So funktionierts:</b> Das ist der echte Originaltext des Bitcoin-Whitepapers &mdash; scrolle einfach durch wie in einem PDF-Reader. Jeder umrahmte Absatz ist anklickbar: rechts (auf dem Handy als Overlay) erscheint dann eine einfache Erklärung mit Schaubild. Ein <span style="color:var(--ink-dim)">Punkt oben rechts</span> im Kästchen zeigt, welche Absätze du schon erklärt bekommen hast.</div>
-    </div>
-
-    <div id="document"></div>
-
-    <footer class="doc-end">&mdash; Ende des Dokuments &middot; Seite 9 / 9 &mdash;</footer>
   </main>
 
   <div class="panel-col" id="panel-col">
@@ -395,8 +442,8 @@ footer.doc-end{
       <button class="panel-close" id="panel-close" aria-label="Schliessen">&times;</button>
       <div class="panel-empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        <p>Klicke links einen umrahmten Absatz an. Hier erscheint dann eine einfache Erklärung &mdash; mit Schaubild, wo hilfreich.</p>
-        <span class="kbd">31 Absätze warten</span>
+        <p id="panel-empty-text">Klicke links einen Absatz an. Hier erscheint dann eine einfache Erkl&auml;rung &mdash; mit Schaubild, wo hilfreich.</p>
+        <span class="kbd" id="panel-empty-kbd">32 Abs&auml;tze warten</span>
       </div>
       <div class="panel-content" id="panel-content"></div>
     </div>
@@ -404,6 +451,7 @@ footer.doc-end{
 </div>
 
 <div class="backdrop" id="backdrop"></div>
+<div class="gloss-pop" id="gloss-pop"></div>
 
 <script>
 /* ============ ICONS (lucide-static, ISC) ============ */
@@ -437,12 +485,13 @@ const ICONS = {
 "trending-down":"<path d=\"M16 17h6v-6\" /><path d=\"m22 17-8.5-8.5-5 5L2 7\" />",
 "flag":"<path d=\"M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528\" />",
 "book-open":"<path d=\"M12 5v16\" /><path d=\"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z\" />",
+"gauge":"<path d=\"m12 14 4-4\" /><path d=\"M3.34 19a10 10 0 1 1 17.32 0\" />",
 "chevron":"<path d=\"m9 18 6-6-6-6\"/>"
 };
 function icon(name, cls){ return '<svg class="'+(cls||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>'; }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ============ DIAGRAMS (inline SVG markup, injected via <template>) ============ */
+/* ============ DIAGRAMS (inline SVG, shown only in the explanation panel) ============ */
 const DIAGRAMS = {
 
 "coin-chain": `<svg viewBox="0 0 400 128">
@@ -463,11 +512,11 @@ const DIAGRAMS = {
 <g class="d-box"><rect x="8" y="26" width="108" height="56" rx="5"/><text x="62" y="48" text-anchor="middle" font-size="10">Block N</text><text x="62" y="64" text-anchor="middle" class="lbl">Item Item Item</text></g>
 <path class="d-arrow" marker-end="url(#ah2)" d="M120 54 H166"/>
 <text x="143" y="46" text-anchor="middle" class="d-txt accent">HASH</text>
-<g class="d-box hi"><rect x="168" y="26" width="108" height="56" rx="5"/><text x="222" y="48" text-anchor="middle" font-size="10">Block N+1</text><text x="222" y="64" text-anchor="middle" class="lbl">enthält Hash von N</text></g>
+<g class="d-box hi"><rect x="168" y="26" width="108" height="56" rx="5"/><text x="222" y="48" text-anchor="middle" font-size="10">Block N+1</text><text x="222" y="64" text-anchor="middle" class="lbl">enth&auml;lt Hash von N</text></g>
 <path class="d-arrow" marker-end="url(#ah2)" d="M280 54 H326"/>
 <text x="303" y="46" text-anchor="middle" class="d-txt accent">HASH</text>
 <g class="d-box"><rect x="328" y="26" width="64" height="56" rx="5"/><text x="360" y="48" text-anchor="middle" font-size="10">...</text><text x="360" y="64" text-anchor="middle" class="lbl">Block N+2</text></g>
-<text x="200" y="102" text-anchor="middle" class="d-txt">jeder Block enthält den Hash des vorherigen &mdash; wie ein Siegel, das die Reihenfolge fixiert</text>
+<text x="200" y="102" text-anchor="middle" class="d-txt">jeder Block enth&auml;lt den Hash des vorherigen &mdash; wie ein Siegel, das die Reihenfolge fixiert</text>
 </svg>`,
 
 "pow-block": `<svg viewBox="0 0 400 118">
@@ -480,7 +529,7 @@ const DIAGRAMS = {
 <path class="d-arrow" marker-end="url(#ah3)" d="M162 56 H196"/>
 <g class="d-box hi"><rect x="198" y="20" width="150" height="72" rx="5"/>
 <text x="273" y="38" text-anchor="middle" class="lbl">BLOCK N+1</text>
-<rect x="208" y="44" width="62" height="18" rx="3" fill="none" stroke="var(--accent-2)"/><text x="239" y="57" text-anchor="middle" font-size="8" fill="var(--accent-2)">= Hash(N)</text>
+<rect x="208" y="44" width="62" height="18" rx="3" fill="none" stroke="var(--accent)"/><text x="239" y="57" text-anchor="middle" font-size="8" fill="var(--accent)">= Hash(N)</text>
 <rect x="276" y="44" width="52" height="18" rx="3" fill="none" stroke="var(--line-strong)"/><text x="302" y="57" text-anchor="middle" font-size="8">Nonce</text>
 <text x="273" y="80" text-anchor="middle" class="lbl">Tx Tx Tx ...</text></g>
 <text x="200" y="110" text-anchor="middle" class="d-txt">Nonce wird durchprobiert, bis der Block-Hash mit genug Nullen beginnt</text>
@@ -502,7 +551,7 @@ const DIAGRAMS = {
 </g>
 <path class="d-arrow" d="M215 75 H255" marker-end="url(#ah4)"/>
 <defs><marker id="ah4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
-<text x="235" y="66" text-anchor="middle" class="d-txt">löschen</text>
+<text x="235" y="66" text-anchor="middle" class="d-txt">l&ouml;schen</text>
 <g transform="translate(210,0)">
 <text x="90" y="14" text-anchor="middle" class="d-txt accent">NACHHER</text>
 <g class="d-box hi"><rect x="55" y="20" width="70" height="22" rx="4"/><text x="90" y="35" text-anchor="middle" font-size="9">Root Hash</text></g>
@@ -519,12 +568,12 @@ const DIAGRAMS = {
 
 "spv": `<svg viewBox="0 0 400 130">
 <defs><marker id="ah5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
-<text x="200" y="14" text-anchor="middle" class="d-txt accent">LÄNGSTE PROOF-OF-WORK-KETTE (nur Header)</text>
+<text x="200" y="14" text-anchor="middle" class="d-txt accent">L&Auml;NGSTE PROOF-OF-WORK-KETTE (nur Header)</text>
 <g class="d-box"><rect x="6" y="24" width="88" height="34" rx="4"/><text x="50" y="45" text-anchor="middle" font-size="8">Header</text></g>
 <path class="d-arrow" d="M96 41 H118" marker-end="url(#ah5)"/>
 <g class="d-box"><rect x="120" y="24" width="88" height="34" rx="4"/><text x="164" y="45" text-anchor="middle" font-size="8">Header</text></g>
 <path class="d-arrow" d="M210 41 H232" marker-end="url(#ah5)"/>
-<g class="d-box hi"><rect x="234" y="24" width="88" height="34" rx="4"/><text x="278" y="45" text-anchor="middle" font-size="8">Header (enthält TX3)</text></g>
+<g class="d-box hi"><rect x="234" y="24" width="88" height="34" rx="4"/><text x="278" y="45" text-anchor="middle" font-size="8">Header (enth&auml;lt TX3)</text></g>
 <path class="d-arrow" d="M324 41 H346" marker-end="url(#ah5)"/>
 <g class="d-box"><rect x="348" y="24" width="46" height="34" rx="4"/><text x="371" y="45" text-anchor="middle" font-size="8">...</text></g>
 <path class="d-line" d="M278 58 V72"/>
@@ -549,248 +598,457 @@ const DIAGRAMS = {
 "privacy": `<svg viewBox="0 0 400 140">
 <defs><marker id="ah7" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
 <text x="6" y="14" class="d-txt accent">TRADITIONELL</text>
-<g class="d-box"><rect x="6" y="20" width="70" height="26" rx="4"/><text x="41" y="37" text-anchor="middle" font-size="8">Identität</text></g>
+<g class="d-box"><rect x="6" y="20" width="70" height="26" rx="4"/><text x="41" y="37" text-anchor="middle" font-size="8">Identit&auml;t</text></g>
 <path class="d-arrow" d="M78 33 H108" marker-end="url(#ah7)"/>
 <g class="d-box hi"><rect x="110" y="20" width="76" height="26" rx="4"/><text x="148" y="37" text-anchor="middle" font-size="8">Bank (kennt alles)</text></g>
 <path class="d-arrow" d="M188 33 H218" marker-end="url(#ah7)"/>
 <g class="d-box"><rect x="220" y="20" width="76" height="26" rx="4"/><text x="258" y="37" text-anchor="middle" font-size="8">Gegenpartei</text></g>
 <path class="d-line" d="M148 46 V58"/>
-<g class="d-box"><rect x="118" y="58" width="60" height="20" rx="3"/><text x="148" y="71" text-anchor="middle" font-size="7">Öffentlich sieht nur: „Bank aktiv“</text></g>
+<g class="d-box"><rect x="118" y="58" width="60" height="20" rx="3"/><text x="148" y="71" text-anchor="middle" font-size="7">&Ouml;ffentlich sieht nur: &bdquo;Bank aktiv&ldquo;</text></g>
 
 <text x="6" y="102" class="d-txt accent">BITCOIN</text>
-<g class="d-box"><rect x="6" y="108" width="70" height="26" rx="4"/><text x="41" y="125" text-anchor="middle" font-size="8">Identität</text></g>
+<g class="d-box"><rect x="6" y="108" width="70" height="26" rx="4"/><text x="41" y="125" text-anchor="middle" font-size="8">Identit&auml;t</text></g>
 <path class="d-dash" d="M78 121 H108"/>
 <text x="93" y="115" text-anchor="middle" class="d-txt" font-size="7">verborgen</text>
 <g class="d-box hi"><rect x="110" y="108" width="76" height="26" rx="4"/><text x="148" y="121" text-anchor="middle" font-size="7">Pseudonyme TX</text></g>
 <path class="d-arrow" d="M188 121 H228" marker-end="url(#ah7)"/>
-<g class="d-box"><rect x="230" y="108" width="76" height="26" rx="4"/><text x="268" y="121" text-anchor="middle" font-size="8">Öffentlich (alle)</text></g>
+<g class="d-box"><rect x="230" y="108" width="76" height="26" rx="4"/><text x="268" y="121" text-anchor="middle" font-size="8">&Ouml;ffentlich (alle)</text></g>
 </svg>`
 };
 
-/* ============ CONTENT (Original-Text = Whitepaper, explain = einfache Erklärung) ============ */
-const DOC = [
-{type:'block', id:'abs', icon:'file-text',
-  title:'Die Kernidee in einem Absatz',
-  text:[`A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution. Digital signatures provide part of the solution, but the main benefits are lost if a trusted third party is still required to prevent double-spending. We propose a solution to the double-spending problem using a peer-to-peer network. The network timestamps transactions by hashing them into an ongoing chain of hash-based proof-of-work, forming a record that cannot be changed without redoing the proof-of-work. The longest chain not only serves as proof of the sequence of events witnessed, but proof that it came from the largest pool of CPU power. As long as a majority of CPU power is controlled by nodes that are not cooperating to attack the network, they'll generate the longest chain and outpace attackers. The network itself requires minimal structure. Messages are broadcast on a best effort basis, and nodes can leave and rejoin the network at will, accepting the longest proof-of-work chain as proof of what happened while they were gone.`],
-  explain:[`Das ist die Zusammenfassung des gesamten Papers in einem Absatz &mdash; alles Weitere ist nur Detailausarbeitung davon.`,
-  `Kernsatz: Geld soll direkt von A nach B geschickt werden können, ohne dass eine Bank oder ein Zahlungsdienstleister dazwischensitzt. Das Problem dabei: Digitale Dateien lassen sich beliebig kopieren. Ohne Kontrolle könnte man dieselbe "Münze" zweimal ausgeben (Double-Spending). Bisher löste eine Bank das, indem sie Buch führte, wer was besitzt.`,
-  `Satoshis Lösung: Statt einer Bank führt das gesamte Netzwerk gemeinsam Buch. Jede Transaktion wird in "Blöcke" gepackt, die wie Kettenglieder mit einem kryptografischen Fingerabdruck (Hash) aneinanderhängen. Um einen Block zu erzeugen, muss man eine aufwendige Rechenaufgabe lösen (Proof-of-Work) &mdash; das macht Fälschen teuer.`,
-  `Die "längste Kette" (also die mit der meisten aufsummierten Rechenarbeit) gilt automatisch als Wahrheit. Solange die ehrlichen Teilnehmer zusammen mehr Rechenleistung haben als jeder Angreifer, gewinnt immer die ehrliche Kette. Kein Chef, keine Zentrale &mdash; nur Mathematik und Mehrheitsrechenleistung.`]},
+/* ============ FORMULAS (SVG-Nachbau der Original-Formeln aus dem PDF) ============ */
+const FORMULAS = {
 
-{type:'sectionhead', num:'1', label:'Introduction'},
+"qz": `<svg viewBox="0 0 250 90" width="250" height="90">
+  <text x="4" y="52" font-size="24" font-style="italic">q</text>
+  <text x="20" y="60" font-size="12" font-style="italic">z</text>
+  <text x="36" y="52" font-size="22">=</text>
+  <path d="M10,0 C0,0 0,8.4 0,14 C0,19.6 -6,23.52 -10,28 C-6,32.48 0,36.4 0,42 C0,47.6 0,56 10,56" transform="translate(72,17)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="95" y="38" font-size="20">1</text>
+  <text x="140" y="38" font-size="17" font-style="italic">if</text>
+  <text x="165" y="38" font-size="20" font-style="italic">p</text>
+  <text x="180" y="38" font-size="20">&#8804;</text>
+  <text x="196" y="38" font-size="20" font-style="italic">q</text>
+  <text x="90" y="76" font-size="20">(<tspan font-style="italic">q</tspan> / <tspan font-style="italic">p</tspan>)</text>
+  <text x="158" y="64" font-size="12" font-style="italic">z</text>
+  <text x="178" y="76" font-size="17" font-style="italic">if</text>
+  <text x="203" y="76" font-size="20" font-style="italic">p</text>
+  <text x="217" y="76" font-size="20">&gt;</text>
+  <text x="233" y="76" font-size="20" font-style="italic">q</text>
+</svg>`,
+
+"lambda": `<svg viewBox="0 0 120 70" width="120" height="70">
+  <text x="4" y="42" font-size="26" font-style="italic">&#955;</text>
+  <text x="28" y="42" font-size="22">=</text>
+  <text x="50" y="42" font-size="22" font-style="italic">z</text>
+  <text x="78" y="24" font-size="20" font-style="italic" text-anchor="middle">q</text>
+  <line x1="68" y1="32" x2="92" y2="32" stroke="currentColor" stroke-width="1.4"/>
+  <text x="78" y="54" font-size="20" font-style="italic" text-anchor="middle">p</text>
+</svg>`,
+
+"poisson-sum": `<svg viewBox="0 0 430 110" width="430" height="110">
+  <text x="10" y="64" font-size="54">&#8721;</text>
+  <text x="22" y="18" font-size="16">&#8734;</text>
+  <text x="4" y="98" font-size="13"><tspan font-style="italic">k</tspan>=0</text>
+  <text x="72" y="40" font-size="20" text-anchor="middle" font-style="italic">&#955;<tspan font-size="12" dy="-8">k</tspan><tspan dy="8" font-style="normal"> </tspan><tspan font-style="italic">e</tspan><tspan font-size="12" dy="-8" font-style="italic">-&#955;</tspan></text>
+  <line x1="58" y1="50" x2="145" y2="50" stroke="currentColor" stroke-width="1.4"/>
+  <text x="100" y="72" font-size="20" text-anchor="middle"><tspan font-style="italic">k</tspan>!</text>
+  <text x="158" y="58" font-size="22">&#183;</text>
+  <path d="M9,0 C0,0 0,6.9 0,11.5 C0,16.1 -5.4,19.32 -9,23 C-5.4,26.68 0,29.9 0,34.5 C0,39.1 0,46 9,46" transform="translate(178,35)" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="190" y="48" font-size="18">(<tspan font-style="italic">q</tspan> / <tspan font-style="italic">p</tspan>)<tspan font-size="12" dy="-8">(z&#8722;k)</tspan></text>
+  <text x="292" y="48" font-size="16" font-style="italic">if</text>
+  <text x="314" y="48" font-size="18"><tspan font-style="italic">k</tspan>&#8804;<tspan font-style="italic">z</tspan></text>
+  <text x="210" y="83" font-size="18">1</text>
+  <text x="292" y="83" font-size="16" font-style="italic">if</text>
+  <text x="314" y="83" font-size="18"><tspan font-style="italic">k</tspan>&gt;<tspan font-style="italic">z</tspan></text>
+</svg>`,
+
+"rearranged": `<svg viewBox="0 0 380 100" width="380" height="100">
+  <text x="6" y="58" font-size="24">1</text>
+  <text x="26" y="58" font-size="22">&#8722;</text>
+  <text x="46" y="64" font-size="50">&#8721;</text>
+  <text x="60" y="22" font-size="16" font-style="italic">z</text>
+  <text x="38" y="94" font-size="13"><tspan font-style="italic">k</tspan>=0</text>
+  <text x="146" y="40" font-size="20" text-anchor="middle" font-style="italic">&#955;<tspan font-size="12" dy="-8">k</tspan><tspan dy="8" font-style="normal"> </tspan><tspan font-style="italic">e</tspan><tspan font-size="12" dy="-8" font-style="italic">-&#955;</tspan></text>
+  <line x1="118" y1="50" x2="175" y2="50" stroke="currentColor" stroke-width="1.4"/>
+  <text x="146" y="72" font-size="20" text-anchor="middle"><tspan font-style="italic">k</tspan>!</text>
+  <text x="188" y="60" font-size="40">(</text>
+  <text x="205" y="58" font-size="20">1</text>
+  <text x="222" y="58" font-size="20">&#8722;</text>
+  <text x="242" y="58" font-size="20">(<tspan font-style="italic">q</tspan> / <tspan font-style="italic">p</tspan>)<tspan font-size="12" dy="-8">(z&#8722;k)</tspan></text>
+  <text x="345" y="60" font-size="40">)</text>
+</svg>`
+};
+function formulaBox(key, capDe, capEn, lang){
+  return '<div class="formula-visual"><div class="formula-wrap">'+FORMULAS[key]+'<div class="cap">'+(lang==='en'?capEn:capDe)+'</div></div></div>';
+}
+
+/* ============ GLOSSARY (markiere ein Fachwort im Dokument) ============ */
+const GLOSSARY = [
+{ id:'double-spend', terms:['double-spending','double spending','double-spend','doppelausgabe','double spend'],
+  def:'Der Versuch, dieselbe digitale Münze zweimal auszugeben. Bitcoins Kernproblem, das die Blockchain durch Konsens über die Reihenfolge der Transaktionen verhindert.' },
+{ id:'hash', terms:['hash','hashing','hashes','hashwert'],
+  def:'Ein digitaler Fingerabdruck fester Länge, berechnet aus beliebigen Daten. Gleiche Eingabe ergibt immer denselben Hash, schon eine winzige Änderung ergibt einen komplett anderen.' },
+{ id:'pow', terms:['proof-of-work','proof of work','arbeitsnachweis','pow'],
+  def:'Ein Rechenrätsel, das nur durch stures Ausprobieren lösbar, aber blitzschnell überprüfbar ist. Macht das Erzeugen neuer Blöcke absichtlich teuer.' },
+{ id:'nonce', terms:['nonce'],
+  def:'Eine Zufallszahl in einem Block, die Miner immer wieder ändern, bis der resultierende Block-Hash die geforderten Nullbits aufweist.' },
+{ id:'node', terms:['node','nodes','knoten'],
+  def:'Ein Teilnehmer-Computer im Bitcoin-Netzwerk, der Transaktionen und Blöcke empfängt, prüft und weiterleitet.' },
+{ id:'block', terms:['block','blocks','blöcke'],
+  def:'Ein Bündel bestätigter Transaktionen, versehen mit einem Zeitstempel und durch Proof-of-Work an den vorherigen Block gekettet.' },
+{ id:'blockchain', terms:['blockchain','block chain','blockkette'],
+  def:'Die durchgehende Kette aller Blöcke seit dem allerersten. Jeder Block enthält den Hash seines Vorgängers, was nachträgliche Änderungen praktisch unmöglich macht.' },
+{ id:'privkey', terms:['private key','privater schlüssel','privatschlüssel','private keys'],
+  def:'Ein geheimer kryptografischer Schlüssel, mit dem man Transaktionen signiert und damit beweist, dass man über eine Münze verfügen darf. Niemals weitergeben.' },
+{ id:'pubkey', terms:['public key','öffentlicher schlüssel','public keys'],
+  def:'Der öffentlich bekannte Gegenpart zum privaten Schlüssel. Jeder kann damit prüfen, ob eine Signatur wirklich vom zugehörigen privaten Schlüssel stammt.' },
+{ id:'signature', terms:['digital signature','digital signatures','digitale signatur','signatures','signaturen'],
+  def:'Ein kryptografischer Beweis, dass eine Nachricht (z. B. eine Transaktion) tatsächlich vom Besitzer des passenden privaten Schlüssels autorisiert wurde.' },
+{ id:'mint', terms:['mint','münzprägeanstalt','prägeanstalt'],
+  def:'Im Paper die zentrale, vertrauenswürdige Instanz, die klassischerweise jede Transaktion prüft — die Rolle, die Bitcoin durch ein dezentrales Netzwerk ersetzt.' },
+{ id:'timestamp', terms:['timestamp','timestamps','zeitstempel'],
+  def:'Ein Nachweis, dass bestimmte Daten zu einem bestimmten Zeitpunkt bereits existiert haben müssen, meist durch Einbetten in einen veröffentlichten Hash erzeugt.' },
+{ id:'p2p', terms:['peer-to-peer','peer to peer','p2p'],
+  def:'Eine Netzwerkarchitektur, bei der alle Teilnehmer direkt und gleichberechtigt miteinander kommunizieren, ohne zentralen Server.' },
+{ id:'merkle', terms:['merkle tree','merkle-baum','merkle root','merkle branch','merkle-zweig','merkle-wurzel'],
+  def:'Eine baumartige Struktur, die viele Transaktionen zu einem einzigen Hash (der Wurzel) verdichtet. Erlaubt es, alte Transaktionsdetails wegzuwerfen, ohne die Gültigkeit zu verlieren.' },
+{ id:'spv', terms:['spv','simplified payment verification','vereinfachte zahlungsverifikation'],
+  def:'Eine leichtgewichtige Art, Bitcoin zu nutzen: Man speichert nur Block-Header statt der ganzen Blockchain und prüft Transaktionen über einen Merkle-Beweis.' },
+{ id:'fork', terms:['fork','gabelung'],
+  def:'Ein kurzzeitiger Zustand, in dem zwei unterschiedliche Versionen der Blockchain gleichzeitig existieren, meist weil zwei Blöcke fast zeitgleich gefunden wurden.' },
+{ id:'difficulty', terms:['difficulty','schwierigkeit'],
+  def:'Wie viele Nullbits ein Block-Hash aufweisen muss, damit ein Block gültig ist. Passt sich automatisch an, damit im Schnitt alle 10 Minuten ein Block entsteht.' },
+{ id:'coinbase', terms:['coinbase'],
+  def:'Die erste, besondere Transaktion in jedem Block, mit der sich der Miner die neu geschaffenen Bitcoins selbst gutschreibt.' },
+{ id:'fee', terms:['transaction fee','transaction fees','transaktionsgebühr','transaktionsgebühren'],
+  def:'Die Differenz zwischen Eingangs- und Ausgangswert einer Transaktion, die freiwillig an den Miner geht, der sie in einen Block aufnimmt.' },
+{ id:'incentive', terms:['incentive','anreiz'],
+  def:'Die wirtschaftliche Belohnung (neue Coins + Gebühren), die Miner dafür erhalten, ehrlich am Netzwerk mitzuwirken.' },
+{ id:'cpu-power', terms:['cpu power','rechenleistung'],
+  def:'Die Fähigkeit, Hash-Berechnungen pro Sekunde durchzuführen. In Bitcoin die Grundlage von „eine Recheneinheit, eine Stimme“.' },
+{ id:'majority', terms:['majority','mehrheit'],
+  def:'Über 50 % der gesamten Rechenleistung im Netzwerk. Solange die Mehrheit ehrlich ist, gilt die längste Kette als vertrauenswürdig.' },
+{ id:'consensus', terms:['consensus','konsens'],
+  def:'Der Zustand, in dem sich alle Netzwerkteilnehmer automatisch auf eine einzige, gültige Version der Transaktionshistorie einigen — ganz ohne zentrale Autorität.' },
+{ id:'ledger', terms:['ledger','hauptbuch'],
+  def:'Das vollständige, öffentliche Verzeichnis aller jemals bestätigten Bitcoin-Transaktionen.' },
+{ id:'io', terms:['input','inputs','output','outputs','eingang','ausgang'],
+  def:'Input und Output bezeichnen die Ein- und Ausgänge einer Transaktion: Ein Input verweist auf Guthaben aus einer früheren Transaktion, ein Output legt fest, wer das Geld als Nächstes empfängt.' },
+{ id:'gambler', terms:["gambler's ruin",'gamblers ruin'],
+  def:'Ein klassisches Wahrscheinlichkeitsproblem: Ein Spieler mit Rückstand spielt endlos weiter — Satoshi nutzt es, um die Erfolgschance eines Angreifers zu berechnen.' },
+{ id:'poisson', terms:['poisson distribution','poisson-verteilung'],
+  def:'Eine Wahrscheinlichkeitsverteilung, die beschreibt, wie oft ein zufälliges Ereignis in einem festen Zeitraum eintritt — hier: wie viele Blöcke ein Angreifer im Geheimen wohl geschafft hat.' },
+{ id:'sha256', terms:['sha-256','sha256'],
+  def:'Eine kryptografische Hash-Funktion, die Bitcoin für Proof-of-Work und viele interne Berechnungen nutzt.' },
+{ id:'pruning', terms:['pruning','stubbing'],
+  def:'Das Entfernen alter, nicht mehr benötigter Transaktionsdaten aus dem Merkle-Baum, um Speicherplatz zu sparen, ohne die Gültigkeit der Kette zu beeinträchtigen.' },
+{ id:'fullnode', terms:['full node','full network node','voller knoten'],
+  def:'Ein Teilnehmer, der die komplette Blockchain speichert und jede Transaktion und jeden Block eigenständig vollständig überprüft.' },
+{ id:'escrow', terms:['escrow','treuhand'],
+  def:'Ein Mechanismus, bei dem eine dritte Partei Geld zurückhält, bis vereinbarte Bedingungen erfüllt sind — im Paper als Schutz für Käufer erwähnt.' },
+{ id:'bmoney', terms:['b-money'],
+  def:'Ein 1998 von Wei Dai vorgeschlagenes, nie umgesetztes Konzept für dezentrales digitales Geld — eine der Referenzen des Bitcoin-Papers.' },
+{ id:'hashcash', terms:['hashcash'],
+  def:'Ein älteres Proof-of-Work-System von Adam Back, ursprünglich gegen E-Mail-Spam gedacht — Vorbild für Bitcoins Proof-of-Work.' },
+{ id:'randomwalk', terms:['binomial random walk','random walk','zufallspfad'],
+  def:'Ein mathematisches Modell für einen Prozess, der bei jedem Schritt zufällig um +1 oder -1 wandert — hier: das Wettrennen zwischen ehrlicher und Angreifer-Kette.' },
+{ id:'header', terms:['block header','block-header'],
+  def:'Der kompakte „Kopf“ eines Blocks (ca. 80 Byte): enthält den Hash des Vorgängers, die Merkle-Wurzel und die Nonce — aber keine vollständigen Transaktionsdaten.' },
+{ id:'confirmation', terms:['confirmation','confirmations','bestätigung','bestätigungen'],
+  def:'Jeder weitere Block, der nach dem Block mit einer Transaktion hinzugefügt wird. Mehr Bestätigungen = exponentiell schwerer rückgängig zu machen.' },
+{ id:'attacker', terms:['attacker','angreifer'],
+  def:'Im Paper: ein Akteur, der versucht, eine eigene Transaktion durch eine schneller berechnete, konkurrierende Kette rückgängig zu machen.' },
+{ id:'broadcast', terms:['broadcast','broadcasts','übertragung'],
+  def:'Das Versenden einer Nachricht (Transaktion oder Block) an möglichst viele Netzwerkteilnehmer, ohne festen Empfänger.' },
+{ id:'moore', terms:["moore's law",'moores law','mooresches gesetz'],
+  def:'Die Beobachtung, dass sich Rechenleistung und Speicherkapazität etwa alle zwei Jahre verdoppeln — im Paper als Argument, dass Speicherplatz kein Problem wird.' }
+];
+const GLOSS_MAP = {};
+GLOSSARY.forEach(e => e.terms.forEach(t => { GLOSS_MAP[t.toLowerCase()] = e; }));
+function normalizeSel(s){
+  return s.toLowerCase().replace(/[‐‑‒–—-]/g,' ').replace(/[.,;:()\[\]"'„“’]/g,'').replace(/\s+/g,' ').trim();
+}
+function lookupGlossary(raw){
+  const norm = normalizeSel(raw);
+  if (!norm || norm.length > 60) return null;
+  if (GLOSS_MAP[norm]) return GLOSS_MAP[norm];
+  const words = norm.split(' ');
+  if (words.length > 1) {
+    for (const w of words) { if (GLOSS_MAP[w] && w.length > 2) return GLOSS_MAP[w]; }
+  }
+  return null;
+}
+
+/* ============ CONTENT (Original-Text DE/EN, explain = Erklärung immer Deutsch) ============ */
+const DOC = [
+{type:'block', id:'abs', icon:'file-text', runin_de:'Zusammenfassung.', runin_en:'Abstract.',
+  title:'Die Kernidee in einem Absatz',
+  text_de:[`Eine rein elektronische Form von Bargeld auf Peer-to-Peer-Basis würde es ermöglichen, Online-Zahlungen direkt von einer Partei an eine andere zu senden, ohne den Umweg über ein Finanzinstitut. Digitale Signaturen liefern einen Teil der Lösung, doch die wesentlichen Vorteile gehen verloren, wenn weiterhin eine vertrauenswürdige dritte Partei nötig ist, um Doppelausgaben zu verhindern. Wir schlagen eine Lösung für das Problem der Doppelausgabe mittels eines Peer-to-Peer-Netzwerks vor. Das Netzwerk versieht Transaktionen mit einem Zeitstempel, indem es sie in eine fortlaufende Kette aus hashbasiertem Arbeitsnachweis (Proof-of-Work) einhasht und so einen Datensatz erzeugt, der ohne Wiederholung des Arbeitsnachweises nicht verändert werden kann. Die längste Kette dient dabei nicht nur als Nachweis der beobachteten Ereignisreihenfolge, sondern auch als Beweis dafür, dass sie aus dem größten Pool an Rechenleistung stammt. Solange die Mehrheit der Rechenleistung von Knoten kontrolliert wird, die nicht zusammenarbeiten, um das Netzwerk anzugreifen, werden diese die längste Kette erzeugen und Angreifern voraus sein. Das Netzwerk selbst benötigt nur minimale Struktur. Nachrichten werden nach bestem Bemühen verbreitet, und Knoten können das Netzwerk jederzeit verlassen und wieder beitreten, wobei sie die längste Proof-of-Work-Kette als Nachweis dessen akzeptieren, was in ihrer Abwesenheit geschehen ist.`],
+  text_en:[`A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution. Digital signatures provide part of the solution, but the main benefits are lost if a trusted third party is still required to prevent double-spending. We propose a solution to the double-spending problem using a peer-to-peer network. The network timestamps transactions by hashing them into an ongoing chain of hash-based proof-of-work, forming a record that cannot be changed without redoing the proof-of-work. The longest chain not only serves as proof of the sequence of events witnessed, but proof that it came from the largest pool of CPU power. As long as a majority of CPU power is controlled by nodes that are not cooperating to attack the network, they'll generate the longest chain and outpace attackers. The network itself requires minimal structure. Messages are broadcast on a best effort basis, and nodes can leave and rejoin the network at will, accepting the longest proof-of-work chain as proof of what happened while they were gone.`],
+  explain:[`Das ist die Zusammenfassung des gesamten Papers in einem Absatz — alles Weitere ist nur Detailausarbeitung davon.`,
+  `Kernsatz: Geld soll direkt von A nach B geschickt werden können, ohne dass eine Bank oder ein Zahlungsdienstleister dazwischensitzt. Das Problem dabei: Digitale Dateien lassen sich beliebig kopieren. Ohne Kontrolle könnte man dieselbe "Münze" zweimal ausgeben (Double-Spending). Bisher löste eine Bank das, indem sie Buch führte, wer was besitzt.`,
+  `Satoshis Lösung: Statt einer Bank führt das gesamte Netzwerk gemeinsam Buch. Jede Transaktion wird in "Blöcke" gepackt, die wie Kettenglieder mit einem kryptografischen Fingerabdruck (Hash) aneinanderhängen. Um einen Block zu erzeugen, muss man eine aufwendige Rechenaufgabe lösen (Proof-of-Work) — das macht Fälschen teuer.`,
+  `Die "längste Kette" (also die mit der meisten aufsummierten Rechenarbeit) gilt automatisch als Wahrheit. Solange die ehrlichen Teilnehmer zusammen mehr Rechenleistung haben als jeder Angreifer, gewinnt immer die ehrliche Kette. Kein Chef, keine Zentrale — nur Mathematik und Mehrheitsrechenleistung.`]},
+
+{type:'sectionhead', num:'1', label_de:'Einleitung', label_en:'Introduction'},
 {type:'block', id:'i1', icon:'landmark',
   title:'Warum wir heute eine Bank brauchen',
-  text:[`Commerce on the Internet has come to rely almost exclusively on financial institutions serving as trusted third parties to process electronic payments. While the system works well enough for most transactions, it still suffers from the inherent weaknesses of the trust based model. Completely non-reversible transactions are not really possible, since financial institutions cannot avoid mediating disputes. The cost of mediation increases transaction costs, limiting the minimum practical transaction size and cutting off the possibility for small casual transactions, and there is a broader cost in the loss of ability to make non-reversible payments for non-reversible services. With the possibility of reversal, the need for trust spreads. Merchants must be wary of their customers, hassling them for more information than they would otherwise need. A certain percentage of fraud is accepted as unavoidable. These costs and payment uncertainties can be avoided in person by using physical currency, but no mechanism exists to make payments over a communications channel without a trusted party.`],
-  explain:[`Online-Zahlungen laufen heute fast immer über eine Bank, Kreditkartenfirma oder einen Zahlungsdienst wie PayPal. Die schlichten mit einer solchen "vertrauensbasierten" Lösung: Weil diese Instanz im Streitfall vermitteln muss, sind Zahlungen fast nie wirklich endgültig &mdash; sie können rückgängig gemacht werden (Chargebacks).`,
-  `Das klingt erstmal gut für Käufer, hat aber einen Preis: Händler müssen sich gegen Betrug absichern, fragen mehr Daten ab als nötig, und ein gewisser Betrugsanteil wird einfach einkalkuliert. Diese Kosten summieren sich &mdash; und machen sehr kleine Zahlungen (ein paar Cent) unwirtschaftlich, weil die Absicherung teurer wäre als der Betrag selbst.`,
-  `Mit Bargeld gibt es dieses Problem nicht: Übergibst du physisches Geld, ist die Zahlung sofort und endgültig abgeschlossen, ganz ohne Mittelsperson. Das Problem: Für Zahlungen über das Internet gab es 2008 kein digitales Äquivalent zu Bargeld &mdash; keine Möglichkeit, direkt und endgültig zu bezahlen, ohne eine vertrauenswürdige dritte Partei einzuschalten.`]},
+  text_de:[`Der Handel im Internet stützt sich mittlerweile fast ausschließlich auf Finanzinstitute, die als vertrauenswürdige dritte Parteien elektronische Zahlungen abwickeln. Während dieses System für die meisten Transaktionen gut genug funktioniert, leidet es weiterhin unter den inhärenten Schwächen des vertrauensbasierten Modells. Vollständig unumkehrbare Transaktionen sind eigentlich nicht möglich, da Finanzinstitute Streitfälle nicht vermeiden können und vermitteln müssen. Die Kosten dieser Vermittlung erhöhen die Transaktionskosten, begrenzen die praktisch mögliche Mindestgröße einer Transaktion und schließen so die Möglichkeit kleiner, beiläufiger Zahlungen aus; hinzu kommt der umfassendere Verlust der Fähigkeit, unumkehrbare Zahlungen für unumkehrbare Leistungen zu tätigen. Mit der Möglichkeit der Rückabwicklung verbreitert sich auch der Bedarf an Vertrauen. Händler müssen ihren Kunden gegenüber misstrauisch sein und mehr Informationen abfragen, als eigentlich nötig wären. Ein gewisser Anteil an Betrug wird als unvermeidlich hingenommen. Diese Kosten und Zahlungsunsicherheiten lassen sich bei persönlicher Übergabe durch physisches Bargeld vermeiden, doch es existiert kein Mechanismus, um Zahlungen über einen Kommunikationskanal ohne eine vertrauenswürdige Partei abzuwickeln.`],
+  text_en:[`Commerce on the Internet has come to rely almost exclusively on financial institutions serving as trusted third parties to process electronic payments. While the system works well enough for most transactions, it still suffers from the inherent weaknesses of the trust based model. Completely non-reversible transactions are not really possible, since financial institutions cannot avoid mediating disputes. The cost of mediation increases transaction costs, limiting the minimum practical transaction size and cutting off the possibility for small casual transactions, and there is a broader cost in the loss of ability to make non-reversible payments for non-reversible services. With the possibility of reversal, the need for trust spreads. Merchants must be wary of their customers, hassling them for more information than they would otherwise need. A certain percentage of fraud is accepted as unavoidable. These costs and payment uncertainties can be avoided in person by using physical currency, but no mechanism exists to make payments over a communications channel without a trusted party.`],
+  explain:[`Online-Zahlungen laufen heute fast immer über eine Bank, Kreditkartenfirma oder einen Zahlungsdienst wie PayPal. Das Problem mit einer solchen "vertrauensbasierten" Lösung: Weil diese Instanz im Streitfall vermitteln muss, sind Zahlungen fast nie wirklich endgültig — sie können rückgängig gemacht werden (Chargebacks).`,
+  `Das klingt erstmal gut für Käufer, hat aber einen Preis: Händler müssen sich gegen Betrug absichern, fragen mehr Daten ab als nötig, und ein gewisser Betrugsanteil wird einfach einkalkuliert. Diese Kosten summieren sich — und machen sehr kleine Zahlungen (ein paar Cent) unwirtschaftlich, weil die Absicherung teurer wäre als der Betrag selbst.`,
+  `Mit Bargeld gibt es dieses Problem nicht: Übergibst du physisches Geld, ist die Zahlung sofort und endgültig abgeschlossen, ganz ohne Mittelsperson. Das Problem: Für Zahlungen über das Internet gab es 2008 kein digitales Äquivalent zu Bargeld — keine Möglichkeit, direkt und endgültig zu bezahlen, ohne eine vertrauenswürdige dritte Partei einzuschalten.`]},
 {type:'block', id:'i2', icon:'key-round',
   title:'Der Vorschlag: kryptografischer Beweis statt Vertrauen',
-  text:[`What is needed is an electronic payment system based on cryptographic proof instead of trust, allowing any two willing parties to transact directly with each other without the need for a trusted third party. Transactions that are computationally impractical to reverse would protect sellers from fraud, and routine escrow mechanisms could easily be implemented to protect buyers. In this paper, we propose a solution to the double-spending problem using a peer-to-peer distributed timestamp server to generate computational proof of the chronological order of transactions. The system is secure as long as honest nodes collectively control more CPU power than any cooperating group of attacker nodes.`],
-  explain:[`Satoshis Antwort: Ersetze "Vertrauen in eine Institution" durch "mathematischen Beweis". Zwei Menschen sollen direkt miteinander handeln können &mdash; ganz ohne Bank dazwischen &mdash; und trotzdem sicher sein, dass die Zahlung gültig und praktisch nicht rückgängig zu machen ist.`,
-  `Das zentrale technische Werkzeug dafür ist ein "verteilter Zeitstempel-Dienst": ein System, mit dem sich beweisen lässt, in welcher Reihenfolge Transaktionen passiert sind &mdash; ganz ohne zentrale Instanz, die diese Reihenfolge festlegt. Das ist die Grundlage, um Double-Spending zu verhindern.`,
-  `Wichtig ist die letzte Aussage: Das System ist nur sicher, solange die ehrlichen Teilnehmer zusammen mehr Rechenleistung haben als jede Gruppe von Angreifern. Bitcoin ist also keine Festung, die niemals fallen kann &mdash; sondern ein Spiel mit Regeln, bei dem ehrliches Verhalten rechnerisch die Oberhand behält, solange die Mehrheit mitspielt.`]},
+  text_de:[`Was gebraucht wird, ist ein elektronisches Zahlungssystem, das auf kryptografischem Beweis statt auf Vertrauen beruht und es zwei willigen Parteien erlaubt, direkt miteinander zu handeln, ohne eine vertrauenswürdige dritte Partei zu benötigen. Transaktionen, die sich rechnerisch nicht mehr praktikabel rückgängig machen lassen, würden Verkäufer vor Betrug schützen, und übliche Treuhandmechanismen ließen sich leicht umsetzen, um Käufer zu schützen. In diesem Papier schlagen wir eine Lösung für das Double-Spending-Problem vor, die einen verteilten Peer-to-Peer-Zeitstempel-Dienst nutzt, um einen rechnerischen Nachweis der chronologischen Reihenfolge von Transaktionen zu erzeugen. Das System ist sicher, solange ehrliche Knoten gemeinsam mehr Rechenleistung kontrollieren als jede kooperierende Gruppe von Angreifer-Knoten.`],
+  text_en:[`What is needed is an electronic payment system based on cryptographic proof instead of trust, allowing any two willing parties to transact directly with each other without the need for a trusted third party. Transactions that are computationally impractical to reverse would protect sellers from fraud, and routine escrow mechanisms could easily be implemented to protect buyers. In this paper, we propose a solution to the double-spending problem using a peer-to-peer distributed timestamp server to generate computational proof of the chronological order of transactions. The system is secure as long as honest nodes collectively control more CPU power than any cooperating group of attacker nodes.`],
+  explain:[`Satoshis Antwort: Ersetze "Vertrauen in eine Institution" durch "mathematischen Beweis". Zwei Menschen sollen direkt miteinander handeln können — ganz ohne Bank dazwischen — und trotzdem sicher sein, dass die Zahlung gültig und praktisch nicht rückgängig zu machen ist.`,
+  `Das zentrale technische Werkzeug dafür ist ein "verteilter Zeitstempel-Dienst": ein System, mit dem sich beweisen lässt, in welcher Reihenfolge Transaktionen passiert sind — ganz ohne zentrale Instanz, die diese Reihenfolge festlegt. Das ist die Grundlage, um Double-Spending zu verhindern.`,
+  `Wichtig ist die letzte Aussage: Das System ist nur sicher, solange die ehrlichen Teilnehmer zusammen mehr Rechenleistung haben als jede Gruppe von Angreifern. Bitcoin ist also keine Festung, die niemals fallen kann — sondern ein Spiel mit Regeln, bei dem ehrliches Verhalten rechnerisch die Oberhand behält, solange die Mehrheit mitspielt.`]},
 
 {type:'divider', page:1},
 
-{type:'sectionhead', num:'2', label:'Transactions'},
+{type:'sectionhead', num:'2', label_de:'Transaktionen', label_en:'Transactions'},
 {type:'block', id:'t1', icon:'link', diagram:'coin-chain',
   title:'Eine Münze ist eine Kette von Unterschriften',
-  text:[`We define an electronic coin as a chain of digital signatures. Each owner transfers the coin to the next by digitally signing a hash of the previous transaction and the public key of the next owner and adding these to the end of the coin. A payee can verify the signatures to verify the chain of ownership.`],
-  explain:[`Eine Bitcoin-"Münze" ist technisch kein Ding, das irgendwo liegt &mdash; sie ist eine Kette von digitalen Unterschriften. Jeder Besitzerwechsel fügt der Kette ein neues Glied hinzu.`,
-  `Konkret: Besitzer A gibt eine Münze an B weiter, indem er zwei Dinge zusammen digital signiert &mdash; den Fingerabdruck (Hash) der vorherigen Transaktion und den öffentlichen Schlüssel von B. Diese Signatur wird ans Ende der Kette gehängt. Jeder, der die Kette anschaut, kann anhand der Signaturen nachprüfen, dass jeder Besitzer die Münze rechtmäßig vom vorherigen erhalten hat.`,
-  `Eine digitale Signatur funktioniert wie ein Siegel, das nur mit dem privaten Schlüssel des Besitzers erzeugt werden kann, aber von jedem mit dem passenden öffentlichen Schlüssel geprüft werden kann &mdash; ähnlich einer Unterschrift, die niemand fälschen, aber jeder mit deiner bekannten Handschrift vergleichen kann.`]},
+  text_de:[`Wir definieren eine elektronische Münze als eine Kette digitaler Signaturen. Jeder Besitzer überträgt die Münze an den nächsten, indem er einen Hash der vorherigen Transaktion sowie den öffentlichen Schlüssel des nächsten Besitzers digital signiert und diese Angaben an das Ende der Münze anfügt. Ein Zahlungsempfänger kann die Signaturen prüfen, um die Kette der Eigentümerschaft zu verifizieren.`],
+  text_en:[`We define an electronic coin as a chain of digital signatures. Each owner transfers the coin to the next by digitally signing a hash of the previous transaction and the public key of the next owner and adding these to the end of the coin. A payee can verify the signatures to verify the chain of ownership.`],
+  explain:[`Eine Bitcoin-"Münze" ist technisch kein Ding, das irgendwo liegt — sie ist eine Kette von digitalen Unterschriften. Jeder Besitzerwechsel fügt der Kette ein neues Glied hinzu.`,
+  `Konkret: Besitzer A gibt eine Münze an B weiter, indem er zwei Dinge zusammen digital signiert — den Fingerabdruck (Hash) der vorherigen Transaktion und den öffentlichen Schlüssel von B. Diese Signatur wird ans Ende der Kette gehängt. Jeder, der die Kette anschaut, kann anhand der Signaturen nachprüfen, dass jeder Besitzer die Münze rechtmäßig vom vorherigen erhalten hat.`,
+  `Eine digitale Signatur funktioniert wie ein Siegel, das nur mit dem privaten Schlüssel des Besitzers erzeugt werden kann, aber von jedem mit dem passenden öffentlichen Schlüssel geprüft werden kann — ähnlich einer Unterschrift, die niemand fälschen, aber jeder mit deiner bekannten Handschrift vergleichen kann.`]},
 {type:'block', id:'t2', icon:'landmark',
   title:'Das Double-Spending-Problem und die alte Lösung',
-  text:[`The problem of course is the payee can't verify that one of the owners did not double-spend the coin. A common solution is to introduce a trusted central authority, or mint, that checks every transaction for double spending. After each transaction, the coin must be returned to the mint to issue a new coin, and only coins issued directly from the mint are trusted not to be double-spent. The problem with this solution is that the fate of the entire money system depends on the company running the mint, with every transaction having to go through them, just like a bank.`],
-  explain:[`Die Kette aus Signaturen allein reicht nicht: Der Empfänger kann daraus nicht erkennen, ob der Absender dieselbe Münze nicht heimlich schon an eine zweite Person geschickt hat (Double-Spending) &mdash; digitale Daten lassen sich ja beliebig kopieren.`,
-  `Die naheliegende Lösung ist eine zentrale "Münzprägeanstalt" (Mint), die jede einzelne Transaktion prüft und protokolliert. Nach jeder Zahlung muss die Münze quasi eingetauscht und neu ausgegeben werden &mdash; nur was direkt von der Mint kommt, gilt als vertrauenswürdig.`,
-  `Das Problem: Damit hängt das gesamte Geldsystem am Schicksal einer einzigen Firma. Jede Transaktion muss durch sie hindurch &mdash; genau das Setup, das eine Bank heute schon ist. Man hätte die Bank durch eine andere Bank ersetzt, aber das Grundproblem (Abhängigkeit von einer Zentrale) nicht gelöst.`]},
+  text_de:[`Das Problem dabei ist natürlich, dass der Zahlungsempfänger nicht nachprüfen kann, ob einer der vorherigen Besitzer die Münze nicht bereits doppelt ausgegeben hat. Eine gängige Lösung besteht darin, eine vertrauenswürdige zentrale Instanz einzuführen, eine Münzprägeanstalt (Mint), die jede Transaktion auf Doppelausgabe prüft. Nach jeder Transaktion muss die Münze an die Mint zurückgegeben werden, um eine neue Münze auszustellen, und nur direkt von der Mint ausgegebene Münzen gelten als vertrauenswürdig unbedoppelt. Das Problem dieser Lösung ist, dass das Schicksal des gesamten Geldsystems von dem Unternehmen abhängt, das die Mint betreibt, da jede Transaktion durch sie hindurch muss – genau wie bei einer Bank.`],
+  text_en:[`The problem of course is the payee can't verify that one of the owners did not double-spend the coin. A common solution is to introduce a trusted central authority, or mint, that checks every transaction for double spending. After each transaction, the coin must be returned to the mint to issue a new coin, and only coins issued directly from the mint are trusted not to be double-spent. The problem with this solution is that the fate of the entire money system depends on the company running the mint, with every transaction having to go through them, just like a bank.`],
+  explain:[`Die Kette aus Signaturen allein reicht nicht: Der Empfänger kann daraus nicht erkennen, ob der Absender dieselbe Münze nicht heimlich schon an eine zweite Person geschickt hat (Double-Spending) — digitale Daten lassen sich ja beliebig kopieren.`,
+  `Die naheliegende Lösung ist eine zentrale "Münzprägeanstalt" (Mint), die jede einzelne Transaktion prüft und protokolliert. Nach jeder Zahlung muss die Münze quasi eingetauscht und neu ausgegeben werden — nur was direkt von der Mint kommt, gilt als vertrauenswürdig.`,
+  `Das Problem: Damit hängt das gesamte Geldsystem am Schicksal einer einzigen Firma. Jede Transaktion muss durch sie hindurch — genau das Setup, das eine Bank heute schon ist. Man hätte die Bank durch eine andere Bank ersetzt, aber das Grundproblem (Abhängigkeit von einer Zentrale) nicht gelöst.`]},
 {type:'block', id:'t3', icon:'users',
   title:'Die neue Idee: alle müssen alle Transaktionen kennen',
-  text:[`We need a way for the payee to know that the previous owners did not sign any earlier transactions. For our purposes, the earliest transaction is the one that counts, so we don't care about later attempts to double-spend. The only way to confirm the absence of a transaction is to be aware of all transactions. In the mint based model, the mint was aware of all transactions and decided which arrived first. To accomplish this without a trusted party, transactions must be publicly announced [1], and we need a system for participants to agree on a single history of the order in which they were received. The payee needs proof that at the time of each transaction, the majority of nodes agreed it was the first received.`],
-  explain:[`Der Empfänger braucht eine Garantie, dass die vorherigen Besitzer die Münze nicht bereits woanders ausgegeben haben. Die Regel dabei: Nur die zuerst gesendete Transaktion zählt &mdash; ein späterer Versuch, dieselbe Münze nochmal auszugeben, wird einfach ignoriert.`,
-  `Die einzige Möglichkeit, sicher zu wissen, dass keine frühere Transaktion existiert, ist: alle Transaktionen zu kennen. Genau das leistete früher die zentrale Mint &mdash; sie sah alles und entschied, was zuerst kam.`,
+  text_de:[`Wir brauchen einen Weg, wie der Zahlungsempfänger wissen kann, dass die vorherigen Besitzer keine früheren Transaktionen signiert haben. Für unsere Zwecke zählt die früheste Transaktion, spätere Versuche einer Doppelausgabe sind irrelevant. Die einzige Möglichkeit, die Abwesenheit einer Transaktion zu bestätigen, besteht darin, alle Transaktionen zu kennen. Im mint-basierten Modell kannte die Mint alle Transaktionen und entschied, welche zuerst eintraf. Um dies ohne vertrauenswürdige Partei zu erreichen, müssen Transaktionen öffentlich bekanntgegeben werden [1], und wir brauchen ein System, mit dem sich die Teilnehmer auf eine einzige Historie der Empfangsreihenfolge einigen können. Der Zahlungsempfänger benötigt einen Nachweis, dass zum Zeitpunkt jeder Transaktion die Mehrheit der Knoten übereinstimmend bestätigte, dass sie zuerst empfangen wurde.`],
+  text_en:[`We need a way for the payee to know that the previous owners did not sign any earlier transactions. For our purposes, the earliest transaction is the one that counts, so we don't care about later attempts to double-spend. The only way to confirm the absence of a transaction is to be aware of all transactions. In the mint based model, the mint was aware of all transactions and decided which arrived first. To accomplish this without a trusted party, transactions must be publicly announced [1], and we need a system for participants to agree on a single history of the order in which they were received. The payee needs proof that at the time of each transaction, the majority of nodes agreed it was the first received.`],
+  explain:[`Der Empfänger braucht eine Garantie, dass die vorherigen Besitzer die Münze nicht bereits woanders ausgegeben haben. Die Regel dabei: Nur die zuerst gesendete Transaktion zählt — ein späterer Versuch, dieselbe Münze nochmal auszugeben, wird einfach ignoriert.`,
+  `Die einzige Möglichkeit, sicher zu wissen, dass keine frühere Transaktion existiert, ist: alle Transaktionen zu kennen. Genau das leistete früher die zentrale Mint — sie sah alles und entschied, was zuerst kam.`,
   `Satoshis Trick, das ohne Zentrale hinzubekommen: Jede Transaktion wird öffentlich an alle im Netzwerk bekanntgegeben, und alle Teilnehmer müssen sich gemeinsam auf eine einzige, verbindliche Reihenfolge einigen. Der Empfänger braucht am Ende einen Beweis, dass die Mehrheit des Netzwerks seine Transaktion als die zuerst empfangene anerkannt hat. Genau dieses "Sich-Einigen-auf-eine-Reihenfolge" ist das Problem, das der Rest des Papers löst.`]},
 
-{type:'sectionhead', num:'3', label:'Timestamp Server'},
+{type:'sectionhead', num:'3', label_de:'Zeitstempel-Server', label_en:'Timestamp Server'},
 {type:'block', id:'ts1', icon:'hash', diagram:'hash-chain',
   title:'Ein Zeitstempel, der nicht lügen kann',
-  text:[`The solution we propose begins with a timestamp server. A timestamp server works by taking a hash of a block of items to be timestamped and widely publishing the hash, such as in a newspaper or Usenet post [2-5]. The timestamp proves that the data must have existed at the time, obviously, in order to get into the hash. Each timestamp includes the previous timestamp in its hash, forming a chain, with each additional timestamp reinforcing the ones before it.`],
+  text_de:[`Die von uns vorgeschlagene Lösung beginnt mit einem Zeitstempel-Dienst. Ein Zeitstempel-Dienst funktioniert, indem er einen Hash eines Blocks zu stempelnder Datensätze bildet und diesen Hash breit veröffentlicht, etwa in einer Zeitungsanzeige oder einem Usenet-Beitrag [2-5]. Der Zeitstempel beweist, dass die Daten zu diesem Zeitpunkt existiert haben müssen, da sie sonst nicht in den Hash eingeflossen wären. Jeder Zeitstempel enthält den vorherigen Zeitstempel in seinem Hash und bildet so eine Kette, in der jeder weitere Zeitstempel die davorliegenden zusätzlich bekräftigt.`],
+  text_en:[`The solution we propose begins with a timestamp server. A timestamp server works by taking a hash of a block of items to be timestamped and widely publishing the hash, such as in a newspaper or Usenet post [2-5]. The timestamp proves that the data must have existed at the time, obviously, in order to get into the hash. Each timestamp includes the previous timestamp in its hash, forming a chain, with each additional timestamp reinforcing the ones before it.`],
   explain:[`Ein "Hash" ist ein eindeutiger digitaler Fingerabdruck einer Datenmenge: Dieselben Daten ergeben immer denselben Hash, aber schon eine winzige Änderung ergibt einen komplett anderen. Aus dem Hash lassen sich die Originaldaten nicht zurückrechnen.`,
-  `Idee eines Zeitstempel-Dienstes (die es vor Bitcoin schon gab): Man bündelt Daten zu einem Block, berechnet den Hash und veröffentlicht diesen Hash möglichst öffentlich &mdash; früher zum Beispiel als Anzeige in einer Zeitung. Weil man den Hash nicht ohne die Originaldaten erzeugen kann, beweist die veröffentlichte Zeitung: Diese Daten existierten spätestens an diesem Datum.`,
-  `Der entscheidende Kniff: Jeder neue Zeitstempel enthält den Hash des vorherigen &mdash; so entsteht eine Kette. Wer nachträglich einen alten Block ändern wollte, müsste auch dessen Hash ändern, was wiederum den nächsten Block ungültig machen würde, und so weiter durch die gesamte Kette. Jeder neue Block "versiegelt" also automatisch alle vorherigen mit.`]},
+  `Idee eines Zeitstempel-Dienstes (die es vor Bitcoin schon gab): Man bündelt Daten zu einem Block, berechnet den Hash und veröffentlicht diesen Hash möglichst öffentlich — früher zum Beispiel als Anzeige in einer Zeitung. Weil man den Hash nicht ohne die Originaldaten erzeugen kann, beweist die veröffentlichte Zeitung: Diese Daten existierten spätestens an diesem Datum.`,
+  `Der entscheidende Kniff: Jeder neue Zeitstempel enthält den Hash des vorherigen — so entsteht eine Kette. Wer nachträglich einen alten Block ändern wollte, müsste auch dessen Hash ändern, was wiederum den nächsten Block ungültig machen würde, und so weiter durch die gesamte Kette. Jeder neue Block "versiegelt" also automatisch alle vorherigen mit.`]},
 
 {type:'divider', page:2},
 
-{type:'sectionhead', num:'4', label:'Proof-of-Work'},
+{type:'sectionhead', num:'4', label_de:'Arbeitsnachweis (Proof-of-Work)', label_en:'Proof-of-Work'},
 {type:'block', id:'pow1', icon:'cpu',
   title:'Rechenarbeit statt Vertrauen: Proof-of-Work',
-  text:[`To implement a distributed timestamp server on a peer-to-peer basis, we will need to use a proof-of-work system similar to Adam Back's Hashcash [6], rather than newspaper or Usenet posts. The proof-of-work involves scanning for a value that when hashed, such as with SHA-256, the hash begins with a number of zero bits. The average work required is exponential in the number of zero bits required and can be verified by executing a single hash.`],
-  explain:[`Eine Zeitung gibt es im Internet nicht als neutrale, fälschungssichere Instanz &mdash; also braucht Bitcoin einen anderen Weg, um "öffentlich und unveränderlich zu bezeugen". Die Lösung heißt Proof-of-Work (Arbeitsnachweis), angelehnt an ein älteres System namens Hashcash.`,
-  `Praktisch bedeutet das: Man probiert immer wieder eine Zufallszahl (die "Nonce") aus und hasht sie zusammen mit den Blockdaten, bis der resultierende Hash mit einer bestimmten Anzahl Nullen beginnt. Da ein Hash komplett unvorhersehbar ist, hilft nur stures Durchprobieren &mdash; wie beim Würfeln, bis eine bestimmte Zahl fällt.`,
-  `Je mehr Nullen gefordert sind, desto exponentiell aufwendiger wird die Suche (mehr Rechenleistung, mehr Strom). Der entscheidende Vorteil: Das Ergebnis zu überprüfen dauert nur einen einzigen Hash-Vorgang &mdash; extrem schnell. Schwer zu finden, aber leicht zu prüfen: genau dieses Ungleichgewicht macht Proof-of-Work nützlich.`]},
+  text_de:[`Um einen verteilten Zeitstempel-Dienst auf Peer-to-Peer-Basis umzusetzen, benötigen wir statt Zeitungs- oder Usenet-Beiträgen ein Arbeitsnachweis-System (Proof-of-Work), ähnlich Adam Backs Hashcash [6]. Der Arbeitsnachweis besteht darin, nach einem Wert zu suchen, dessen Hash – etwa mit SHA-256 gebildet – mit einer bestimmten Anzahl an Nullbits beginnt. Der im Schnitt benötigte Aufwand steigt exponentiell mit der Anzahl der geforderten Nullbits, lässt sich jedoch durch Ausführen eines einzigen Hash-Vorgangs verifizieren.`],
+  text_en:[`To implement a distributed timestamp server on a peer-to-peer basis, we will need to use a proof-of-work system similar to Adam Back's Hashcash [6], rather than newspaper or Usenet posts. The proof-of-work involves scanning for a value that when hashed, such as with SHA-256, the hash begins with a number of zero bits. The average work required is exponential in the number of zero bits required and can be verified by executing a single hash.`],
+  explain:[`Eine Zeitung gibt es im Internet nicht als neutrale, fälschungssichere Instanz — also braucht Bitcoin einen anderen Weg, um "öffentlich und unveränderlich zu bezeugen". Die Lösung heißt Proof-of-Work (Arbeitsnachweis), angelehnt an ein älteres System namens Hashcash.`,
+  `Praktisch bedeutet das: Man probiert immer wieder eine Zufallszahl (die "Nonce") aus und hasht sie zusammen mit den Blockdaten, bis der resultierende Hash mit einer bestimmten Anzahl Nullen beginnt. Da ein Hash komplett unvorhersehbar ist, hilft nur stures Durchprobieren — wie beim Würfeln, bis eine bestimmte Zahl fällt.`,
+  `Je mehr Nullen gefordert sind, desto exponentiell aufwendiger wird die Suche (mehr Rechenleistung, mehr Strom). Der entscheidende Vorteil: Das Ergebnis zu überprüfen dauert nur einen einzigen Hash-Vorgang — extrem schnell. Schwer zu finden, aber leicht zu prüfen: genau dieses Ungleichgewicht macht Proof-of-Work nützlich.`]},
 {type:'block', id:'pow2', icon:'layers', diagram:'pow-block',
   title:'Blöcke werden aneinandergekettet',
-  text:[`For our timestamp network, we implement the proof-of-work by incrementing a nonce in the block until a value is found that gives the block's hash the required zero bits. Once the CPU effort has been expended to make it satisfy the proof-of-work, the block cannot be changed without redoing the work. As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.`],
+  text_de:[`Für unser Zeitstempel-Netzwerk implementieren wir den Arbeitsnachweis, indem wir eine Nonce im Block so lange erhöhen, bis ein Wert gefunden ist, der dem Block-Hash die geforderten Nullbits verleiht. Sobald der Rechenaufwand erbracht wurde, um den Arbeitsnachweis zu erfüllen, kann der Block nicht mehr verändert werden, ohne die Arbeit zu wiederholen. Da spätere Blöcke an ihn angekettet werden, würde die Arbeit zur Änderung eines Blocks auch die Wiederholung sämtlicher nachfolgenden Blöcke einschließen.`],
+  text_en:[`For our timestamp network, we implement the proof-of-work by incrementing a nonce in the block until a value is found that gives the block's hash the required zero bits. Once the CPU effort has been expended to make it satisfy the proof-of-work, the block cannot be changed without redoing the work. As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.`],
   explain:[`Jeder Block enthält neben den Transaktionen auch den Hash des vorherigen Blocks und eine Nonce. Ein "Miner" erhöht die Nonce immer weiter, bis der Block-Hash die geforderten Nullen am Anfang hat.`,
-  `Ist das geschafft, ist der Block quasi versiegelt: Jede noch so kleine Änderung an seinem Inhalt würde seinen Hash komplett verändern &mdash; und damit müsste die ganze teure Nonce-Suche für diesen Block von vorn beginnen.`,
-  `Und weil jeder folgende Block den Hash seines Vorgängers enthält, würde eine Änderung an einem alten Block auch dessen Hash ändern &mdash; und damit automatisch alle nachfolgenden Blöcke ungültig machen. Ein Angreifer müsste also nicht nur einen Block neu berechnen, sondern die gesamte Kette danach ebenfalls, und zwar schneller als der Rest des Netzwerks neue Blöcke produziert. Genau das macht die Blockchain praktisch unveränderlich, je mehr Blöcke seit einer Transaktion dazugekommen sind.`]},
+  `Ist das geschafft, ist der Block quasi versiegelt: Jede noch so kleine Änderung an seinem Inhalt würde seinen Hash komplett verändern — und damit müsste die ganze teure Nonce-Suche für diesen Block von vorn beginnen.`,
+  `Und weil jeder folgende Block den Hash seines Vorgängers enthält, würde eine Änderung an einem alten Block auch dessen Hash ändern — und damit automatisch alle nachfolgenden Blöcke ungültig machen. Ein Angreifer müsste also nicht nur einen Block neu berechnen, sondern die gesamte Kette danach ebenfalls, und zwar schneller als der Rest des Netzwerks neue Blöcke produziert. Genau das macht die Blockchain praktisch unveränderlich, je mehr Blöcke seit einer Transaktion dazugekommen sind.`]},
 {type:'block', id:'pow3', icon:'scale',
   title:'Eine CPU, eine Stimme',
-  text:[`The proof-of-work also solves the problem of determining representation in majority decision making. If the majority were based on one-IP-address-one-vote, it could be subverted by anyone able to allocate many IPs. Proof-of-work is essentially one-CPU-one-vote. The majority decision is represented by the longest chain, which has the greatest proof-of-work effort invested in it. If a majority of CPU power is controlled by honest nodes, the honest chain will grow the fastest and outpace any competing chains. To modify a past block, an attacker would have to redo the proof-of-work of the block and all blocks after it and then catch up with and surpass the work of the honest nodes. We will show later that the probability of a slower attacker catching up diminishes exponentially as subsequent blocks are added.`],
-  explain:[`Wie stellt man in einem Netzwerk ohne Zentrale fest, was die "Mehrheitsmeinung" ist? Man könnte pro IP-Adresse eine Stimme zählen &mdash; aber das lässt sich leicht austricksen, indem man einfach viele IP-Adressen anmietet (Sybil-Angriff).`,
-  `Proof-of-Work löst das eleganter: eine Recheneinheit, eine Stimme. Die "Mehrheitsmeinung" ist automatisch die Kette, in die am meisten nachweisbare Rechenarbeit investiert wurde &mdash; also die längste (im Sinne von: schwerste) Kette. Wer mehr Rechenleistung hat, kann schneller Blöcke bauen und gewinnt automatisch.`,
-  `Solange ehrliche Teilnehmer zusammen die Mehrheit der Rechenleistung stellen, wächst die ehrliche Kette am schnellsten und lässt jede konkurrierende Fälschung zurück. Ein Angreifer, der einen alten Block ändern will, muss ab dort die gesamte restliche Kette neu berechnen &mdash; und zwar schneller, als das ehrliche Netzwerk neue Blöcke produziert. Je mehr Blöcke seither vergangen sind, desto astronomischer unwahrscheinlicher wird das (Kapitel 11 rechnet das exakt vor).`,
-  `Zusätzlich passt sich die Schwierigkeit automatisch an: Werden Blöcke im Schnitt zu schnell gefunden, steigt die geforderte Anzahl Nullen &mdash; damit im Schnitt immer etwa alle 10 Minuten ein Block entsteht, egal wie viel Rechenleistung gerade im Netzwerk aktiv ist.`]},
+  text_de:[`Der Arbeitsnachweis löst zudem das Problem, wie sich Repräsentation bei Mehrheitsentscheidungen bestimmen lässt. Basierte die Mehrheit auf dem Prinzip eine-IP-Adresse-eine-Stimme, ließe sie sich von jedem untergraben, der in der Lage ist, viele IP-Adressen zuzuteilen. Proof-of-Work ist im Grunde eine-CPU-eine-Stimme. Die Mehrheitsentscheidung wird durch die längste Kette repräsentiert, in die der größte Arbeitsaufwand investiert wurde. Kontrolliert die Mehrheit der Rechenleistung ehrliche Knoten, wächst die ehrliche Kette am schnellsten und überholt jede konkurrierende Kette. Um einen vergangenen Block zu verändern, müsste ein Angreifer den Arbeitsnachweis dieses Blocks und aller nachfolgenden Blöcke wiederholen und anschließend die Arbeit der ehrlichen Knoten einholen und übertreffen. Wir werden später zeigen, dass die Wahrscheinlichkeit, dass ein langsamerer Angreifer aufholt, mit jedem weiteren angehängten Block exponentiell sinkt.`],
+  text_en:[`The proof-of-work also solves the problem of determining representation in majority decision making. If the majority were based on one-IP-address-one-vote, it could be subverted by anyone able to allocate many IPs. Proof-of-work is essentially one-CPU-one-vote. The majority decision is represented by the longest chain, which has the greatest proof-of-work effort invested in it. If a majority of CPU power is controlled by honest nodes, the honest chain will grow the fastest and outpace any competing chains. To modify a past block, an attacker would have to redo the proof-of-work of the block and all blocks after it and then catch up with and surpass the work of the honest nodes. We will show later that the probability of a slower attacker catching up diminishes exponentially as subsequent blocks are added.`],
+  explain:[`Wie stellt man in einem Netzwerk ohne Zentrale fest, was die "Mehrheitsmeinung" ist? Man könnte pro IP-Adresse eine Stimme zählen — aber das lässt sich leicht austricksen, indem man einfach viele IP-Adressen anmietet (Sybil-Angriff).`,
+  `Proof-of-Work löst das eleganter: eine Recheneinheit, eine Stimme. Die "Mehrheitsmeinung" ist automatisch die Kette, in die am meisten nachweisbare Rechenarbeit investiert wurde — also die längste (im Sinne von: schwerste) Kette. Wer mehr Rechenleistung hat, kann schneller Blöcke bauen und gewinnt automatisch.`,
+  `Solange ehrliche Teilnehmer zusammen die Mehrheit der Rechenleistung stellen, wächst die ehrliche Kette am schnellsten und lässt jede konkurrierende Fälschung zurück. Ein Angreifer, der einen alten Block ändern will, muss ab dort die gesamte restliche Kette neu berechnen — und zwar schneller, als das ehrliche Netzwerk neue Blöcke produziert. Je mehr Blöcke seither vergangen sind, desto astronomischer unwahrscheinlicher wird das (Kapitel 11 rechnet das exakt vor).`]},
+{type:'block', id:'pow4', icon:'gauge',
+  title:'Die Schwierigkeit passt sich automatisch an',
+  text_de:[`Um steigende Hardware-Geschwindigkeit und ein im Zeitverlauf schwankendes Interesse am Betrieb von Knoten auszugleichen, wird die Proof-of-Work-Schwierigkeit anhand eines gleitenden Durchschnitts bestimmt, der auf eine durchschnittliche Anzahl an Blöcken pro Stunde abzielt. Werden Blöcke zu schnell erzeugt, steigt die Schwierigkeit.`],
+  text_en:[`To compensate for increasing hardware speed and varying interest in running nodes over time, the proof-of-work difficulty is determined by a moving average targeting an average number of blocks per hour. If they're generated too fast, the difficulty increases.`],
+  explain:[`Die Difficulty (Schwierigkeit) ist kein fester Wert, sondern passt sich automatisch an: Das Netzwerk prüft regelmäßig, wie schnell Blöcke im Schnitt gefunden wurden, und vergleicht das mit dem Zielwert (ein Block etwa alle 10 Minuten).`,
+  `Werden Blöcke zu schnell gefunden — etwa weil neue, schnellere Hardware dazukommt oder mehr Miner mitmachen —, erhöht das Netzwerk automatisch die Schwierigkeit (mehr geforderte Nullbits im Hash), damit sich das Tempo wieder normalisiert. Verlangsamt sich das Netzwerk, sinkt die Schwierigkeit entsprechend.`,
+  `Dieser Mechanismus ist entscheidend dafür, dass Bitcoin über Jahrzehnte hinweg unabhängig davon funktioniert, wie viel Rechenleistung gerade im Netzwerk aktiv ist — ob 2009 mit simplen PC-Prozessoren oder heute mit spezialisierten ASIC-Minern.`]},
 
-{type:'sectionhead', num:'5', label:'Network'},
+{type:'sectionhead', num:'5', label_de:'Netzwerk', label_en:'Network'},
 {type:'block', id:'net1', icon:'network',
   title:'So läuft das Netzwerk in sechs Schritten ab',
-  list:[
+  list_de:[
+    `Neue Transaktionen werden an alle Knoten gesendet.`,
+    `Jeder Knoten sammelt neue Transaktionen in einem Block.`,
+    `Jeder Knoten arbeitet daran, einen schwierigen Arbeitsnachweis für seinen Block zu finden.`,
+    `Findet ein Knoten einen Arbeitsnachweis, sendet er den Block an alle Knoten.`,
+    `Knoten akzeptieren den Block nur, wenn alle enthaltenen Transaktionen gültig sind und noch nicht ausgegeben wurden.`,
+    `Knoten drücken ihre Zustimmung zum Block aus, indem sie am nächsten Block der Kette weiterarbeiten und dabei den Hash des akzeptierten Blocks als vorherigen Hash verwenden.`],
+  list_en:[
     `New transactions are broadcast to all nodes.`,
     `Each node collects new transactions into a block.`,
     `Each node works on finding a difficult proof-of-work for its block.`,
     `When a node finds a proof-of-work, it broadcasts the block to all nodes.`,
     `Nodes accept the block only if all transactions in it are valid and not already spent.`,
     `Nodes express their acceptance of the block by working on creating the next block in the chain, using the hash of the accepted block as the previous hash.`],
-  explain:[`Das ist der komplette Ablauf des Bitcoin-Netzwerks in sechs simplen Schritten &mdash; kein Schritt braucht eine zentrale Koordination, jeder Teilnehmer (Node) folgt einfach denselben Regeln:`,
-  `1&ndash;3: Neue Transaktionen werden im Netzwerk herumgereicht. Jeder Miner sammelt sie in einem eigenen Blockentwurf und beginnt, an dessen Proof-of-Work zu knobeln.`,
-  `4&ndash;5: Wer als Erstes eine gültige Lösung findet, verschickt seinen fertigen Block an alle. Andere Nodes prüfen ihn nach: Sind alle Transaktionen gültig und noch nicht anderswo ausgegeben? Nur dann wird der Block akzeptiert.`,
-  `6: Die Zustimmung wird nicht per Abstimmung erklärt, sondern durch Handeln: Die Nodes fangen einfach an, auf dem akzeptierten Block den nächsten Block aufzubauen. Wer nicht zustimmt, arbeitet stattdessen weiter an einer anderen Kette &mdash; das ist "Abstimmen mit der eigenen Rechenleistung".`]},
+  explain:[`Das ist der komplette Ablauf des Bitcoin-Netzwerks in sechs simplen Schritten — kein Schritt braucht eine zentrale Koordination, jeder Teilnehmer (Node) folgt einfach denselben Regeln:`,
+  `1–3: Neue Transaktionen werden im Netzwerk herumgereicht. Jeder Miner sammelt sie in einem eigenen Blockentwurf und beginnt, an dessen Proof-of-Work zu knobeln.`,
+  `4–5: Wer als Erstes eine gültige Lösung findet, verschickt seinen fertigen Block an alle. Andere Nodes prüfen ihn nach: Sind alle Transaktionen gültig und noch nicht anderswo ausgegeben? Nur dann wird der Block akzeptiert.`,
+  `6: Die Zustimmung wird nicht per Abstimmung erklärt, sondern durch Handeln: Die Nodes fangen einfach an, auf dem akzeptierten Block den nächsten Block aufzubauen. Wer nicht zustimmt, arbeitet stattdessen weiter an einer anderen Kette — das ist "Abstimmen mit der eigenen Rechenleistung".`]},
 {type:'block', id:'net2', icon:'git-branch',
   title:'Was passiert bei zwei gleichzeitigen Blöcken?',
-  text:[`Nodes always consider the longest chain to be the correct one and will keep working on extending it. If two nodes broadcast different versions of the next block simultaneously, some nodes may receive one or the other first. In that case, they work on the first one they received, but save the other branch in case it becomes longer. The tie will be broken when the next proof-of-work is found and one branch becomes longer; the nodes that were working on the other branch will then switch to the longer one.`],
-  explain:[`Weil Nachrichten im Netzwerk unterschiedlich schnell ankommen, kann es passieren, dass zwei Miner fast gleichzeitig einen gültigen Block finden &mdash; das Netzwerk gabelt sich kurzzeitig in zwei konkurrierende Versionen (ein "Fork").`,
+  text_de:[`Knoten betrachten stets die längste Kette als die korrekte und arbeiten weiter an ihrer Verlängerung. Senden zwei Knoten gleichzeitig unterschiedliche Versionen des nächsten Blocks, erhalten manche Knoten die eine, manche die andere zuerst. In diesem Fall arbeiten sie an derjenigen weiter, die sie zuerst erhalten haben, bewahren die andere Version jedoch für den Fall auf, dass sie länger wird. Das Unentschieden wird aufgelöst, sobald der nächste Arbeitsnachweis gefunden wird und ein Zweig länger wird; die Knoten, die am anderen Zweig gearbeitet haben, wechseln dann zum längeren.`],
+  text_en:[`Nodes always consider the longest chain to be the correct one and will keep working on extending it. If two nodes broadcast different versions of the next block simultaneously, some nodes may receive one or the other first. In that case, they work on the first one they received, but save the other branch in case it becomes longer. The tie will be broken when the next proof-of-work is found and one branch becomes longer; the nodes that were working on the other branch will then switch to the longer one.`],
+  explain:[`Weil Nachrichten im Netzwerk unterschiedlich schnell ankommen, kann es passieren, dass zwei Miner fast gleichzeitig einen gültigen Block finden — das Netzwerk gabelt sich kurzzeitig in zwei konkurrierende Versionen (ein "Fork").`,
   `Jeder Node arbeitet einfach an der Version weiter, die er zuerst gesehen hat, merkt sich aber die andere Variante als Rücklage, statt sie zu verwerfen.`,
-  `Der Konflikt löst sich von selbst: Sobald auf einem der beiden Zweige der nächste Block gefunden wird, wird dieser Zweig länger (mehr aufsummierte Arbeit) als der andere. Alle Nodes, die am kürzeren Zweig gearbeitet haben, wechseln automatisch zum längeren &mdash; kein Streit, keine Abstimmung, nur die simple Regel "die längste Kette gewinnt".`]},
+  `Der Konflikt löst sich von selbst: Sobald auf einem der beiden Zweige der nächste Block gefunden wird, wird dieser Zweig länger (mehr aufsummierte Arbeit) als der andere. Alle Nodes, die am kürzeren Zweig gearbeitet haben, wechseln automatisch zum längeren — kein Streit, keine Abstimmung, nur die simple Regel "die längste Kette gewinnt".`]},
 
 {type:'divider', page:3},
 
 {type:'block', id:'net3', icon:'repeat',
   title:'Fehlertoleranz: Nachrichten dürfen verloren gehen',
-  text:[`New transaction broadcasts do not necessarily need to reach all nodes. As long as they reach many nodes, they will get into a block before long. Block broadcasts are also tolerant of dropped messages. If a node does not receive a block, it will request it when it receives the next block and realizes it missed one.`],
-  explain:[`Das Netzwerk muss nicht perfekt sein. Eine neue Transaktion muss nicht wirklich jeden einzelnen Node erreichen &mdash; solange sie genug Nodes erreicht, landet sie bald in irgendeinem Block.`,
-  `Auch verlorene Blockmeldungen sind kein Beinbruch: Merkt ein Node beim Empfang des nächsten Blocks, dass er einen Block "verpasst" hat (weil dessen Prev-Hash nicht zu seinem letzten bekannten Block passt), fragt er den fehlenden Block einfach gezielt nach. Das Design ist also bewusst robust gegen ein unzuverlässiges, dezentrales Internet gebaut &mdash; kein Single Point of Failure nötig.`]},
+  text_de:[`Die Übertragung neuer Transaktionen muss nicht zwangsläufig alle Knoten erreichen. Solange sie viele Knoten erreicht, wird sie bald in einen Block aufgenommen. Auch Block-Übertragungen sind tolerant gegenüber verlorenen Nachrichten. Erhält ein Knoten einen Block nicht, fordert er ihn an, sobald er den nächsten Block empfängt und bemerkt, dass er einen übersprungen hat.`],
+  text_en:[`New transaction broadcasts do not necessarily need to reach all nodes. As long as they reach many nodes, they will get into a block before long. Block broadcasts are also tolerant of dropped messages. If a node does not receive a block, it will request it when it receives the next block and realizes it missed one.`],
+  explain:[`Das Netzwerk muss nicht perfekt sein. Eine neue Transaktion muss nicht wirklich jeden einzelnen Node erreichen — solange sie genug Nodes erreicht, landet sie bald in irgendeinem Block.`,
+  `Auch verlorene Blockmeldungen sind kein Beinbruch: Merkt ein Node beim Empfang des nächsten Blocks, dass er einen Block "verpasst" hat (weil dessen Prev-Hash nicht zu seinem letzten bekannten Block passt), fragt er den fehlenden Block einfach gezielt nach. Das Design ist also bewusst robust gegen ein unzuverlässiges, dezentrales Internet gebaut — kein Single Point of Failure nötig.`]},
 
-{type:'sectionhead', num:'6', label:'Incentive'},
+{type:'sectionhead', num:'6', label_de:'Anreiz', label_en:'Incentive'},
 {type:'block', id:'inc1', icon:'coins',
   title:'Warum überhaupt jemand mitmacht: die Blockbelohnung',
-  text:[`By convention, the first transaction in a block is a special transaction that starts a new coin owned by the creator of the block. This adds an incentive for nodes to support the network, and provides a way to initially distribute coins into circulation, since there is no central authority to issue them. The steady addition of a constant of amount of new coins is analogous to gold miners expending resources to add gold to circulation. In our case, it is CPU time and electricity that is expended.`],
+  text_de:[`Per Konvention ist die erste Transaktion in einem Block eine besondere Transaktion, die eine neue Münze im Besitz des Blockerzeugers erzeugt. Das schafft einen Anreiz für Knoten, das Netzwerk zu unterstützen, und bietet zugleich einen Weg, anfänglich Münzen in Umlauf zu bringen, da es keine zentrale Instanz gibt, die sie ausgeben könnte. Die stetige Zugabe einer konstanten Menge neuer Münzen ist vergleichbar mit Goldschürfern, die Ressourcen aufwenden, um der Zirkulation Gold hinzuzufügen. In unserem Fall werden CPU-Zeit und Strom aufgewendet.`],
+  text_en:[`By convention, the first transaction in a block is a special transaction that starts a new coin owned by the creator of the block. This adds an incentive for nodes to support the network, and provides a way to initially distribute coins into circulation, since there is no central authority to issue them. The steady addition of a constant of amount of new coins is analogous to gold miners expending resources to add gold to circulation. In our case, it is CPU time and electricity that is expended.`],
   explain:[`Warum sollte jemand seine teure Rechenleistung und seinen Strom für das Netzwerk opfern? Als Belohnung: Per Konvention darf der Miner, der einen Block erfolgreich findet, sich selbst als Erstes eine festgelegte Menge brandneuer Bitcoins gutschreiben (der "Coinbase"-Eintrag).`,
-  `Das löst gleich zwei Probleme auf einmal: Es schafft einen finanziellen Anreiz, überhaupt mitzumachen und Rechenleistung bereitzustellen &mdash; und es ist gleichzeitig der einzige Mechanismus, wie neue Bitcoins überhaupt in Umlauf kommen, ganz ohne Zentralbank, die Geld druckt.`,
-  `Der Vergleich mit Goldschürfern im Text ist bewusst gewählt: Genau wie Goldgräber Ressourcen (Arbeit, Ausrüstung) aufwenden, um der Wirtschaft neues Gold hinzuzufügen, wenden Bitcoin-Miner CPU-Zeit und Strom auf, um neue Bitcoins in Umlauf zu bringen. Daher auch der Name "Mining".`]},
+  `Das löst gleich zwei Probleme auf einmal: Es schafft einen finanziellen Anreiz, überhaupt mitzumachen und Rechenleistung bereitzustellen — und es ist gleichzeitig der einzige Mechanismus, wie neue Bitcoins überhaupt in Umlauf kommen, ganz ohne Zentralbank, die Geld druckt.`,
+  `Der Vergleich mit Goldschürfern im Text ist bewusst gewählt: Genau wie Goldgräber Ressourcen aufwenden, um der Wirtschaft neues Gold hinzuzufügen, wenden Bitcoin-Miner CPU-Zeit und Strom auf, um neue Bitcoins in Umlauf zu bringen. Daher auch der Name "Mining".`]},
 {type:'block', id:'inc2', icon:'wallet',
   title:'Gebühren als zweite Einnahmequelle',
-  text:[`The incentive can also be funded with transaction fees. If the output value of a transaction is less than its input value, the difference is a transaction fee that is added to the incentive value of the block containing the transaction. Once a predetermined number of coins have entered circulation, the incentive can transition entirely to transaction fees and be completely inflation free.`],
-  explain:[`Neben der Blockbelohnung gibt es eine zweite Einnahmequelle für Miner: Transaktionsgebühren. Schickt jemand weniger Wert heraus (Output), als er an Eingangswert (Input) mitbringt, ist die Differenz eine freiwillige Gebühr &mdash; sie geht automatisch an den Miner, der die Transaktion in einen Block aufnimmt.`,
-  `Das ist als langfristiger Übergangsplan gedacht: Die Blockbelohnung ist von Anfang an so programmiert, dass sie sich regelmäßig halbiert und irgendwann (nach einer festen Gesamtmenge an Coins) bei null ankommt. Ab dann tragen ausschließlich Transaktionsgebühren die Miner-Belohnung &mdash; das System wird dann komplett inflationsfrei, weil keine neuen Coins mehr entstehen.`]},
+  text_de:[`Der Anreiz kann auch durch Transaktionsgebühren finanziert werden. Ist der Ausgabewert einer Transaktion geringer als ihr Eingabewert, ist die Differenz eine Transaktionsgebühr, die dem Anreizwert des Blocks hinzugefügt wird, der die Transaktion enthält. Sobald eine vorab festgelegte Anzahl an Münzen in Umlauf gekommen ist, kann der Anreiz vollständig auf Transaktionsgebühren umgestellt werden und ist dann vollkommen inflationsfrei.`],
+  text_en:[`The incentive can also be funded with transaction fees. If the output value of a transaction is less than its input value, the difference is a transaction fee that is added to the incentive value of the block containing the transaction. Once a predetermined number of coins have entered circulation, the incentive can transition entirely to transaction fees and be completely inflation free.`],
+  explain:[`Neben der Blockbelohnung gibt es eine zweite Einnahmequelle für Miner: Transaktionsgebühren. Schickt jemand weniger Wert heraus (Output), als er an Eingangswert (Input) mitbringt, ist die Differenz eine freiwillige Gebühr — sie geht automatisch an den Miner, der die Transaktion in einen Block aufnimmt.`,
+  `Das ist als langfristiger Übergangsplan gedacht: Die Blockbelohnung ist von Anfang an so programmiert, dass sie sich regelmäßig halbiert und irgendwann bei null ankommt. Ab dann tragen ausschließlich Transaktionsgebühren die Miner-Belohnung — das System wird dann komplett inflationsfrei, weil keine neuen Coins mehr entstehen.`]},
 {type:'block', id:'inc3', icon:'shield-check',
   title:'Ehrlich bleiben lohnt sich mehr als betrügen',
-  text:[`The incentive may help encourage nodes to stay honest. If a greedy attacker is able to assemble more CPU power than all the honest nodes, he would have to choose between using it to defraud people by stealing back his payments, or using it to generate new coins. He ought to find it more profitable to play by the rules, such rules that favour him with more new coins than everyone else combined, than to undermine the system and the validity of his own wealth.`],
+  text_de:[`Der Anreiz kann außerdem dazu beitragen, dass Knoten ehrlich bleiben. Gelingt es einem gierigen Angreifer, mehr Rechenleistung zu versammeln als alle ehrlichen Knoten zusammen, müsste er sich entscheiden: Er könnte damit Menschen betrügen, indem er seine eigenen Zahlungen zurückstiehlt, oder er könnte damit neue Münzen erzeugen. Es dürfte für ihn profitabler sein, sich an die Regeln zu halten – Regeln, die ihn mit mehr neuen Münzen begünstigen als alle anderen zusammen –, statt das System und damit die Gültigkeit seines eigenen Vermögens zu untergraben.`],
+  text_en:[`The incentive may help encourage nodes to stay honest. If a greedy attacker is able to assemble more CPU power than all the honest nodes, he would have to choose between using it to defraud people by stealing back his payments, or using it to generate new coins. He ought to find it more profitable to play by the rules, such rules that favour him with more new coins than everyone else combined, than to undermine the system and the validity of his own wealth.`],
   explain:[`Ein cleveres spieltheoretisches Argument: Nehmen wir an, ein gieriger Akteur bekommt tatsächlich mehr Rechenleistung als der Rest des ehrlichen Netzwerks zusammen. Was tut er damit?`,
-  `Option 1: Betrügen &mdash; zum Beispiel eigene, bereits ausgegebene Zahlungen rückgängig machen (Double-Spend-Angriff). Option 2: Einfach ehrlich mitmachen und dabei den Löwenanteil der Blockbelohnungen einstreichen, weil er ja die meiste Rechenleistung hat.`,
-  `Satoshis Punkt: Option 2 ist rational lohnender. Wer das System betrügt, untergräbt gleichzeitig das Vertrauen in Bitcoin selbst &mdash; und damit den Wert der eigenen, redlich verdienten (und der noch zu verdienenden) Coins. Es ist wirtschaftlich klüger, mit den Regeln Geld zu verdienen, die einen ohnehin bevorzugen, als das eigene Nest zu beschmutzen.`]},
-
-{type:'sectionhead', num:'7', label:'Reclaiming Disk Space'},
+  `Option 1: Betrügen — zum Beispiel eigene, bereits ausgegebene Zahlungen rückgängig machen (Double-Spend-Angriff). Option 2: Einfach ehrlich mitmachen und dabei den Löwenanteil der Blockbelohnungen einstreichen, weil er ja die meiste Rechenleistung hat.`,
+  `Satoshis Punkt: Option 2 ist rational lohnender. Wer das System betrügt, untergräbt gleichzeitig das Vertrauen in Bitcoin selbst — und damit den Wert der eigenen, redlich verdienten Coins. Es ist wirtschaftlich klüger, mit den Regeln Geld zu verdienen, die einen ohnehin bevorzugen, als das eigene Nest zu beschmutzen.`]},
+{type:'sectionhead', num:'7', label_de:'Rückgewinnung von Speicherplatz', label_en:'Reclaiming Disk Space'},
 {type:'block', id:'rds1', icon:'git-merge', diagram:'merkle-tree',
   title:'Alte Transaktionen wegwerfen, ohne die Kette zu brechen',
-  text:[`Once the latest transaction in a coin is buried under enough blocks, the spent transactions before it can be discarded to save disk space. To facilitate this without breaking the block's hash, transactions are hashed in a Merkle Tree [7][2][5], with only the root included in the block's hash. Old blocks can then be compacted by stubbing off branches of the tree. The interior hashes do not need to be stored.</br>`],
-  explain:[`Wenn eine Transaktion tief genug in der Kette vergraben ist (also viele Blöcke später kommt), braucht niemand mehr die uralten, längst ausgegebenen Vorgänger-Transaktionen im Detail &mdash; sie könnten theoretisch gelöscht werden, um Speicherplatz zu sparen.`,
-  `Damit das geht, ohne den Block-Hash zu verändern, werden alle Transaktionen eines Blocks in einem "Merkle-Baum" gebündelt: Je zwei Hashes werden zu einem neuen Hash verschmolzen, bis am Ende nur noch ein einziger "Root-Hash" übrigbleibt &mdash; und nur dieser eine Root-Hash landet im Block-Header.`,
-  `Der Clou: Man kann die unteren Zweige des Baumes (die alten Einzeltransaktionen) einfach kappen ("pruning") und trotzdem bleibt der Root-Hash unverändert gültig &mdash; die Zwischen-Hashes muss niemand dauerhaft speichern. So bleibt die Kette beweisbar unverändert, während der Speicherbedarf drastisch sinkt.`]},
+  text_de:[`Sobald die jüngste Transaktion einer Münze unter genügend Blöcken vergraben ist, können die davor liegenden, bereits ausgegebenen Transaktionen verworfen werden, um Speicherplatz zu sparen. Damit dies möglich ist, ohne den Block-Hash zu brechen, werden Transaktionen in einem Merkle-Baum gehasht [7][2][5], wobei nur die Wurzel in den Block-Hash eingeht. Alte Blöcke lassen sich dann verdichten, indem Zweige des Baums abgeschnitten werden. Die inneren Hashes müssen nicht gespeichert werden.`],
+  text_en:[`Once the latest transaction in a coin is buried under enough blocks, the spent transactions before it can be discarded to save disk space. To facilitate this without breaking the block's hash, transactions are hashed in a Merkle Tree [7][2][5], with only the root included in the block's hash. Old blocks can then be compacted by stubbing off branches of the tree. The interior hashes do not need to be stored.`],
+  explain:[`Wenn eine Transaktion tief genug in der Kette vergraben ist, braucht niemand mehr die uralten, längst ausgegebenen Vorgänger-Transaktionen im Detail — sie könnten theoretisch gelöscht werden, um Speicherplatz zu sparen.`,
+  `Damit das geht, ohne den Block-Hash zu verändern, werden alle Transaktionen eines Blocks in einem "Merkle-Baum" gebündelt: Je zwei Hashes werden zu einem neuen Hash verschmolzen, bis am Ende nur noch ein einziger "Root-Hash" übrigbleibt — und nur dieser eine Root-Hash landet im Block-Header.`,
+  `Der Clou: Man kann die unteren Zweige des Baumes einfach kappen ("pruning") und trotzdem bleibt der Root-Hash unverändert gültig — die Zwischen-Hashes muss niemand dauerhaft speichern. So bleibt die Kette beweisbar unverändert, während der Speicherbedarf drastisch sinkt.`]},
 {type:'block', id:'rds2', icon:'database',
   title:'Wie viel Speicherplatz braucht die Blockchain wirklich?',
-  text:[`A block header with no transactions would be about 80 bytes. If we suppose blocks are generated every 10 minutes, 80 bytes * 6 * 24 * 365 = 4.2MB per year. With computer systems typically selling with 2GB of RAM as of 2008, and Moore's Law predicting current growth of 1.2GB per year, storage should not be a problem even if the block headers must be kept in memory.`],
-  explain:[`Satoshi rechnet konkret vor, dass reine Block-Header (ohne Transaktionsdetails) winzig sind: rund 80 Bytes pro Block. Bei einem Block alle 10 Minuten sind das etwa 4,2 Megabyte pro Jahr &mdash; kleiner als ein einziges Foto.`,
-  `Der Vergleich mit 2008er-Standards (2 GB RAM, jährliches Wachstum nach Moore's Law) sollte zeigen: Selbst wenn man alle Header dauerhaft im Arbeitsspeicher halten müsste, wäre das völlig unproblematisch. Die eigentlichen Transaktionsdaten können dank Pruning (siehe vorheriger Absatz) klein gehalten werden &mdash; das System sollte also mit normaler Consumer-Hardware mitwachsen können.`]},
+  text_de:[`Ein Block-Header ohne Transaktionen wäre etwa 80 Byte groß. Nimmt man an, dass alle 10 Minuten ein Block erzeugt wird, ergibt sich 80 Byte × 6 × 24 × 365 = 4,2 MB pro Jahr. Da Computersysteme im Jahr 2008 typischerweise mit 2 GB RAM verkauft werden und das Mooresche Gesetz ein Wachstum von derzeit 1,2 GB pro Jahr voraussagt, sollte Speicherplatz kein Problem darstellen, selbst wenn die Block-Header im Arbeitsspeicher gehalten werden müssen.`],
+  text_en:[`A block header with no transactions would be about 80 bytes. If we suppose blocks are generated every 10 minutes, 80 bytes * 6 * 24 * 365 = 4.2MB per year. With computer systems typically selling with 2GB of RAM as of 2008, and Moore's Law predicting current growth of 1.2GB per year, storage should not be a problem even if the block headers must be kept in memory.`],
+  explain:[`Satoshi rechnet konkret vor, dass reine Block-Header winzig sind: rund 80 Bytes pro Block. Bei einem Block alle 10 Minuten sind das etwa 4,2 Megabyte pro Jahr — kleiner als ein einziges Foto.`,
+  `Der Vergleich mit 2008er-Standards sollte zeigen: Selbst wenn man alle Header dauerhaft im Arbeitsspeicher halten müsste, wäre das unproblematisch. Die eigentlichen Transaktionsdaten können dank Pruning klein gehalten werden — das System sollte mit normaler Consumer-Hardware mitwachsen können.`]},
 
 {type:'divider', page:4},
 
-{type:'sectionhead', num:'8', label:'Simplified Payment Verification'},
+{type:'sectionhead', num:'8', label_de:'Vereinfachte Zahlungsverifikation', label_en:'Simplified Payment Verification'},
 {type:'block', id:'spv1', icon:'smartphone', diagram:'spv',
   title:'Bitcoin nutzen, ohne die ganze Kette zu speichern',
-  text:[`It is possible to verify payments without running a full network node. A user only needs to keep a copy of the block headers of the longest proof-of-work chain, which he can get by querying network nodes until he's convinced he has the longest chain, and obtain the Merkle branch linking the transaction to the block it's timestamped in. He can't check the transaction for himself, but by linking it to a place in the chain, he can see that a network node has accepted it, and blocks added after it further confirm the network has accepted it.`],
-  explain:[`Nicht jeder muss die komplette Blockchain mit allen Transaktionen herunterladen und speichern, um Bitcoin sicher nutzen zu können &mdash; das nennt man Simplified Payment Verification (SPV), typisch für leichte Wallets wie auf dem Smartphone.`,
-  `Der Trick: Man speichert nur die (winzigen) Block-Header der längsten Kette, plus für die eigene Transaktion den passenden "Merkle-Zweig" aus Abschnitt 7 &mdash; einen schmalen Beweispfad, der zeigt, dass genau diese Transaktion Teil eines bestimmten Blocks ist.`,
-  `Man kann die Transaktion damit nicht komplett selbst von Grund auf validieren (dafür bräuchte man den vollen Datensatz), sieht aber zweifelsfrei: Sie steckt in einem Block, den das Netzwerk akzeptiert hat &mdash; und jeder weitere Block obendrauf bestätigt das erneut. Ein Kompromiss zwischen voller Sicherheit und praktischer Nutzbarkeit auf schwacher Hardware.`]},
+  text_de:[`Es ist möglich, Zahlungen zu verifizieren, ohne einen vollständigen Netzwerkknoten zu betreiben. Ein Nutzer muss lediglich eine Kopie der Block-Header der längsten Proof-of-Work-Kette vorhalten, die er sich durch Anfragen bei Netzwerkknoten beschaffen kann, bis er überzeugt ist, die längste Kette zu besitzen, sowie den Merkle-Zweig erhalten, der die Transaktion mit dem Block verknüpft, in dem sie zeitgestempelt wurde. Er kann die Transaktion nicht selbst überprüfen, doch durch ihre Verknüpfung mit einer Stelle in der Kette sieht er, dass ein Netzwerkknoten sie akzeptiert hat, und nachfolgend hinzugefügte Blöcke bestätigen diese Akzeptanz zusätzlich.`],
+  text_en:[`It is possible to verify payments without running a full network node. A user only needs to keep a copy of the block headers of the longest proof-of-work chain, which he can get by querying network nodes until he's convinced he has the longest chain, and obtain the Merkle branch linking the transaction to the block it's timestamped in. He can't check the transaction for himself, but by linking it to a place in the chain, he can see that a network node has accepted it, and blocks added after it further confirm the network has accepted it.`],
+  explain:[`Nicht jeder muss die komplette Blockchain herunterladen und speichern, um Bitcoin sicher nutzen zu können — das nennt man Simplified Payment Verification (SPV), typisch für leichte Wallets wie auf dem Smartphone.`,
+  `Der Trick: Man speichert nur die winzigen Block-Header der längsten Kette, plus für die eigene Transaktion den passenden "Merkle-Zweig" — einen schmalen Beweispfad, der zeigt, dass genau diese Transaktion Teil eines bestimmten Blocks ist.`,
+  `Man kann die Transaktion damit nicht komplett selbst validieren, sieht aber zweifelsfrei: Sie steckt in einem Block, den das Netzwerk akzeptiert hat — und jeder weitere Block obendrauf bestätigt das erneut.`]},
 {type:'block', id:'spv2', icon:'badge-check',
   title:'Der Kompromiss: leicht, aber nicht wasserdicht',
-  text:[`As such, the verification is reliable as long as honest nodes control the network, but is more vulnerable if the network is overpowered by an attacker. While network nodes can verify transactions for themselves, the simplified method can be fooled by an attacker's fabricated transactions for as long as the attacker can continue to overpower the network. One strategy to protect against this would be to accept alerts from network nodes when they detect an invalid block, prompting the user's software to download the full block and alerted transactions to confirm the inconsistency. Businesses that receive frequent payments will probably still want to run their own nodes for more independent security and quicker verification.`],
-  explain:[`SPV ist bequem, aber nicht so wasserdicht wie ein voller Node. Sie funktioniert zuverlässig, solange ehrliche Teilnehmer die Mehrheit der Rechenleistung im Netzwerk stellen &mdash; wird das Netzwerk jedoch von einem Angreifer dominiert, kann er einem SPV-Nutzer theoretisch gefälschte Transaktionen unterjubeln, weil dieser sie nicht komplett selbst prüft.`,
+  text_de:[`Die Verifikation ist somit zuverlässig, solange ehrliche Knoten das Netzwerk kontrollieren, jedoch anfälliger, wenn das Netzwerk von einem Angreifer überwältigt wird. Während Netzwerkknoten Transaktionen selbst verifizieren können, lässt sich die vereinfachte Methode durch gefälschte Transaktionen eines Angreifers täuschen, solange dieser das Netzwerk weiterhin überwältigen kann. Eine Schutzstrategie dagegen wäre, Warnmeldungen von Netzwerkknoten zu akzeptieren, die einen ungültigen Block erkennen, woraufhin die Software des Nutzers den vollständigen Block sowie die gemeldeten Transaktionen herunterlädt, um die Unstimmigkeit zu bestätigen. Unternehmen, die häufig Zahlungen empfangen, werden vermutlich weiterhin eigene Knoten betreiben wollen, für mehr unabhängige Sicherheit und schnellere Verifikation.`],
+  text_en:[`As such, the verification is reliable as long as honest nodes control the network, but is more vulnerable if the network is overpowered by an attacker. While network nodes can verify transactions for themselves, the simplified method can be fooled by an attacker's fabricated transactions for as long as the attacker can continue to overpower the network. One strategy to protect against this would be to accept alerts from network nodes when they detect an invalid block, prompting the user's software to download the full block and alerted transactions to confirm the inconsistency. Businesses that receive frequent payments will probably still want to run their own nodes for more independent security and quicker verification.`],
+  explain:[`SPV ist bequem, aber nicht so wasserdicht wie ein voller Node. Sie funktioniert zuverlässig, solange ehrliche Teilnehmer die Mehrheit der Rechenleistung stellen — wird das Netzwerk jedoch von einem Angreifer dominiert, kann er einem SPV-Nutzer theoretisch gefälschte Transaktionen unterjubeln.`,
   `Als Absicherung schlägt Satoshi vor: Volle Nodes könnten Alarm schlagen, wenn sie einen ungültigen Block entdecken, und leichte Wallets könnten dann gezielt nachfragen und den vollen Block zur Bestätigung herunterladen.`,
-  `Fazit des Absatzes: Für Alltagsnutzer ist SPV ein guter Kompromiss. Wer aber häufig hohe Beträge empfängt (z. B. ein Geschäft), sollte lieber einen eigenen vollen Node betreiben &mdash; für maximale, unabhängige Sicherheit und schnellere Bestätigung.`]},
+  `Fazit: Für Alltagsnutzer ist SPV ein guter Kompromiss. Wer aber häufig hohe Beträge empfängt, sollte lieber einen eigenen vollen Node betreiben.`]},
 
-{type:'sectionhead', num:'9', label:'Combining and Splitting Value'},
+{type:'sectionhead', num:'9', label_de:'Zusammenführen und Aufteilen von Werten', label_en:'Combining and Splitting Value'},
 {type:'block', id:'csv1', icon:'split', diagram:'tx-io',
   title:'Wechselgeld: mehrere Ein- und Ausgänge pro Transaktion',
-  text:[`Although it would be possible to handle coins individually, it would be unwieldy to make a separate transaction for every cent in a transfer. To allow value to be split and combined, transactions contain multiple inputs and outputs. Normally there will be either a single input from a larger previous transaction or multiple inputs combining smaller amounts, and at most two outputs: one for the payment, and one returning the change, if any, back to the sender.`],
-  explain:[`Man könnte sich vorstellen, jede "Münze" einzeln zu verwalten &mdash; aber das wäre in der Praxis furchtbar unpraktisch, wenn man für jeden einzelnen Cent eine eigene Transaktion bräuchte.`,
-  `Stattdessen erlaubt Bitcoin, dass eine Transaktion mehrere Inputs (Geldquellen aus früheren Transaktionen) und mehrere Outputs (Zahlungsziele) gleichzeitig hat. Das funktioniert im Prinzip wie beim Bezahlen mit einem großen Geldschein: Willst du z. B. 0,9 BTC bezahlen, hast aber nur ein "Guthaben-Stück" von 1,1 BTC, wird dieser eine Input in der Transaktion in zwei Outputs aufgeteilt &mdash; einer geht an den Empfänger (0,9 BTC), der andere ("Wechselgeld") geht zurück an dich selbst (0,2 BTC).`,
-  `Genauso lassen sich mehrere kleine Beträge aus früheren Transaktionen als mehrere Inputs kombinieren, um eine größere Zahlung zu ermöglichen. Das hält die Buchführung flexibel, ohne für jeden Cent eine eigene Transaktionshistorie führen zu müssen.`]},
+  text_de:[`Obwohl es möglich wäre, Münzen einzeln zu handhaben, wäre es unhandlich, für jeden Cent einer Überweisung eine eigene Transaktion zu erstellen. Damit sich Werte aufteilen und zusammenführen lassen, enthalten Transaktionen mehrere Ein- und Ausgänge. Normalerweise gibt es entweder einen einzelnen Eingang aus einer größeren vorherigen Transaktion oder mehrere Eingänge, die kleinere Beträge kombinieren, sowie höchstens zwei Ausgänge: einen für die Zahlung und einen, der das Wechselgeld – sofern vorhanden – an den Absender zurückgibt.`],
+  text_en:[`Although it would be possible to handle coins individually, it would be unwieldy to make a separate transaction for every cent in a transfer. To allow value to be split and combined, transactions contain multiple inputs and outputs. Normally there will be either a single input from a larger previous transaction or multiple inputs combining smaller amounts, and at most two outputs: one for the payment, and one returning the change, if any, back to the sender.`],
+  explain:[`Man könnte sich vorstellen, jede "Münze" einzeln zu verwalten — aber das wäre furchtbar unpraktisch, wenn man für jeden Cent eine eigene Transaktion bräuchte.`,
+  `Stattdessen erlaubt Bitcoin, dass eine Transaktion mehrere Inputs (Geldquellen aus früheren Transaktionen) und mehrere Outputs (Zahlungsziele) gleichzeitig hat. Willst du z. B. 0,9 BTC bezahlen, hast aber nur ein "Guthaben-Stück" von 1,1 BTC, wird dieser Input in zwei Outputs aufgeteilt — einer geht an den Empfänger (0,9 BTC), der andere ("Wechselgeld") zurück an dich selbst (0,2 BTC).`,
+  `Genauso lassen sich mehrere kleine Beträge aus früheren Transaktionen als mehrere Inputs kombinieren, um eine größere Zahlung zu ermöglichen.`]},
 {type:'block', id:'csv2', icon:'route',
   title:'Warum verzweigte Transaktionshistorien kein Problem sind',
-  text:[`It should be noted that fan-out, where a transaction depends on several transactions, and those transactions depend on many more, is not a problem here. There is never the need to extract a complete standalone copy of a transaction's history.`],
-  explain:[`Weil Transaktionen mehrere Inputs kombinieren können, entsteht mit der Zeit ein komplex verzweigter Stammbaum: Eine Transaktion hängt von mehreren vorherigen ab, die wiederum von noch mehr abhängen und so weiter ("Fan-Out").`,
-  `Das klingt kompliziert, ist aber kein praktisches Problem &mdash; anders als man vermuten könnte, muss nie die komplette, vollständige Historie einer Transaktion isoliert extrahiert und einzeln nachvollzogen werden. Das Netzwerk validiert immer nur, ob die referenzierten Inputs existieren und noch nicht ausgegeben wurden, nicht die gesamte verzweigte Ahnenreihe im Detail.`]},
+  text_de:[`Es sei angemerkt, dass Fan-out – bei dem eine Transaktion von mehreren Transaktionen abhängt und diese wiederum von noch mehr – hier kein Problem darstellt. Es besteht nie die Notwendigkeit, eine vollständige, eigenständige Kopie der Historie einer Transaktion zu extrahieren.`],
+  text_en:[`It should be noted that fan-out, where a transaction depends on several transactions, and those transactions depend on many more, is not a problem here. There is never the need to extract a complete standalone copy of a transaction's history.`],
+  explain:[`Weil Transaktionen mehrere Inputs kombinieren können, entsteht mit der Zeit ein komplex verzweigter Stammbaum ("Fan-Out").`,
+  `Das klingt kompliziert, ist aber kein praktisches Problem — nie muss die komplette Historie einer Transaktion isoliert extrahiert werden. Das Netzwerk validiert immer nur, ob die referenzierten Inputs existieren und noch nicht ausgegeben wurden.`]},
 
 {type:'divider', page:5},
 
-{type:'sectionhead', num:'10', label:'Privacy'},
+{type:'sectionhead', num:'10', label_de:'Privatsphäre', label_en:'Privacy'},
 {type:'block', id:'priv1', icon:'eye-off', diagram:'privacy',
   title:'Öffentlich, aber trotzdem anonym?',
-  text:[`The traditional banking model achieves a level of privacy by limiting access to information to the parties involved and the trusted third party. The necessity to announce all transactions publicly precludes this method, but privacy can still be maintained by breaking the flow of information in another place: by keeping public keys anonymous. The public can see that someone is sending an amount to someone else, but without information linking the transaction to anyone. This is similar to the level of information released by stock exchanges, where the time and size of individual trades, the "tape", is made public, but without telling who the parties were.`],
-  explain:[`Klassische Banken schützen deine Privatsphäre, indem sie den Zugriff auf deine Kontodaten stark einschränken &mdash; nur du und die Bank kennen die Details.`,
-  `Bitcoin funktioniert komplett anders: Jede Transaktion wird öffentlich für alle sichtbar bekanntgegeben (das ist ja die Grundlage, damit das Netzwerk Double-Spending verhindern kann). Privatsphäre entsteht hier nicht durch Geheimhaltung der Transaktion, sondern dadurch, dass die beteiligten öffentlichen Schlüssel selbst keine Namen oder Identitäten tragen &mdash; nur zufällige Zeichenketten (Pseudonymität).`,
-  `Der Vergleich mit der Börse trifft es gut: Jeder kann sehen, dass um 14:32 Uhr 3 Einheiten einer Aktie für einen bestimmten Preis gehandelt wurden ("die Tape") &mdash; aber wer genau gekauft und verkauft hat, bleibt unbekannt. Bei Bitcoin ist es ähnlich: Betrag, Zeitpunkt und beteiligte Adressen sind öffentlich einsehbar, aber welcher echte Mensch hinter einer Adresse steckt, steht nirgends.`]},
+  text_de:[`Das traditionelle Bankmodell erreicht ein gewisses Maß an Privatsphäre, indem es den Zugang zu Informationen auf die beteiligten Parteien und die vertrauenswürdige dritte Partei beschränkt. Die Notwendigkeit, alle Transaktionen öffentlich bekanntzugeben, schließt diese Methode aus, doch Privatsphäre lässt sich weiterhin wahren, indem der Informationsfluss an anderer Stelle unterbrochen wird: durch die Anonymität der öffentlichen Schlüssel. Die Öffentlichkeit kann sehen, dass jemand einen Betrag an jemand anderen sendet, jedoch ohne Informationen, die die Transaktion mit einer Person verknüpfen. Das ähnelt dem Informationsniveau, das Börsen veröffentlichen, wo Zeitpunkt und Umfang einzelner Handelsgeschäfte, das „Tape“, öffentlich gemacht werden, ohne preiszugeben, wer die Parteien waren.`],
+  text_en:[`The traditional banking model achieves a level of privacy by limiting access to information to the parties involved and the trusted third party. The necessity to announce all transactions publicly precludes this method, but privacy can still be maintained by breaking the flow of information in another place: by keeping public keys anonymous. The public can see that someone is sending an amount to someone else, but without information linking the transaction to anyone. This is similar to the level of information released by stock exchanges, where the time and size of individual trades, the "tape", is made public, but without telling who the parties were.`],
+  explain:[`Klassische Banken schützen deine Privatsphäre, indem sie den Zugriff auf deine Kontodaten stark einschränken — nur du und die Bank kennen die Details.`,
+  `Bitcoin funktioniert komplett anders: Jede Transaktion wird öffentlich für alle sichtbar bekanntgegeben. Privatsphäre entsteht hier nicht durch Geheimhaltung, sondern dadurch, dass die öffentlichen Schlüssel selbst keine Namen tragen — nur zufällige Zeichenketten (Pseudonymität).`,
+  `Der Vergleich mit der Börse trifft es gut: Jeder kann sehen, dass 3 Einheiten einer Aktie gehandelt wurden ("die Tape") — aber wer genau gekauft und verkauft hat, bleibt unbekannt. Bei Bitcoin sind Betrag, Zeitpunkt und Adressen öffentlich einsehbar, aber welcher echte Mensch dahintersteckt, steht nirgends.`]},
 {type:'block', id:'priv2', icon:'fingerprint',
   title:'Neue Adresse pro Zahlung als Schutzschild',
-  text:[`As an additional firewall, a new key pair should be used for each transaction to keep them from being linked to a common owner. Some linking is still unavoidable with multi-input transactions, which necessarily reveal that their inputs were owned by the same owner. The risk is that if the owner of a key is revealed, linking could reveal other transactions that belonged to the same owner.`],
-  explain:[`Als zusätzlichen Schutz empfiehlt das Paper: für jede einzelne Transaktion ein neues Schlüsselpaar (also eine neue Adresse) zu verwenden. So lässt sich schwerer erkennen, dass mehrere Transaktionen zur selben Person gehören &mdash; jede Zahlung sieht wie von einer "neuen" Identität aus.`,
-  `Ganz perfekt ist das aber nicht: Sobald eine Transaktion mehrere Inputs kombiniert (siehe Kapitel 9), verrät das automatisch, dass all diese Inputs demselben Besitzer gehören &mdash; sonst könnte er sie ja gar nicht gemeinsam ausgeben.`,
-  `Das eigentliche Risiko: Wird irgendwann bekannt, wer hinter einer einzigen Adresse steckt (z. B. weil eine Börse deine Identität mit einer Adresse verknüpft hat), können über solche Verkettungen auch andere, eigentlich getrennte Transaktionen derselben Person zugeordnet werden. Bitcoin ist also pseudonym, nicht wirklich anonym &mdash; ein wichtiger, oft missverstandener Punkt.`]},
-
-{type:'sectionhead', num:'11', label:'Calculations'},
+  text_de:[`Als zusätzliche Schutzmaßnahme sollte für jede Transaktion ein neues Schlüsselpaar verwendet werden, damit sie sich nicht auf einen gemeinsamen Besitzer zurückführen lassen. Eine gewisse Verkettung bleibt bei Transaktionen mit mehreren Eingängen dennoch unvermeidlich, da diese zwangsläufig offenbaren, dass ihre Eingänge demselben Besitzer gehörten. Das Risiko besteht darin, dass, sobald der Besitzer eines Schlüssels bekannt wird, die Verkettung auch andere Transaktionen desselben Besitzers offenlegen könnte.`],
+  text_en:[`As an additional firewall, a new key pair should be used for each transaction to keep them from being linked to a common owner. Some linking is still unavoidable with multi-input transactions, which necessarily reveal that their inputs were owned by the same owner. The risk is that if the owner of a key is revealed, linking could reveal other transactions that belonged to the same owner.`],
+  explain:[`Als zusätzlichen Schutz empfiehlt das Paper: für jede Transaktion ein neues Schlüsselpaar zu verwenden. So lässt sich schwerer erkennen, dass mehrere Transaktionen zur selben Person gehören.`,
+  `Ganz perfekt ist das aber nicht: Sobald eine Transaktion mehrere Inputs kombiniert, verrät das automatisch, dass all diese Inputs demselben Besitzer gehören.`,
+  `Das eigentliche Risiko: Wird irgendwann bekannt, wer hinter einer Adresse steckt, können über solche Verkettungen auch andere Transaktionen derselben Person zugeordnet werden. Bitcoin ist pseudonym, nicht wirklich anonym — ein wichtiger, oft missverstandener Punkt.`]},
+{type:'sectionhead', num:'11', label_de:'Berechnungen', label_en:'Calculations'},
 {type:'block', id:'calc1', icon:'scale',
   title:'Kann ein Angreifer das System austricksen?',
-  text:[`We consider the scenario of an attacker trying to generate an alternate chain faster than the honest chain. Even if this is accomplished, it does not throw the system open to arbitrary changes, such as creating value out of thin air or taking money that never belonged to the attacker. Nodes are not going to accept an invalid transaction as payment, and honest nodes will never accept a block containing them. An attacker can only try to change one of his own transactions to take back money he recently spent.`],
-  explain:[`Dieses Kapitel rechnet mathematisch durch, wie riskant ein Angriff auf Bitcoin tatsächlich ist. Zuerst die gute Nachricht vorab, bevor es in die Formeln geht: Selbst ein erfolgreicher Angreifer kann nicht einfach "alles" tun.`,
-  `Ein Angreifer kann keine neuen Coins aus dem Nichts erschaffen und auch nicht fremdes Geld stehlen, das ihm nie gehört hat &mdash; ehrliche Nodes würden einen Block mit ungültigen Transaktionen niemals akzeptieren, egal wie viel Rechenleistung dahintersteckt. Die Regeln selbst (was eine gültige Transaktion ist) lassen sich durch reine Rechenleistung nicht brechen.`,
-  `Das Einzige, was ein Angreifer wirklich versuchen kann: eine seiner eigenen, kürzlich getätigten Zahlungen rückgängig zu machen &mdash; also sich selbst Geld "zurückzuholen", das er gerade erst ausgegeben hat (Double-Spend). Genau die Erfolgswahrscheinlichkeit dieses einen Angriffs wird jetzt Schritt für Schritt berechnet.`]},
+  text_de:[`Wir betrachten das Szenario eines Angreifers, der versucht, eine alternative Kette schneller zu erzeugen als die ehrliche Kette. Selbst wenn dies gelingt, öffnet das System dadurch nicht Tür und Tor für beliebige Änderungen, etwa das Erschaffen von Wert aus dem Nichts oder das Aneignen von Geld, das dem Angreifer nie gehörte. Knoten akzeptieren keine ungültige Transaktion als Zahlung, und ehrliche Knoten werden niemals einen Block akzeptieren, der solche enthält. Ein Angreifer kann lediglich versuchen, eine seiner eigenen Transaktionen zu ändern, um Geld zurückzuholen, das er kürzlich ausgegeben hat.`],
+  text_en:[`We consider the scenario of an attacker trying to generate an alternate chain faster than the honest chain. Even if this is accomplished, it does not throw the system open to arbitrary changes, such as creating value out of thin air or taking money that never belonged to the attacker. Nodes are not going to accept an invalid transaction as payment, and honest nodes will never accept a block containing them. An attacker can only try to change one of his own transactions to take back money he recently spent.`],
+  explain:[`Dieses Kapitel rechnet mathematisch durch, wie riskant ein Angriff auf Bitcoin tatsächlich ist. Zuerst die gute Nachricht vorab: Selbst ein erfolgreicher Angreifer kann nicht einfach "alles" tun.`,
+  `Ein Angreifer kann keine neuen Coins aus dem Nichts erschaffen und auch nicht fremdes Geld stehlen, das ihm nie gehört hat — ehrliche Nodes würden einen Block mit ungültigen Transaktionen niemals akzeptieren, egal wie viel Rechenleistung dahintersteckt.`,
+  `Das Einzige, was ein Angreifer wirklich versuchen kann: eine seiner eigenen, kürzlich getätigten Zahlungen rückgängig zu machen — also sich selbst Geld "zurückzuholen", das er gerade erst ausgegeben hat (Double-Spend). Genau die Erfolgswahrscheinlichkeit dieses einen Angriffs wird jetzt Schritt für Schritt berechnet.`]},
 {type:'block', id:'calc2', icon:'infinity',
   title:'Das Rennen als Glücksspiel: Gambler’s Ruin',
-  text:[`The race between the honest chain and an attacker chain can be characterized as a Binomial Random Walk. The success event is the honest chain being extended by one block, increasing its lead by +1, and the failure event is the attacker's chain being extended by one block, reducing the gap by -1.`,
+  text_de:[`Das Wettrennen zwischen der ehrlichen Kette und einer Angreifer-Kette lässt sich als binomialer Zufallspfad (Binomial Random Walk) charakterisieren. Das Erfolgsereignis ist, dass die ehrliche Kette um einen Block verlängert wird und ihren Vorsprung um +1 erhöht; das Misserfolgsereignis ist, dass die Kette des Angreifers um einen Block verlängert wird und den Abstand um -1 verringert.`,
+  `Die Wahrscheinlichkeit, dass ein Angreifer einen gegebenen Rückstand aufholt, ist analog zu einem Gambler's-Ruin-Problem. Angenommen, ein Spieler mit unbegrenztem Kredit startet mit einem Rückstand und spielt potenziell unendlich viele Runden, um die Gewinnschwelle zu erreichen. Wir können die Wahrscheinlichkeit berechnen, dass er die Gewinnschwelle jemals erreicht — beziehungsweise dass ein Angreifer die ehrliche Kette jemals einholt — wie folgt [8]:`],
+  text_en:[`The race between the honest chain and an attacker chain can be characterized as a Binomial Random Walk. The success event is the honest chain being extended by one block, increasing its lead by +1, and the failure event is the attacker's chain being extended by one block, reducing the gap by -1.`,
   `The probability of an attacker catching up from a given deficit is analogous to a Gambler's Ruin problem. Suppose a gambler with unlimited credit starts at a deficit and plays potentially an infinite number of trials to try to reach breakeven. We can calculate the probability he ever reaches breakeven, or that an attacker ever catches up with the honest chain, as follows [8]:`],
-  extraHTML:`<div class="formula-box">
-  <div><span class="fl">p</span> = Wahrscheinlichkeit, dass ein <b>ehrlicher</b> Knoten den nächsten Block findet</div>
-  <div><span class="fl">q</span> = Wahrscheinlichkeit, dass der <b>Angreifer</b> den nächsten Block findet</div>
-  <div><span class="fl">q<sub>z</sub></span> = Wahrscheinlichkeit, dass der Angreifer einen Rückstand von <span class="fl">z</span> Blöcken je aufholt</div>
-  <div style="margin-top:8px">q<sub>z</sub> = <span class="fv">1</span> &nbsp; falls p &le; q</div>
-  <div>q<sub>z</sub> = <span class="fv">(q / p)<sup>z</sup></span> &nbsp; falls p &gt; q</div>
-  </div>`,
-  explain:[`Das Wettrennen zwischen der ehrlichen Kette und einer Angreifer-Kette lässt sich als "Binomial Random Walk" beschreiben &mdash; ein Zufallsspaziergang, bei dem der Abstand zwischen beiden Ketten bei jedem neuen Block entweder um 1 wächst (ehrliche Seite findet einen Block) oder um 1 schrumpft (Angreifer findet einen Block).`,
-  `Das ist mathematisch identisch mit einem klassischen Problem aus der Glücksspiel-Theorie namens "Gambler's Ruin" (Ruin des Spielers): Ein Spieler mit unbegrenztem Kredit startet im Minus und spielt unendlich oft weiter, in der Hoffnung, irgendwann auf null zu kommen. Hier ist der "Spieler" der Angreifer, und "auf null kommen" heißt: die ehrliche Kette einholen.`,
-  `Die Formel oben ist das Ergebnis: p ist die Chance pro Block, dass die ehrliche Seite gewinnt, q die Chance für den Angreifer (p + q = 1). Ist der Angreifer mindestens gleich stark wie das ehrliche Netzwerk (p &le; q), holt er mit Sicherheit irgendwann auf (q<sub>z</sub>=1) &mdash; logisch, dann hat er ja die Mehrheit. Ist er aber schwächer (p &gt; q), sinkt seine Aufholchance mit jedem zusätzlichen Blockvorsprung exponentiell (q/p hoch z). Genau dieser exponentielle Abfall ist der eigentliche Sicherheitsmechanismus von Bitcoin.`]},
+  extraHTML_de:`<div class="math-defs">
+  <div><i>p</i> = Wahrscheinlichkeit, dass ein ehrlicher Knoten den n&auml;chsten Block findet</div>
+  <div><i>q</i> = Wahrscheinlichkeit, dass der Angreifer den n&auml;chsten Block findet</div>
+  <div><i>q<sub>z</sub></i> = Wahrscheinlichkeit, dass der Angreifer von <i>z</i> Bl&ouml;cken R&uuml;ckstand je aufholt</div>
+  </div>${formulaBox('qz','Original-Formel &sect; 11','Original formula &sect; 11','de')}`,
+  extraHTML_en:`<div class="math-defs">
+  <div><i>p</i> = probability an honest node finds the next block</div>
+  <div><i>q</i> = probability the attacker finds the next block</div>
+  <div><i>q<sub>z</sub></i> = probability the attacker will ever catch up from <i>z</i> blocks behind</div>
+  </div>${formulaBox('qz','Original-Formel &sect; 11','Original formula &sect; 11','en')}`,
+  explain:[`Das Wettrennen zwischen der ehrlichen Kette und einer Angreifer-Kette lässt sich als "Binomial Random Walk" beschreiben — ein Zufallsspaziergang, bei dem der Abstand zwischen beiden Ketten bei jedem neuen Block entweder um 1 wächst oder um 1 schrumpft.`,
+  `Das ist mathematisch identisch mit "Gambler's Ruin": Ein Spieler mit unbegrenztem Kredit startet im Minus und spielt unendlich oft weiter, in der Hoffnung, irgendwann auf null zu kommen. Hier ist der "Spieler" der Angreifer, und "auf null kommen" heißt: die ehrliche Kette einholen.`,
+  `Die Formel oben ist das Ergebnis: p ist die Chance pro Block, dass die ehrliche Seite gewinnt, q die Chance für den Angreifer. Ist der Angreifer mindestens gleich stark (p ≤ q), holt er mit Sicherheit irgendwann auf. Ist er schwächer (p > q), sinkt seine Aufholchance mit jedem zusätzlichen Blockvorsprung exponentiell. Genau dieser exponentielle Abfall ist der eigentliche Sicherheitsmechanismus von Bitcoin.`]},
 
 {type:'divider', page:6},
 
 {type:'block', id:'calc3', icon:'clock',
   title:'Warum man auf Bestätigungen wartet',
-  text:[`Given our assumption that p > q, the probability drops exponentially as the number of blocks the attacker has to catch up with increases. With the odds against him, if he doesn't make a lucky lunge forward early on, his chances become vanishingly small as he falls further behind.`,
+  text_de:[`Unter der Annahme, dass p > q gilt, sinkt die Wahrscheinlichkeit exponentiell mit der Anzahl der Blöcke, die der Angreifer aufholen muss. Da die Chancen gegen ihn stehen, werden seine Aussichten, sofern ihm nicht früh ein glücklicher Vorstoß gelingt, mit zunehmendem Rückstand verschwindend gering.`,
+  `Wir betrachten nun, wie lange der Empfänger einer neuen Transaktion warten muss, um hinreichend sicher zu sein, dass der Absender die Transaktion nicht mehr ändern kann. Wir nehmen an, der Absender sei ein Angreifer, der den Empfänger eine Weile glauben lassen will, er habe bezahlt, um die Zahlung nach einiger Zeit dann doch wieder an sich selbst umzuleiten. Der Empfänger wird alarmiert, wenn dies geschieht, doch der Absender hofft, dass es dann bereits zu spät ist.`,
+  `Der Empfänger erzeugt ein neues Schlüsselpaar und übergibt den öffentlichen Schlüssel erst kurz vor der Signatur an den Absender. Das verhindert, dass der Absender im Voraus eine Kette von Blöcken vorbereitet, indem er kontinuierlich daran arbeitet, bis er das Glück hat, weit genug vorauszuliegen. Sobald die Transaktion gesendet ist, beginnt der unehrliche Absender im Geheimen mit der Arbeit an einer parallelen Kette, die eine alternative Version seiner Transaktion enthält.`],
+  text_en:[`Given our assumption that p > q, the probability drops exponentially as the number of blocks the attacker has to catch up with increases. With the odds against him, if he doesn't make a lucky lunge forward early on, his chances become vanishingly small as he falls further behind.`,
   `We now consider how long the recipient of a new transaction needs to wait before being sufficiently certain the sender can't change the transaction. We assume the sender is an attacker who wants to make the recipient believe he paid him for a while, then switch it to pay back to himself after some time has passed. The receiver will be alerted when that happens, but the sender hopes it will be too late.`,
   `The receiver generates a new key pair and gives the public key to the sender shortly before signing. This prevents the sender from preparing a chain of blocks ahead of time by working on it continuously until he is lucky enough to get far enough ahead, then executing the transaction at that moment. Once the transaction is sent, the dishonest sender starts working in secret on a parallel chain containing an alternate version of his transaction.`],
-  explain:[`Unter der realistischen Annahme, dass ehrliche Teilnehmer die Mehrheit stellen (p &gt; q), sinkt die Erfolgschance des Angreifers exponentiell mit jedem weiteren Block, den er aufholen müsste. Ohne frühen Glückstreffer werden seine Chancen mit der Zeit verschwindend gering.`,
-  `Daraus leitet sich die bekannte Praxis ab, auf "Bestätigungen" zu warten: Ein Empfänger sollte nicht sofort nach Erhalt einer Transaktion handeln (z. B. eine Ware herausgeben), sondern abwarten, bis einige weitere Blöcke draufgebaut wurden &mdash; jeder zusätzliche Block macht einen nachträglichen Betrug unwahrscheinlicher.`,
+  explain:[`Unter der realistischen Annahme, dass ehrliche Teilnehmer die Mehrheit stellen (p > q), sinkt die Erfolgschance des Angreifers exponentiell mit jedem weiteren Block. Daraus leitet sich die bekannte Praxis ab, auf "Bestätigungen" zu warten: Jeder zusätzliche Block macht einen nachträglichen Betrug unwahrscheinlicher.`,
   `Das angenommene Angriffsszenario: Ein unehrlicher Sender zahlt scheinbar, wartet, bis der Empfänger die Ware herausgibt, und versucht dann heimlich, eine alternative Version der Transaktion durchzusetzen, die das Geld zu ihm zurückschickt.`,
-  `Ein zusätzlicher Schutz: Der Empfänger erzeugt kurz vor der Signatur ein frisches Schlüsselpaar und gibt erst dann den öffentlichen Schlüssel heraus. So kann der Angreifer nicht schon Tage im Voraus heimlich an einer konkurrierenden Kette rechnen, in der Hoffnung auf einen frühen Vorsprung &mdash; er kann erst ab dem Moment der eigentlichen Zahlung mit seiner geheimen Parallelkette beginnen.`]},
+  `Ein zusätzlicher Schutz: Der Empfänger erzeugt kurz vor der Signatur ein frisches Schlüsselpaar und gibt erst dann den öffentlichen Schlüssel heraus. So kann der Angreifer nicht schon Tage im Voraus heimlich an einer konkurrierenden Kette rechnen.`]},
 {type:'block', id:'calc4', icon:'calculator',
   title:'Die Formel, mit der man das Risiko berechnet',
-  text:[`The recipient waits until the transaction has been added to a block and z blocks have been linked after it. He doesn't know the exact amount of progress the attacker has made, but assuming the honest blocks took the average expected time per block, the attacker's potential progress will be a Poisson distribution with expected value:`,
-  `To get the probability the attacker could still catch up now, we multiply the Poisson density for each amount of progress he could have made by the probability he could catch up from that point. Rearranging to avoid summing the infinite tail of the distribution, and converting to C code:`],
-  extraHTML:`<div class="formula-box">
-  <div>Erwarteter Vorsprung des Angreifers: &lambda; = z &middot; (q / p)</div>
-  </div>
-  <div class="code-box"><pre>#include &lt;math.h&gt;
+  parts_de:[
+    {p:`Der Empfänger wartet, bis die Transaktion in einen Block aufgenommen wurde und z weitere Blöcke daran angehängt sind. Er kennt das genaue Ausmaß des Fortschritts des Angreifers nicht, doch unter der Annahme, dass die ehrlichen Blöcke die durchschnittlich erwartete Zeit pro Block benötigten, folgt der mögliche Fortschritt des Angreifers einer Poisson-Verteilung mit dem Erwartungswert:`},
+    {html:formulaBox('lambda','Erwartungswert &lambda;','Expected value &lambda;','de')},
+    {p:`Um die Wahrscheinlichkeit zu erhalten, dass der Angreifer jetzt noch aufholen könnte, multiplizieren wir die Poisson-Dichte für jeden möglichen Fortschritt mit der Wahrscheinlichkeit, von diesem Punkt aus aufzuholen:`},
+    {html:formulaBox('poisson-sum','Poisson-gewichtete Aufhol-Wahrscheinlichkeit','Poisson-weighted catch-up probability','de')},
+    {p:`Umgeformt, um die Summierung des unendlichen Randbereichs der Verteilung zu vermeiden:`},
+    {html:formulaBox('rearranged','Umgeformt','Rearranged','de')},
+    {p:`Übersetzt in C-Code:`},
+    {html:`<div class="code-box"><pre>#include &lt;math.h&gt;
 double AttackerSuccessProbability(double q, int z)
 {
     double p = 1.0 - q;
@@ -805,18 +1063,44 @@ double AttackerSuccessProbability(double q, int z)
         sum -= poisson * (1 - pow(q / p, z - k));
     }
     return sum;
-}</pre></div>`,
-  explain:[`Der Empfänger wartet ab, bis z weitere Blöcke nach seiner Transaktion angehängt wurden. Er weiß aber nicht genau, wie weit der Angreifer im Geheimen mit seiner Parallelkette schon gekommen ist &mdash; er kann es nur statistisch schätzen.`,
-  `Diese Unsicherheit wird mit einer Poisson-Verteilung modelliert (das ist die Standardverteilung für "wie oft passiert ein zufälliges Ereignis in einem festen Zeitraum", hier: wie viele Blöcke der Angreifer im Schnitt heimlich schaffen konnte, während z ehrliche Blöcke entstanden).`,
-  `Die Formel kombiniert dann für jeden möglichen Vorsprung des Angreifers zwei Dinge: die Wahrscheinlichkeit, dass genau dieser Vorsprung eingetreten ist (Poisson), multipliziert mit der Wahrscheinlichkeit, dass er von genau dort aus noch aufholt (die Gambler's-Ruin-Formel von vorhin). Alles zusammenaddiert ergibt die Gesamt-Erfolgswahrscheinlichkeit des Angriffs.`,
-  `Satoshi übersetzt diese Formel direkt in lauffähigen C-Code (oben) &mdash; man kann also für ein gegebenes q (Angreifer-Anteil an der Rechenleistung) und z (Anzahl abgewarteter Bestätigungen) exakt ausrechnen, wie riskant es ist, der Zahlung schon zu vertrauen.`]},
+}</pre></div>`}
+  ],
+  parts_en:[
+    {p:`The recipient waits until the transaction has been added to a block and z blocks have been linked after it. He doesn't know the exact amount of progress the attacker has made, but assuming the honest blocks took the average expected time per block, the attacker's potential progress will be a Poisson distribution with expected value:`},
+    {html:formulaBox('lambda','Erwartungswert &lambda;','Expected value &lambda;','en')},
+    {p:`To get the probability the attacker could still catch up now, we multiply the Poisson density for each amount of progress he could have made by the probability he could catch up from that point:`},
+    {html:formulaBox('poisson-sum','Poisson-gewichtete Aufhol-Wahrscheinlichkeit','Poisson-weighted catch-up probability','en')},
+    {p:`Rearranging to avoid summing the infinite tail of the distribution:`},
+    {html:formulaBox('rearranged','Umgeformt','Rearranged','en')},
+    {p:`Converting to C code:`},
+    {html:`<div class="code-box"><pre>#include &lt;math.h&gt;
+double AttackerSuccessProbability(double q, int z)
+{
+    double p = 1.0 - q;
+    double lambda = z * (q / p);
+    double sum = 1.0;
+    int i, k;
+    for (k = 0; k &lt;= z; k++)
+    {
+        double poisson = exp(-lambda);
+        for (i = 1; i &lt;= k; i++)
+            poisson *= lambda / i;
+        sum -= poisson * (1 - pow(q / p, z - k));
+    }
+    return sum;
+}</pre></div>`}
+  ],
+  explain:[`Der Empfänger wartet ab, bis z weitere Blöcke nach seiner Transaktion angehängt wurden. Er weiß aber nicht genau, wie weit der Angreifer im Geheimen schon gekommen ist — er kann es nur statistisch schätzen.`,
+  `Diese Unsicherheit wird mit einer Poisson-Verteilung modelliert. Die Formel kombiniert für jeden möglichen Vorsprung des Angreifers zwei Dinge: die Wahrscheinlichkeit, dass genau dieser Vorsprung eingetreten ist, multipliziert mit der Wahrscheinlichkeit, dass er von dort aus noch aufholt (Gambler's Ruin von vorhin).`,
+  `Satoshi übersetzt diese Formel direkt in lauffähigen C-Code (oben) — man kann also für ein gegebenes q (Angreifer-Anteil an der Rechenleistung) und z (Anzahl abgewarteter Bestätigungen) exakt ausrechnen, wie riskant es ist, der Zahlung schon zu vertrauen.`]},
 
 {type:'divider', page:7},
 
 {type:'block', id:'calc5', icon:'trending-down',
   title:'Die Zahlen: Warum sich mehrere Bestätigungen lohnen',
-  text:[`Running some results, we can see the probability drop off exponentially with z.`],
-  extraHTML:`<div class="table-box"><table>
+  text_de:[`Berechnet man einige Ergebnisse, zeigt sich, dass die Wahrscheinlichkeit mit z exponentiell abfällt.`],
+  text_en:[`Running some results, we can see the probability drop off exponentially with z.`],
+  extraHTML_de:`<div class="table-box"><table>
   <tr><th>q = 0.1 (Angreifer hat 10% der Rechenleistung)</th><th></th></tr>
   <tr><td>z = 1</td><td>P = 0.2045873</td></tr>
   <tr><td>z = 2</td><td>P = 0.0509779</td></tr>
@@ -825,7 +1109,7 @@ double AttackerSuccessProbability(double q, int z)
   <tr><td>z = 10</td><td>P = 0.0000012</td></tr>
   </table></div>
   <div class="table-box" style="margin-top:10px"><table>
-  <tr><th>P &lt; 0.1% ab wie vielen Blöcken z?</th><th></th></tr>
+  <tr><th>P &lt; 0.1% ab wie vielen Bl&ouml;cken z?</th><th></th></tr>
   <tr><td>q = 0.10</td><td>z = 5</td></tr>
   <tr><td>q = 0.15</td><td>z = 8</td></tr>
   <tr><td>q = 0.20</td><td>z = 11</td></tr>
@@ -835,24 +1119,44 @@ double AttackerSuccessProbability(double q, int z)
   <tr><td>q = 0.40</td><td>z = 89</td></tr>
   <tr><td>q = 0.45</td><td>z = 340</td></tr>
   </table></div>`,
-  explain:[`Das sind die konkreten Zahlen, die aus der Formel des vorigen Absatzes herausfallen &mdash; und sie zeigen eindrucksvoll, wie schnell das Risiko sinkt. Kontrolliert ein Angreifer z. B. 10% der gesamten Netzwerk-Rechenleistung (q = 0,1), liegt seine Erfolgschance schon nach nur 5 Bestätigungen unter 0,1%.`,
-  `Die zweite Tabelle dreht die Frage um: Wie viele Bestätigungen braucht man, damit das Risiko unter 0,1% fällt, abhängig davon, wie stark der Angreifer ist? Bei einem Angreifer mit 30% der Rechenleistung braucht es 24 Bestätigungen, bei 45% (fast der halben Rechenleistung des gesamten Netzwerks!) schon 340.`,
-  `Aus genau solchen Berechnungen stammt die in der Praxis oft genannte Faustregel "6 Bestätigungen gelten als sicher" &mdash; ein guter Kompromiss zwischen Wartezeit und Sicherheit gegen realistisch anzunehmende Angreifer. Wichtig zu verstehen: Sicherheit ist hier nicht schwarz-weiß, sondern eine Wahrscheinlichkeit, die mit jedem weiteren Block wächst.`]},
+  extraHTML_en:`<div class="table-box"><table>
+  <tr><th>q = 0.1 (attacker has 10% of hash power)</th><th></th></tr>
+  <tr><td>z = 1</td><td>P = 0.2045873</td></tr>
+  <tr><td>z = 2</td><td>P = 0.0509779</td></tr>
+  <tr><td>z = 3</td><td>P = 0.0131722</td></tr>
+  <tr class="hi"><td>z = 5</td><td>P = 0.0009137</td></tr>
+  <tr><td>z = 10</td><td>P = 0.0000012</td></tr>
+  </table></div>
+  <div class="table-box" style="margin-top:10px"><table>
+  <tr><th>Confirmations z until P &lt; 0.1%?</th><th></th></tr>
+  <tr><td>q = 0.10</td><td>z = 5</td></tr>
+  <tr><td>q = 0.15</td><td>z = 8</td></tr>
+  <tr><td>q = 0.20</td><td>z = 11</td></tr>
+  <tr><td>q = 0.25</td><td>z = 15</td></tr>
+  <tr class="hi"><td>q = 0.30</td><td>z = 24</td></tr>
+  <tr><td>q = 0.35</td><td>z = 41</td></tr>
+  <tr><td>q = 0.40</td><td>z = 89</td></tr>
+  <tr><td>q = 0.45</td><td>z = 340</td></tr>
+  </table></div>`,
+  explain:[`Das sind die konkreten Zahlen aus der Formel des vorigen Absatzes — und sie zeigen, wie schnell das Risiko sinkt. Kontrolliert ein Angreifer 10% der Netzwerk-Rechenleistung, liegt seine Erfolgschance schon nach 5 Bestätigungen unter 0,1%.`,
+  `Die zweite Tabelle dreht die Frage um: Wie viele Bestätigungen braucht man, damit das Risiko unter 0,1% fällt? Bei 30% Angreifer-Anteil braucht es 24 Bestätigungen, bei 45% schon 340.`,
+  `Aus genau solchen Berechnungen stammt die Faustregel "6 Bestätigungen gelten als sicher" — ein guter Kompromiss zwischen Wartezeit und Sicherheit.`]},
 
-{type:'sectionhead', num:'12', label:'Conclusion'},
+{type:'sectionhead', num:'12', label_de:'Fazit', label_en:'Conclusion'},
 {type:'block', id:'con1', icon:'flag',
   title:'Zusammengefasst: was Bitcoin eigentlich leistet',
-  text:[`We have proposed a system for electronic transactions without relying on trust. We started with the usual framework of coins made from digital signatures, which provides strong control of ownership, but is incomplete without a way to prevent double-spending. To solve this, we proposed a peer-to-peer network using proof-of-work to record a public history of transactions that quickly becomes computationally impractical for an attacker to change if honest nodes control a majority of CPU power. The network is robust in its unstructured simplicity. Nodes work all at once with little coordination. They do not need to be identified, since messages are not routed to any particular place and only need to be delivered on a best effort basis. Nodes can leave and rejoin the network at will, accepting the proof-of-work chain as proof of what happened while they were gone. They vote with their CPU power, expressing their acceptance of valid blocks by working on extending them and rejecting invalid blocks by refusing to work on them. Any needed rules and incentives can be enforced with this consensus mechanism.`],
-  explain:[`Der Schlussabsatz fasst noch einmal die gesamte Argumentationskette des Papers zusammen: Digitale Signaturen allein regeln zwar sauber, wer eine Münze besitzt &mdash; lösen aber nicht das Double-Spending-Problem. Die Lösung ist ein Peer-to-Peer-Netzwerk, das mittels Proof-of-Work eine öffentliche, praktisch unveränderliche Transaktionshistorie führt, solange ehrliche Teilnehmer die Mehrheit der Rechenleistung stellen.`,
-  `Bemerkenswert ist die Betonung der "unstrukturierten Einfachheit": Es gibt keine Server-Hierarchie, keine Registrierung, keine feste Adressierung. Nodes müssen sich nicht einmal gegenseitig kennen oder identifizieren &mdash; Nachrichten werden einfach nach bestem Bemühen weitergereicht, und jeder Node kann jederzeit kommen und gehen, ohne dass das System zusammenbricht.`,
-  `Der letzte Satz bringt die Kernmechanik auf den Punkt: "Abstimmen mit CPU-Rechenleistung". Es gibt kein Komitee, das Regeln durchsetzt &mdash; die Regeln setzen sich selbst durch, weil es für jeden einzelnen Teilnehmer wirtschaftlich rational ist, nur gültige Blöcke weiterzubauen und ungültige zu ignorieren. Genau dieses selbsttragende Anreizsystem ist Bitcoins eigentliche Erfindung.`]},
+  text_de:[`Wir haben ein System für elektronische Transaktionen vorgeschlagen, das ohne Vertrauen auskommt. Wir begannen mit dem üblichen Rahmenwerk von Münzen aus digitalen Signaturen, das eine starke Kontrolle über Eigentum bietet, jedoch unvollständig bleibt ohne eine Möglichkeit, Doppelausgaben zu verhindern. Zur Lösung schlugen wir ein Peer-to-Peer-Netzwerk vor, das mittels Arbeitsnachweis eine öffentliche Transaktionshistorie aufzeichnet, die für einen Angreifer rechnerisch schnell impraktikabel zu verändern wird, sofern ehrliche Knoten die Mehrheit der Rechenleistung kontrollieren. Das Netzwerk ist robust in seiner unstrukturierten Einfachheit. Knoten arbeiten alle gleichzeitig mit wenig Koordination. Sie müssen nicht identifiziert werden, da Nachrichten nicht an einen bestimmten Ort geleitet werden müssen, sondern lediglich nach bestem Bemühen zugestellt werden. Knoten können das Netzwerk jederzeit verlassen und wieder beitreten und akzeptieren dabei die Proof-of-Work-Kette als Nachweis dessen, was in ihrer Abwesenheit geschah. Sie stimmen mit ihrer Rechenleistung ab, indem sie ihre Zustimmung zu gültigen Blöcken durch Weiterarbeit an deren Verlängerung ausdrücken und ungültige Blöcke ablehnen, indem sie die Arbeit daran verweigern. Alle benötigten Regeln und Anreize lassen sich mit diesem Konsensmechanismus durchsetzen.`],
+  text_en:[`We have proposed a system for electronic transactions without relying on trust. We started with the usual framework of coins made from digital signatures, which provides strong control of ownership, but is incomplete without a way to prevent double-spending. To solve this, we proposed a peer-to-peer network using proof-of-work to record a public history of transactions that quickly becomes computationally impractical for an attacker to change if honest nodes control a majority of CPU power. The network is robust in its unstructured simplicity. Nodes work all at once with little coordination. They do not need to be identified, since messages are not routed to any particular place and only need to be delivered on a best effort basis. Nodes can leave and rejoin the network at will, accepting the proof-of-work chain as proof of what happened while they were gone. They vote with their CPU power, expressing their acceptance of valid blocks by working on extending them and rejecting invalid blocks by refusing to work on them. Any needed rules and incentives can be enforced with this consensus mechanism.`],
+  explain:[`Der Schlussabsatz fasst die gesamte Argumentation zusammen: Digitale Signaturen allein regeln sauber, wer eine Münze besitzt — lösen aber nicht das Double-Spending-Problem. Die Lösung ist ein Peer-to-Peer-Netzwerk, das mittels Proof-of-Work eine öffentliche, praktisch unveränderliche Transaktionshistorie führt, solange ehrliche Teilnehmer die Mehrheit der Rechenleistung stellen.`,
+  `Bemerkenswert ist die Betonung der "unstrukturierten Einfachheit": Es gibt keine Server-Hierarchie, keine Registrierung, keine feste Adressierung. Nodes müssen sich nicht einmal gegenseitig kennen — Nachrichten werden einfach nach bestem Bemühen weitergereicht.`,
+  `Der letzte Satz bringt die Kernmechanik auf den Punkt: "Abstimmen mit CPU-Rechenleistung". Es gibt kein Komitee, das Regeln durchsetzt — die Regeln setzen sich selbst durch, weil es für jeden Teilnehmer wirtschaftlich rational ist, nur gültige Blöcke weiterzubauen und ungültige zu ignorieren.`]},
 
 {type:'divider', page:8},
 
-{type:'sectionhead', label:'References'},
+{type:'sectionhead', label_de:'Referenzen', label_en:'References'},
 {type:'block', id:'ref1', icon:'book-open',
   title:'Woher die Ideen kommen',
-  text:[`[1] W. Dai, "b-money," http://www.weidai.com/bmoney.txt, 1998.`,
+  text_de:[`[1] W. Dai, "b-money," http://www.weidai.com/bmoney.txt, 1998.`,
   `[2] H. Massias, X.S. Avila, and J.-J. Quisquater, "Design of a secure timestamping service with minimal trust requirements," In 20th Symposium on Information Theory in the Benelux, May 1999.`,
   `[3] S. Haber, W.S. Stornetta, "How to time-stamp a digital document," In Journal of Cryptology, vol 3, no 2, pages 99-111, 1991.`,
   `[4] D. Bayer, S. Haber, W.S. Stornetta, "Improving the efficiency and reliability of digital time-stamping," In Sequences II: Methods in Communication, Security and Computer Science, pages 329-334, 1993.`,
@@ -860,93 +1164,138 @@ double AttackerSuccessProbability(double q, int z)
   `[6] A. Back, "Hashcash - a denial of service counter-measure," http://www.hashcash.org/papers/hashcash.pdf, 2002.`,
   `[7] R.C. Merkle, "Protocols for public key cryptosystems," In Proc. 1980 Symposium on Security and Privacy, IEEE Computer Society, pages 122-133, April 1980.`,
   `[8] W. Feller, "An introduction to probability theory and its applications," 1957.`],
-  explain:[`Satoshi hat Bitcoin nicht aus dem Nichts erfunden, sondern geschickt bestehende kryptografische Bausteine kombiniert &mdash; die eigentliche Innovation war die Kombination, nicht jeder einzelne Baustein für sich:`,
-  `[1] b-money von Wei Dai lieferte schon 1998 die Grundidee eines digitalen, dezentralen Geldsystems. [2]&ndash;[5] sind ältere Arbeiten zu kryptografischen Zeitstempel-Diensten &mdash; genau das Konzept, das Kapitel 3 aufgreift. [6] ist Adam Backs Hashcash, die Vorlage für den Proof-of-Work-Mechanismus (ursprünglich gegen E-Mail-Spam gedacht). [7] ist Ralph Merkles Arbeit zu den nach ihm benannten Merkle-Bäumen, die das Pruning in Kapitel 7 ermöglichen. [8] ist ein klassisches Lehrbuch zur Wahrscheinlichkeitstheorie, die Grundlage für die "Gambler's Ruin"-Rechnung in Kapitel 11.`]}
+  text_en:null,
+  explain:[`Satoshi hat Bitcoin nicht aus dem Nichts erfunden, sondern geschickt bestehende kryptografische Bausteine kombiniert — die eigentliche Innovation war die Kombination:`,
+  `[1] b-money von Wei Dai lieferte schon 1998 die Grundidee eines digitalen, dezentralen Geldsystems. [2]–[5] sind ältere Arbeiten zu kryptografischen Zeitstempel-Diensten. [6] ist Adam Backs Hashcash, die Vorlage für Proof-of-Work. [7] ist Ralph Merkles Arbeit zu Merkle-Bäumen. [8] ist ein klassisches Lehrbuch zur Wahrscheinlichkeitstheorie, Grundlage für "Gambler's Ruin" in Kapitel 11.`]}
 ];
+/* ============ STATE ============ */
+const STORE = {
+  get theme(){ return localStorage.getItem('bwe-theme') || 'light'; },
+  set theme(v){ localStorage.setItem('bwe-theme', v); },
+  get lang(){ return localStorage.getItem('bwe-lang') || 'de'; },
+  set lang(v){ localStorage.setItem('bwe-lang', v); },
+  get fontsize(){ return parseInt(localStorage.getItem('bwe-fontsize'), 10) || 17; },
+  set fontsize(v){ localStorage.setItem('bwe-fontsize', String(v)); }
+};
+let LANG = STORE.lang;
+const root = document.documentElement;
+
+const STR = {
+  de: {
+    contents:'Inhalt', fontsize:'Schriftgröße', theme:'Design', language:'Sprache',
+    hint:'Text markieren zeigt eine kurze Begriffserklärung. Auf einen Absatz klicken öffnet die ausführliche Erklärung rechts.',
+    eyebrow:'Original-Whitepaper · 2008', title:'Bitcoin: Ein elektronisches Peer-to-Peer-Zahlungssystem',
+    author:'von <strong>Satoshi Nakamoto</strong> · satoshin@gmx.com · www.bitcoin.org',
+    howto:'<b>So funktionierts:</b> Das ist der echte Originaltext des Bitcoin-Whitepapers (wählbar auf Deutsch oder Englisch oben rechts unter "Aa") — scrolle einfach durch. Markiere ein Fachwort (z. B. "Hash" oder "Proof-of-Work") für eine kurze Definition. Klicke einen ganzen Absatz an für eine ausführliche Erklärung mit Schaubild.',
+    panelEmpty:'Klicke links einen Absatz an. Hier erscheint dann eine einfache Erklärung — mit Schaubild, wo hilfreich.',
+    panelKbd:'Absätze warten', erklaert:'erklärt', seite:'SEITE', original:'ORIGINALTEXT', footer:'— Ende des Dokuments · Seite 9 / 9 —',
+    block:'Block', illustration:'Illustration'
+  },
+  en: {
+    contents:'Contents', fontsize:'Font size', theme:'Theme', language:'Language',
+    hint:'Select text for a quick glossary definition. Click a paragraph to open the full explanation on the right.',
+    eyebrow:'Original whitepaper · 2008', title:'Bitcoin: A Peer-to-Peer Electronic Cash System',
+    author:'by <strong>Satoshi Nakamoto</strong> · satoshin@gmx.com · www.bitcoin.org',
+    howto:'<b>How it works:</b> this is the real original text of the Bitcoin whitepaper (switch language top-right under "Aa") — just scroll through. Select a technical term (e.g. "hash" or "proof-of-work") for a quick definition. Click a whole paragraph for a detailed explanation with diagram.',
+    panelEmpty:'Click a paragraph on the left. A simple explanation will appear here — with a diagram where helpful.',
+    panelKbd:'paragraphs waiting', erklaert:'explained', seite:'PAGE', original:'ORIGINAL TEXT', footer:'— End of document · page 9 / 9 —',
+    block:'Block', illustration:'Illustration'
+  }
+};
 
 /* ============ RENDER ============ */
 const docEl = document.getElementById('document');
 const railList = document.getElementById('rail-list');
-let blockCount = 0;
-DOC.forEach(b => { if (b.type === 'block') blockCount++; });
-const TOTAL_BLOCKS = blockCount;
+const BY_ID = {};
+let TOTAL_BLOCKS = 0;
+DOC.forEach(item => { if (item.type === 'block') { TOTAL_BLOCKS++; BY_ID[item.id] = item; } });
 
-let html = '';
-let railHtml = '';
-let idx = 0;
-let currentSectionLabel = '';
+function renderDoc(){
+  const t = STR[LANG];
+  let html = '';
+  let railHtml = '';
+  let idx = 0;
+  let sinceSection = 0;
 
-DOC.forEach(item => {
-  if (item.type === 'sectionhead') {
-    const railId = 'sec-' + (item.num || item.label.toLowerCase());
-    const plain = !item.num ? ' is-plain' : '';
-    html += `<div class="sectionhead${plain}" id="${railId}">${item.num ? '<span class="num">&sect; '+item.num+'</span>' : ''}<h2>${item.label}</h2></div>`;
-    railHtml += `<button class="rail-item" data-target="${railId}">${item.num ? '<span class="n">'+item.num+'</span>' : '<span class="n">&mdash;</span>'} ${item.label}</button>`;
-    return;
-  }
-  if (item.type === 'divider') {
-    html += `<div class="divider">Seite ${item.page} / 9</div>`;
-    return;
-  }
-  idx++;
-  const num = String(idx).padStart(2, '0');
-  let inner = `<div class="original-tag">Original-Whitepaper</div>`;
-  if (item.list) {
-    inner += `<ol class="step-list">` + item.list.map(s => `<li>${s}</li>`).join('') + `</ol>`;
-  } else {
-    inner += item.text.map(p => `<p>${p}</p>`).join('');
-  }
-  if (item.extraHTML) inner += item.extraHTML;
-  if (item.diagram) {
-    inner += `<div class="doc-diagram">${DIAGRAMS[item.diagram]}<div class="d-cap">Schaubild</div></div>`;
-  }
-  inner += `<div class="explain-hint">${icon('chevron','')} Klicken für einfache Erklärung</div>`;
+  DOC.forEach(item => {
+    if (item.type === 'sectionhead') {
+      sinceSection = 0;
+      const railId = 'sec-' + (item.num || (item.label_de||item.label_en).toLowerCase());
+      const plain = !item.num ? ' is-plain' : '';
+      const label = LANG==='en' ? item.label_en : item.label_de;
+      html += `<div class="sectionhead${plain}" id="${railId}">${item.num ? '<span class="num">&sect; '+item.num+'</span> ' : ''}<h2>${label}</h2></div>`;
+      railHtml += `<button class="rail-item" data-target="${railId}">${item.num ? '<span class="n">'+item.num+'</span>' : '<span class="n">&mdash;</span>'} ${label}</button>`;
+      return;
+    }
+    if (item.type === 'divider') {
+      html += `<div class="divider">${t.seite} ${item.page} / 9</div>`;
+      return;
+    }
+    idx++;
+    sinceSection++;
+    const num = String(idx).padStart(2, '0');
+    const indentCls = sinceSection > 1 ? ' indent' : '';
+    let inner = '';
 
-  html += `<div class="block" id="block-${item.id}" data-id="${item.id}" tabindex="0" role="button" aria-pressed="false">
-    <span class="pilcrow">&para;${num}</span>
-    <span class="icon-chip">${icon(item.icon)}</span>
-    ${inner}
-  </div>`;
-});
+    if (item.runin_de) {
+      const runin = LANG==='en' ? item.runin_en : item.runin_de;
+      const txt = LANG==='en' ? item.text_en[0] : item.text_de[0];
+      inner += `<p><span class="runin">${runin}</span> ${txt}</p>`;
+    } else if (item.parts_de) {
+      const parts = LANG==='en' ? item.parts_en : item.parts_de;
+      parts.forEach(part => { inner += part.p ? `<p>${part.p}</p>` : part.html; });
+    } else if (item.list_de) {
+      const list = LANG==='en' ? item.list_en : item.list_de;
+      inner += `<ol class="step-list">` + list.map(s => `<li>${s}</li>`).join('') + `</ol>`;
+    } else {
+      const texts = (LANG==='en' && item.text_en) ? item.text_en : item.text_de;
+      if (texts) inner += texts.map(p => `<p>${p}</p>`).join('');
+      const extra = LANG==='en' ? item.extraHTML_en : item.extraHTML_de;
+      if (extra) inner += extra;
+    }
 
-docEl.innerHTML = html;
-railList.innerHTML = railHtml;
+    html += `<div class="para-wrap"><div class="para${indentCls}" id="block-${item.id}" data-id="${item.id}" tabindex="0" role="button" aria-pressed="false"><span class="gutter-mark">&para;${num}</span>${inner}</div></div>`;
+  });
+
+  docEl.innerHTML = html;
+  railList.innerHTML = railHtml;
+}
 
 /* ============ INTERACTION ============ */
 const panelCol = document.getElementById('panel-col');
 const panelContent = document.getElementById('panel-content');
-const panelEmptyWrap = document.querySelector('.panel-empty');
 const backdrop = document.getElementById('backdrop');
 const progressFill = document.getElementById('progress-fill');
 const progressCount = document.querySelector('#progress-indicator strong');
 const pageIndicator = document.getElementById('page-indicator');
+const paperEl = document.getElementById('paper');
 const isMobile = () => window.matchMedia('(max-width:880px)').matches;
 
 const visited = new Set();
 let activeId = null;
 
-const BY_ID = {};
-DOC.forEach(item => { if (item.type === 'block') BY_ID[item.id] = item; });
-
-function renderPanel(item) {
+function renderPanel(item){
   const idxNum = Object.keys(BY_ID).indexOf(item.id) + 1;
-  let body = `<div class="panel-eyebrow"><span>Block ${String(idxNum).padStart(2,'0')} / ${TOTAL_BLOCKS}</span></div>
+  const t = STR[LANG];
+  let body = `<div class="panel-eyebrow"><span>${t.block} ${String(idxNum).padStart(2,'0')} / ${TOTAL_BLOCKS}</span></div>
   <div class="panel-head">
     <div class="panel-icon">${icon(item.icon)}</div>
     <div class="panel-title">${item.title}</div>
   </div>`;
   if (item.diagram) {
-    body += `<div class="panel-diagram"><div class="cap">Illustration</div>${DIAGRAMS[item.diagram]}</div>`;
+    body += `<div class="panel-diagram"><div class="cap">${t.illustration}</div>${DIAGRAMS[item.diagram]}</div>`;
   }
   body += `<div class="panel-body">` + item.explain.map(p => `<p>${p}</p>`).join('') + `</div>`;
   panelContent.innerHTML = body;
   panelContent.classList.add('is-visible');
+  const emptyEl = document.querySelector('.panel-empty');
+  if (emptyEl) emptyEl.style.display = 'none';
 }
 
-function selectBlock(id) {
+function selectBlock(id){
   const item = BY_ID[id];
   if (!item) return;
-  document.querySelectorAll('.block.is-active').forEach(el => el.classList.remove('is-active'));
+  document.querySelectorAll('.para.is-active').forEach(el => el.classList.remove('is-active'));
   const el = document.getElementById('block-' + id);
   if (el) el.classList.add('is-active');
   visited.add(id);
@@ -955,51 +1304,162 @@ function selectBlock(id) {
   renderPanel(item);
   progressCount.textContent = visited.size;
   progressFill.style.width = (visited.size / TOTAL_BLOCKS * 100) + '%';
-
-  if (isMobile()) {
-    panelCol.classList.add('is-open');
-    backdrop.classList.add('is-open');
-  }
+  if (isMobile()) { panelCol.classList.add('is-open'); backdrop.classList.add('is-open'); }
 }
 
-function closePanel() {
-  panelCol.classList.remove('is-open');
-  backdrop.classList.remove('is-open');
-}
+function closePanel(){ panelCol.classList.remove('is-open'); backdrop.classList.remove('is-open'); }
 
-document.querySelectorAll('.block').forEach(el => {
-  el.addEventListener('click', () => selectBlock(el.dataset.id));
-  el.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectBlock(el.dataset.id); }
+function attachParaHandlers(){
+  document.querySelectorAll('.para').forEach(el => {
+    el.addEventListener('mouseup', (e) => {
+      const sel = window.getSelection();
+      const text = sel ? sel.toString().trim() : '';
+      if (text.length > 1) return; // handled by selection glossary logic
+      selectBlock(el.dataset.id);
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectBlock(el.dataset.id); }
+    });
   });
-});
+}
 
 document.getElementById('panel-close').addEventListener('click', closePanel);
 backdrop.addEventListener('click', closePanel);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); hideGloss(); } });
 
-document.querySelectorAll('.rail-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = document.getElementById(btn.dataset.target);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+/* ---------- glossary on text selection ---------- */
+const glossPop = document.getElementById('gloss-pop');
+function hideGloss(){ glossPop.classList.remove('is-open'); }
+function showGlossFor(selection){
+  const text = selection.toString().trim();
+  if (!text) { hideGloss(); return; }
+  const entry = lookupGlossary(text);
+  if (!entry) { hideGloss(); return; }
+  glossPop.innerHTML = `<div class="g-eyebrow">Glossar</div><div class="g-term">${entry.terms[0]}</div><div class="g-def">${entry.def}</div>`;
+  const range = selection.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  glossPop.classList.add('is-open');
+  const popW = 300, popH = glossPop.offsetHeight || 90;
+  let left = rect.left + rect.width/2 - popW/2;
+  left = Math.max(10, Math.min(left, window.innerWidth - popW - 10));
+  let top = rect.top - popH - 10;
+  if (top < 54) top = rect.bottom + 10;
+  glossPop.style.left = left + 'px';
+  glossPop.style.top = top + 'px';
+}
+function handleSelectionEnd(){
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) { hideGloss(); return; }
+  const anchorNode = sel.anchorNode;
+  const container = anchorNode && anchorNode.nodeType === 1 ? anchorNode : anchorNode && anchorNode.parentElement;
+  if (!container || !container.closest('.paper')) { hideGloss(); return; }
+  showGlossFor(sel);
+}
+paperEl.addEventListener('mouseup', () => setTimeout(handleSelectionEnd, 0));
+paperEl.addEventListener('touchend', () => setTimeout(handleSelectionEnd, 60));
+document.addEventListener('mousedown', (e) => { if (!glossPop.contains(e.target)) hideGloss(); });
+window.addEventListener('scroll', hideGloss, { passive:true });
+
+/* ---------- settings popover ---------- */
+const settingsBtn = document.getElementById('settings-btn');
+const settingsPop = document.getElementById('settings-pop');
+settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); settingsPop.classList.toggle('is-open'); });
+document.addEventListener('click', (e) => {
+  if (!settingsPop.contains(e.target) && e.target !== settingsBtn) settingsPop.classList.remove('is-open');
 });
 
-/* ---------- scroll tracking: page indicator + current rail section ---------- */
-const dividerEls = Array.from(document.querySelectorAll('.divider'));
-const sectionEls = Array.from(document.querySelectorAll('.sectionhead'));
-const railItems = Array.from(document.querySelectorAll('.rail-item'));
+/* ---------- theme ---------- */
+const themeToggle = document.getElementById('theme-toggle');
+const themeThumb = document.getElementById('theme-thumb');
+function applyTheme(theme){
+  if (theme === 'dark') root.setAttribute('data-theme','dark'); else root.removeAttribute('data-theme');
+  themeThumb.textContent = theme === 'dark' ? '☾' : '☀';
+}
+applyTheme(STORE.theme);
+themeToggle.addEventListener('click', () => {
+  const next = (root.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+  STORE.theme = next; applyTheme(next);
+});
 
+/* ---------- font size ---------- */
+const fsVal = document.getElementById('fs-val');
+const FS_MIN = 14, FS_MAX = 24;
+function applyFontSize(px){
+  px = Math.max(FS_MIN, Math.min(FS_MAX, px));
+  document.documentElement.style.setProperty('--doc-fs', px + 'px');
+  fsVal.textContent = px + 'px';
+  STORE.fontsize = px;
+}
+applyFontSize(STORE.fontsize);
+document.getElementById('fs-minus').addEventListener('click', () => applyFontSize(STORE.fontsize - 1));
+document.getElementById('fs-plus').addEventListener('click', () => applyFontSize(STORE.fontsize + 1));
+
+/* ---------- language ---------- */
+const langSeg = document.getElementById('lang-seg');
+function applyLangUI(){
+  const t = STR[LANG];
+  document.documentElement.lang = LANG;
+  document.getElementById('rail-heading').textContent = t.contents;
+  document.getElementById('lbl-fontsize').textContent = t.fontsize;
+  document.getElementById('lbl-theme').textContent = t.theme;
+  document.getElementById('lbl-lang').textContent = t.language;
+  document.getElementById('settings-hint').textContent = t.hint;
+  document.getElementById('cover-eyebrow').textContent = t.eyebrow;
+  document.getElementById('cover-title').textContent = t.title;
+  document.getElementById('cover-author').innerHTML = t.author;
+  document.getElementById('howto').innerHTML = t.howto;
+  document.getElementById('panel-empty-text').textContent = t.panelEmpty;
+  document.getElementById('panel-empty-kbd').textContent = TOTAL_BLOCKS + ' ' + t.panelKbd;
+  document.getElementById('doc-footer').textContent = t.footer;
+  document.getElementById('progress-indicator').innerHTML = `<strong>${visited.size}</strong> / ${TOTAL_BLOCKS} ${t.erklaert}`;
+  langSeg.querySelectorAll('button').forEach(b => b.classList.toggle('is-active', b.dataset.lang === LANG));
+}
+function setLang(lang){
+  LANG = lang; STORE.lang = lang;
+  const wasActive = activeId;
+  renderDoc();
+  attachParaHandlers();
+  applyLangUI();
+  setupScrollTracking();
+  visited.forEach(id => { const el = document.getElementById('block-' + id); if (el) el.classList.add('is-visited'); });
+  if (wasActive) {
+    const el = document.getElementById('block-' + wasActive);
+    if (el) el.classList.add('is-active');
+    renderPanel(BY_ID[wasActive]);
+  }
+  onScroll();
+}
+langSeg.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => setLang(btn.dataset.lang));
+});
+
+/* ---------- rail smooth-scroll ---------- */
+function attachRailHandlers(){
+  document.querySelectorAll('.rail-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+/* ---------- scroll tracking: page indicator + current rail section ---------- */
+let dividerEls = [], sectionEls = [], railItems = [];
+function setupScrollTracking(){
+  dividerEls = Array.from(document.querySelectorAll('.divider'));
+  sectionEls = Array.from(document.querySelectorAll('.sectionhead'));
+  railItems = Array.from(document.querySelectorAll('.rail-item'));
+  attachRailHandlers();
+}
 let ticking = false;
-function onScroll() {
+function onScroll(){
   if (ticking) return;
   ticking = true;
   requestAnimationFrame(() => {
     const y = window.scrollY + 120;
     let page = 1;
     dividerEls.forEach(d => { if (d.offsetTop < y) page++; });
-    pageIndicator.textContent = 'SEITE ' + Math.min(page, 9) + ' / 9';
-
+    pageIndicator.textContent = STR[LANG].seite + ' ' + Math.min(page, 9) + ' / 9';
     let currentSecId = sectionEls.length ? sectionEls[0].id : null;
     sectionEls.forEach(s => { if (s.offsetTop < y) currentSecId = s.id; });
     railItems.forEach(r => r.classList.toggle('is-current', r.dataset.target === currentSecId));
@@ -1007,6 +1467,12 @@ function onScroll() {
   });
 }
 window.addEventListener('scroll', onScroll, { passive: true });
+
+/* ---------- boot ---------- */
+renderDoc();
+attachParaHandlers();
+applyLangUI();
+setupScrollTracking();
 onScroll();
 </script>
 </body>
