@@ -293,7 +293,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 10.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 11.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -313,8 +313,8 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$63.500–66.000</div>
-          <div class="ctx">Klettert leicht auf ~$65,2k (+0,5% heute), Gesamtmarkt bei $2,28 Billionen (+0,2%)</div>
+          <div class="value mono">$62.500–65.000</div>
+          <div class="ctx">Gibt nach auf ~$64,0k (−1,9% heute), ETH ebenfalls schwächer (−2,6%)</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -325,7 +325,7 @@
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~57,2%</div>
-          <div class="ctx">Leicht von ~57,3% auf ~57,2% zurückgegangen, ETH-Dominanz ~10,1%</div>
+          <div class="ctx">Unverändert bei ~57,2% (keine neue verlässlich datierte Messung gefunden)</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–10.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–11.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -406,13 +406,14 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 45;
+  const DASHBOARD_VERSION = 46;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "11.08.2026", text: "Bitcoin gibt nach auf ~$64,0k (−1,9%), Ethereum verliert noch stärker (−2,6%) — ein spürbarer Rücksetzer nach Tagen relativer Ruhe. BTC-Dominanz und Altcoin Season Index bleiben mangels neuer verlässlicher Messung unverändert bei ~57,2% bzw. 57. Auffällig: Upbit listete gleich sechs neue Coins auf einmal (CYS, ICNT, XAN, EDEN, AIOZ, ALLO) — Allora (ALLO, dezentrales KI-Netzwerk) und das bereits bekannte Cysic (CYS) sticht mit einem neuen Allzeithoch heraus, während Anoma (XAN) prompt um 38% einbrach." },
     { date: "10.08.2026", text: "Bitcoin klettert leicht auf ~$65,2k (+0,5%), der Gesamtmarkt legt auf $2,28 Billionen zu (+0,2%). BTC-Dominanz bleibt mit ~57,2% praktisch unverändert, der Altcoin Season Index verharrt bei 57. Auffällig: Mehrfach zitierte Top-Gainer wie Bubblemaps (BMT, +164%) und Pump.fun (PUMP) laufen laut mehreren Quellen selbst „ohne erkennbaren Katalysator“ — Momentum (MMT) profitierte von einer bereits mehrere Tage alten BNB-Chain-Integration, keine davon erfüllt unser Frische-Kriterium für einen neuen Kandidaten." },
     { date: "09.08.2026", text: "Bitcoin pendelt seitwärts bei ~$64,8k (−0,2%), gestützt von fünf Tagen ETF-Zuflüssen in Folge (BTC +$98,85 Mio., ETH +$49,60 Mio. am 7. Aug). BTC-Dominanz steigt leicht auf ~57,3%, der Altcoin Season Index bleibt unverändert bei 57. Auffällig: Upbit listete mit Block Street (BSB, tokenisierte Real-World-Assets) einen frischen, solide auditierten Kleinst-Cap-Titel — Kurs sprang binnen Minuten um 32,5%, ohne dass sich ein breiterer Trend abzeichnet." },
     { date: "08.08.2026", text: "Bitcoin klettert weiter auf ~$65,0k (+1,1%), der Gesamtmarkt legt leicht auf $2,29 Billionen zu — die Erholung vom Wochenende setzt sich fort. Der Altcoin Season Index bleibt unverändert bei 57, der Fear & Greed Index zeigt je nach Quelle ein uneinheitliches Bild (28 bis 50). Auffällig: Keine frischen Tier-1-Listings oder neuen KOL-Käufe gefunden — mehrfach zitierte Top-Gainer wie Seeker (SKR) und Biconomy (BICO) laufen ohne erkennbaren, für heute datierten Einzeltitel-Katalysator." },
@@ -786,25 +787,27 @@
       sourceRefs:[21,22]
     },
     {
-      ticker:"CYS", name:"Cysic (ZK-Proof-/ComputeFi-Infrastruktur)", status:"caution", statusLabel:"Unter Schwelle / kein Einzeltitel-Katalysator", score:2, firstSeen:"05.08.2026",
-      chartType:"line", unit:"$", logo:null, coingeckoId:"cysic", link:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-august-5-bitcoin-eth-cysic-defi-market-rises",
+      ticker:"CYS", name:"Cysic (ZK-Proof-/ComputeFi-Infrastruktur)", status:"caution", statusLabel:"Unter Schwelle / Verwässerungsrisiko", score:3, firstSeen:"05.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"cysic", link:"https://cryptopotato.com/cysic-cys-skyrockets-to-new-all-time-high-on-upbit-listing-details/",
       series:[
-        {label:"Vor Ausbruch", value:0.29},
         {label:"4. Aug", value:0.29},
-        {label:"5. Aug (Peak)", value:0.547}
+        {label:"5. Aug (Peak)", value:0.547},
+        {label:"9. Aug (vor Listing)", value:0.80},
+        {label:"10. Aug (ATH)", value:1.30},
+        {label:"jetzt", value:0.92}
       ],
       stats:[
-        {k:"Market Cap",v:"$85,4–87,6 Mio."},
-        {k:"FDV",v:"$545 Mio. (~16% im Umlauf)"},
-        {k:"24h-Liquidationen",v:"$2,29 Mio. (67% Shorts)"},
+        {k:"Market Cap",v:"~$207,7 Mio."},
+        {k:"24h Vol.",v:"$95,4 Mio."},
+        {k:"RSI (Tages)",v:"69,4"},
         {k:"Audit",v:"CertiK 4,4/5"}
       ],
       signals:[
-        ["Short-Squeeze-Dynamik im breiten Markt (67% der Liquidationen Shorts, CYS-Volumen +71%)","+2"]
+        ["Frisches Upbit-Listing (10. Aug, BTC/USDT)","+3"]
       ],
-      flag:"Nur ~16% des 1-Mrd.-Supply im Umlauf (FDV ~6,2x Market Cap) — hohes Verwässerungsrisiko. Kein Cysic-spezifischer Katalysator identifizierbar, Kursbewegung wird von Analysten als „positive Beta” zur allgemeinen Marktrally beschrieben, nicht als eigenständiges Signal.",
-      note:"<b>Neu:</b> Cysic (ZK-Proof-/ComputeFi-Infrastruktur) sprang um bis zu 93% im Zuge einer breiten Short-Squeeze-Welle im Markt (67% der $2,29-Mio.-Liquidationen betrafen Shorts). Kein projekteigener Katalysator auffindbar — Analysten stufen den Move als Beta zur allgemeinen Bitcoin-Rally ein, nicht als Cysic-spezifisches Ereignis. Audit vorhanden (CertiK 4,4/5), aber niedriger Free Float (~16%) bedeutet erhebliches Verwässerungsrisiko. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
-      sourceRefs:[24]
+      flag:"Nur ~16% des 1-Mrd.-Supply im Umlauf (FDV ~6x Market Cap) — weiterhin hohes Verwässerungsrisiko bei künftigen Freischaltungen.",
+      note:"<b>Update:</b> Upbit listete CYS am 10. Aug in BTC/USDT-Märkten (nach zweifacher Verschiebung von 14 auf 20 Uhr KST) — Kurs sprang auf ein neues Allzeithoch von $1,30, wurde dort abgelehnt und pendelt jetzt bei ~$0,92. Damit gibt es diesmal einen echten, projekteigenen Katalysator (zuvor nur allgemeine Markt-Beta). RSI (Tages) bei 69,4, klar unter der 92er-Disqualifikationsschwelle. Score steigt auf 3, bleibt aber unter der Watchlist-Schwelle — Verwässerungsrisiko durch niedrigen Free Float besteht weiter.",
+      sourceRefs:[29]
     },
     {
       ticker:"CAP", name:"Cap (Covered Agent Protocol / cUSD)", status:"caution", statusLabel:"Unter Schwelle / nur Einzelsignal", score:3, firstSeen:"07.08.2026",
@@ -862,6 +865,26 @@
       flag:null,
       note:"<b>Neu:</b> Upbit listete BSB am 7. August auf KRW/BTC/USDT — Kurs sprang binnen Minuten um ~32,5% von $0,135 auf $0,179. Block Street ist Infrastruktur für tokenisierte Real-World-Assets (u. a. Immobilien), mehrfach auditiert (CertiK, PeckShield, Trail of Bits), Whitepaper vorhanden, 25.807 Holder. Kein Red Flag identifiziert, aber nur das Listing selbst als Signal — <b>Score bleibt unter der Watchlist-Schwelle</b>.",
       sourceRefs:[28]
+    },
+    {
+      ticker:"ALLO", name:"Allora", status:"good", statusLabel:"Watchlist", score:5, firstSeen:"11.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:"allora", link:"https://beincrypto.com/upbit-listings-fuel-upside-select-altcoins/",
+      series:[
+        {label:"vor Listing", value:0.24},
+        {label:"jetzt", value:0.29}
+      ],
+      stats:[
+        {k:"Market Cap",v:"$72,8 Mio."},
+        {k:"FDV",v:"$234,2 Mio. (25% im Umlauf)"},
+        {k:"Audit",v:"Halborn (Security-Assessment)"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (10. Aug, BTC/USDT, Teil einer 6-Coin-Listing-Welle)","+3"],
+        ["Aktives KI-Narrativ (dezentrales KI-Netzwerk für kollektive Inferenz, Cosmos-basiert)","+2"]
+      ],
+      flag:null,
+      note:"<b>Neu:</b> Upbit listete ALLO am 10. August zusammen mit fünf weiteren Coins (u. a. CYS) in BTC/USDT-Märkten — Teil einer breiteren 30%-Aufwärtsbewegung bei mehreren der neu gelisteten Titel. Allora ist ein dezentrales KI-Netzwerk, das ML-Modelle verschiedener Anbieter zu kollektiven On-Chain-Inferenzen koordiniert (Cosmos-Hub-Chain, CometBFT PoS), Security-Assessment von Halborn vorhanden. Große Early-Holder-Allokationen entsperren über die kommenden Monate — Verwässerungsrisiko im Auge behalten, aber kein hartes Red Flag nach unserem Framework. <b>Score 5/12 — auf die Watchlist aufgenommen</b>.",
+      sourceRefs:[30]
     }
   ];
 
@@ -894,7 +917,9 @@
     {n:25, label:"Upbit Launches CAP Listing Across KRW, BTC, and USDT Trading Pairs, 6. Aug 2026 — CoinGape", url:"https://coingape.com/upbit-launches-cap-listing-across-krw-btc-and-usdt-trading-pairs/"},
     {n:26, label:"Binance Alpha to List Squid (QUID) on August 4 — OneKey Blog", url:"https://onekey.so/blog/ecosystem/binance-alpha-to-list-squid-quid-on-august-4-what-users-should-know-20260803171713/"},
     {n:27, label:"Crypto News Today: BTC, ETH Fell as Stablecoins and DeFi Market Slides, 7. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-bitcoin-eth-stablecoins-defi-market-drops"},
-    {n:28, label:"Upbit lists Block Street (BSB) across KRW, BTC, USDT, 7. Aug 2026 — crypto.news", url:"https://crypto.news/upbit-lists-block-street-bsb-across-krw-btc-usdt/"}
+    {n:28, label:"Upbit lists Block Street (BSB) across KRW, BTC, USDT, 7. Aug 2026 — crypto.news", url:"https://crypto.news/upbit-lists-block-street-bsb-across-krw-btc-usdt/"},
+    {n:29, label:"Cysic (CYS) Skyrockets to New All-Time High on Upbit Listing, 10. Aug 2026 — CryptoPotato", url:"https://cryptopotato.com/cysic-cys-skyrockets-to-new-all-time-high-on-upbit-listing-details/"},
+    {n:30, label:"6 New Upbit Listings Fuel 30% Moves for Select Altcoins, 10. Aug 2026 — BeInCrypto", url:"https://beincrypto.com/upbit-listings-fuel-upside-select-altcoins/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
