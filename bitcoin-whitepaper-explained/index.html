@@ -789,7 +789,7 @@ const ORIG_DIAGRAMS = {
 
 "tx-chain": `<svg class="od" viewBox="0 0 560 300" width="560" height="300">
 <defs><marker id="oa1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
-<line class="arrow" x1="0" y1="60" x2="560" y2="60"/>
+<line class="arrow" x1="0" y1="95" x2="560" y2="95"/>
 <g transform="translate(10,20)">
   <rect x="0" y="0" width="150" height="190"/><text x="5" y="12" font-size="9">Transaction</text>
   <rect x="10" y="30" width="130" height="30"/><text x="75" y="46" text-anchor="middle" font-size="8">Owner 1's</text><text x="75" y="56" text-anchor="middle" font-size="8">Public Key</text>
@@ -817,9 +817,9 @@ const ORIG_DIAGRAMS = {
 <rect x="20" y="245" width="130" height="30"/><text x="85" y="261" text-anchor="middle" font-size="8">Owner 1's</text><text x="85" y="271" text-anchor="middle" font-size="8">Private Key</text>
 <rect x="215" y="245" width="130" height="30"/><text x="280" y="261" text-anchor="middle" font-size="8">Owner 2's</text><text x="280" y="271" text-anchor="middle" font-size="8">Private Key</text>
 <rect x="410" y="245" width="130" height="30"/><text x="475" y="261" text-anchor="middle" font-size="8">Owner 3's</text><text x="475" y="271" text-anchor="middle" font-size="8">Private Key</text>
-<path class="dash" marker-end="url(#oa1)" d="M85,245 C 130,210 170,190 220,180"/><text x="150" y="215" font-size="7" transform="rotate(-25 150 215)">Sign</text>
+<path class="dash" marker-end="url(#oa1)" d="M85,245 C 110,230 150,215 180,208 C 195,204 205,196 217,186"/><text x="118" y="234" font-size="7" transform="rotate(-18 118 234)">Sign</text>
 <path class="dash" marker-end="url(#oa1)" d="M280,140 C 250,150 240,160 225,170"/><text x="255" y="150" font-size="7" transform="rotate(20 255 150)">Verify</text>
-<path class="dash" marker-end="url(#oa1)" d="M280,245 C 325,210 365,190 415,180"/><text x="345" y="215" font-size="7" transform="rotate(-25 345 215)">Sign</text>
+<path class="dash" marker-end="url(#oa1)" d="M280,245 C 305,230 345,215 375,208 C 390,204 400,196 412,186"/><text x="313" y="234" font-size="7" transform="rotate(-18 313 234)">Sign</text>
 <path class="dash" marker-end="url(#oa1)" d="M475,140 C 445,150 435,160 420,170"/><text x="450" y="150" font-size="7" transform="rotate(20 450 150)">Verify</text>
 </svg>`,
 
@@ -868,15 +868,22 @@ const ORIG_DIAGRAMS = {
 <rect x="30" y="40" width="80" height="22"/><text x="70" y="55" text-anchor="middle" font-size="8">Prev Hash</text>
 <rect x="125" y="40" width="65" height="22"/><text x="157" y="55" text-anchor="middle" font-size="8">Nonce</text>
 <rect x="60" y="70" width="130" height="20"/><text x="125" y="84" text-anchor="middle" font-size="8">Root Hash</text>
-<path class="arrow" marker-end="url(#oa4)" d="M45,140 L90,90 M185,140 L160,90"/>
+<path class="arrow" marker-end="url(#oa4)" d="M45,140 L90,90"/>
+<path class="arrow" marker-end="url(#oa4)" d="M185,140 L160,90"/>
 <rect x="10" y="140" width="70" height="24" class="dashed"/><text x="45" y="156" text-anchor="middle" font-size="8">Hash01</text>
 <rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
-<path class="arrow" marker-end="url(#oa4)" d="M27,195 L38,164 M92,195 L52,164 M167,195 L178,164 M232,195 L192,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M27,195 L38,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M92,195 L52,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M167,195 L178,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M232,195 L192,164"/>
 <rect x="0" y="195" width="55" height="22" class="dashed"/><text x="27" y="210" text-anchor="middle" font-size="7">Hash0</text>
 <rect x="65" y="195" width="55" height="22" class="dashed"/><text x="92" y="210" text-anchor="middle" font-size="7">Hash1</text>
 <rect x="140" y="195" width="55" height="22" class="dashed"/><text x="167" y="210" text-anchor="middle" font-size="7">Hash2</text>
 <rect x="205" y="195" width="55" height="22" class="dashed"/><text x="232" y="210" text-anchor="middle" font-size="7">Hash3</text>
-<path class="arrow" marker-end="url(#oa4)" d="M22,230 V217 M92,230 V217 M162,230 V217 M227,230 V217"/>
+<path class="arrow" marker-end="url(#oa4)" d="M22,230 V217"/>
+<path class="arrow" marker-end="url(#oa4)" d="M92,230 V217"/>
+<path class="arrow" marker-end="url(#oa4)" d="M162,230 V217"/>
+<path class="arrow" marker-end="url(#oa4)" d="M227,230 V217"/>
 <rect x="0" y="230" width="45" height="20"/><text x="22" y="244" text-anchor="middle" font-size="7">Tx0</text>
 <rect x="70" y="230" width="45" height="20"/><text x="92" y="244" text-anchor="middle" font-size="7">Tx1</text>
 <rect x="140" y="230" width="45" height="20"/><text x="162" y="244" text-anchor="middle" font-size="7">Tx2</text>
@@ -891,7 +898,8 @@ const ORIG_DIAGRAMS = {
 <rect x="60" y="70" width="130" height="20"/><text x="125" y="84" text-anchor="middle" font-size="8">Root Hash</text>
 <path class="arrow" marker-end="url(#oa4)" d="M185,140 L160,90"/>
 <rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
-<path class="arrow" marker-end="url(#oa4)" d="M167,195 L178,164 M232,195 L192,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M167,195 L178,164"/>
+<path class="arrow" marker-end="url(#oa4)" d="M232,195 L192,164"/>
 <rect x="140" y="195" width="55" height="22"/><text x="167" y="210" text-anchor="middle" font-size="7">Hash2</text>
 <rect x="205" y="195" width="55" height="22" class="dashed"/><text x="232" y="210" text-anchor="middle" font-size="7">Hash3</text>
 <path class="arrow" marker-end="url(#oa4)" d="M227,230 V217"/>
@@ -932,7 +940,8 @@ const ORIG_DIAGRAMS = {
 <text x="400" y="128" font-size="8" font-style="italic">Merkle Branch for Tx3</text>
 <rect x="290" y="160" width="55" height="22"/><text x="317" y="175" text-anchor="middle" font-size="7">Hash2</text>
 <rect x="360" y="160" width="55" height="22" class="dashed"/><text x="387" y="175" text-anchor="middle" font-size="7">Hash3</text>
-<path class="arrow" marker-end="url(#oa5)" d="M317,160 L325,137 M387,160 L363,137"/>
+<path class="arrow" marker-end="url(#oa5)" d="M317,160 L325,137"/>
+<path class="arrow" marker-end="url(#oa5)" d="M387,160 L363,137"/>
 <rect x="330" y="205" width="45" height="22"/><text x="352" y="220" text-anchor="middle" font-size="7">Tx3</text>
 <path class="arrow" marker-end="url(#oa5)" d="M352,205 V182"/>
 </svg>`,
@@ -945,8 +954,11 @@ const ORIG_DIAGRAMS = {
 <rect x="72" y="62" width="30" height="20"/><text x="87" y="76" text-anchor="middle" font-size="7">In</text>
 <rect x="118" y="62" width="32" height="20"/><text x="134" y="76" text-anchor="middle" font-size="7">...</text>
 <rect x="72" y="89" width="30" height="18"/><text x="87" y="102" text-anchor="middle" font-size="7">...</text>
-<path class="arrow" marker-end="url(#oa6)" d="M20,45 H72 M20,72 H72 M20,98 H72"/>
-<path class="arrow" marker-end="url(#oa6)" d="M150,45 H200 M150,72 H200"/>
+<path class="arrow" marker-end="url(#oa6)" d="M20,45 H72"/>
+<path class="arrow" marker-end="url(#oa6)" d="M20,72 H72"/>
+<path class="arrow" marker-end="url(#oa6)" d="M20,98 H72"/>
+<path class="arrow" marker-end="url(#oa6)" d="M150,45 H200"/>
+<path class="arrow" marker-end="url(#oa6)" d="M150,72 H200"/>
 </svg>`,
 
 "privacy-orig": `<svg class="od" viewBox="0 0 480 190" width="480" height="190">
