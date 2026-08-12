@@ -600,7 +600,7 @@ const DIAGRAMS = {
 <text x="200" y="110" text-anchor="middle" class="d-txt">Nonce wird durchprobiert, bis der Block-Hash mit genug Nullen beginnt</text>
 </svg>`,
 
-"merkle-tree": `<svg viewBox="0 0 400 150">
+"merkle-tree": `<svg viewBox="0 0 470 150">
 <g transform="translate(0,0)">
 <text x="90" y="14" text-anchor="middle" class="d-txt accent">VORHER</text>
 <g class="d-box"><rect x="55" y="20" width="70" height="22" rx="4"/><text x="90" y="35" text-anchor="middle" font-size="9">Root Hash</text></g>
@@ -614,10 +614,10 @@ const DIAGRAMS = {
 <g class="d-box"><rect x="105" y="90" width="46" height="20" rx="4"/><text x="128" y="104" text-anchor="middle" font-size="8">Tx2</text></g>
 <g class="d-box"><rect x="155" y="90" width="46" height="20" rx="4"/><text x="178" y="104" text-anchor="middle" font-size="8">Tx3</text></g>
 </g>
-<path class="d-arrow" d="M215 75 H255" marker-end="url(#ah4)"/>
+<text x="235" y="60" text-anchor="middle" class="d-txt">l&ouml;schen</text>
+<path class="d-arrow" d="M212 68 H258" marker-end="url(#ah4)"/>
 <defs><marker id="ah4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="d-arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
-<text x="235" y="66" text-anchor="middle" class="d-txt">l&ouml;schen</text>
-<g transform="translate(210,0)">
+<g transform="translate(270,0)">
 <text x="90" y="14" text-anchor="middle" class="d-txt accent">NACHHER</text>
 <g class="d-box hi"><rect x="55" y="20" width="70" height="22" rx="4"/><text x="90" y="35" text-anchor="middle" font-size="9">Root Hash</text></g>
 <path class="d-line" d="M90 42 V54"/>
@@ -628,7 +628,7 @@ const DIAGRAMS = {
 <g style="opacity:.25"><rect x="5" y="90" width="46" height="20" rx="4" class="d-dash"/><rect x="55" y="90" width="46" height="20" rx="4" class="d-dash"/><rect x="105" y="90" width="46" height="20" rx="4" class="d-dash"/></g>
 <g class="d-box hi"><rect x="155" y="90" width="46" height="20" rx="4"/><text x="178" y="104" text-anchor="middle" font-size="8">Tx3</text></g>
 </g>
-<text x="200" y="140" text-anchor="middle" class="d-txt">der Root-Hash bleibt gleich &mdash; nur die untere Ebene wird weggeworfen</text>
+<text x="235" y="140" text-anchor="middle" class="d-txt">der Root-Hash bleibt gleich &mdash; nur die untere Ebene wird weggeworfen</text>
 </svg>`,
 
 "spv": `<svg viewBox="0 0 400 130">
@@ -645,7 +645,8 @@ const DIAGRAMS = {
 <g class="d-box"><rect x="248" y="72" width="60" height="18" rx="3"/><text x="278" y="85" text-anchor="middle" font-size="7">Merkle-Zweig</text></g>
 <path class="d-line" d="M278 90 V102"/>
 <g class="d-box hi"><rect x="253" y="102" width="50" height="18" rx="3"/><text x="278" y="115" text-anchor="middle" font-size="8">TX3</text></g>
-<text x="60" y="108" text-anchor="middle" class="d-txt">Leichtes Wallet: nur Header + ein schmaler Beweispfad zur eigenen TX</text>
+<text x="120" y="115" text-anchor="middle" class="d-txt">Leichtes Wallet: nur Header +</text>
+<text x="120" y="126" text-anchor="middle" class="d-txt">ein schmaler Beweispfad zur eigenen TX</text>
 </svg>`,
 
 "tx-io": `<svg viewBox="0 0 400 120">
@@ -674,7 +675,7 @@ const DIAGRAMS = {
 <text x="6" y="102" class="d-txt accent">BITCOIN</text>
 <g class="d-box"><rect x="6" y="108" width="70" height="26" rx="4"/><text x="41" y="125" text-anchor="middle" font-size="8">Identit&auml;t</text></g>
 <path class="d-dash" d="M78 121 H108"/>
-<text x="93" y="115" text-anchor="middle" class="d-txt" font-size="7">verborgen</text>
+<text x="93" y="101" text-anchor="middle" class="d-txt" font-size="7">verborgen</text>
 <g class="d-box hi"><rect x="110" y="108" width="76" height="26" rx="4"/><text x="148" y="121" text-anchor="middle" font-size="7">Pseudonyme TX</text></g>
 <path class="d-arrow" d="M188 121 H228" marker-end="url(#ah7)"/>
 <g class="d-box"><rect x="230" y="108" width="76" height="26" rx="4"/><text x="268" y="121" text-anchor="middle" font-size="8">&Ouml;ffentlich (alle)</text></g>
@@ -860,12 +861,12 @@ const ORIG_DIAGRAMS = {
 "merkle-orig": `<svg class="od" viewBox="0 0 560 285" width="560" height="285">
 <defs><marker id="oa4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
 <g transform="translate(10,10)">
-<rect x="0" y="0" width="250" height="90"/><text x="6" y="14" font-size="9">Block</text>
-<rect x="30" y="8" width="210" height="55"/><text x="36" y="21" font-size="8">Block Header (Block Hash)</text>
-<rect x="45" y="28" width="80" height="24"/><text x="85" y="44" text-anchor="middle" font-size="8">Prev Hash</text>
-<rect x="135" y="28" width="65" height="24"/><text x="167" y="44" text-anchor="middle" font-size="8">Nonce</text>
-<rect x="60" y="62" width="130" height="24"/><text x="125" y="78" text-anchor="middle" font-size="8">Root Hash</text>
-<path class="arrow" marker-end="url(#oa4)" d="M45,140 L90,86 M185,140 L160,86"/>
+<rect x="0" y="0" width="250" height="98"/><text x="6" y="13" font-size="9">Block</text>
+<rect x="15" y="20" width="220" height="70"/><text x="21" y="33" font-size="8">Block Header (Block Hash)</text>
+<rect x="30" y="40" width="80" height="22"/><text x="70" y="55" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="125" y="40" width="65" height="22"/><text x="157" y="55" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="60" y="70" width="130" height="20"/><text x="125" y="84" text-anchor="middle" font-size="8">Root Hash</text>
+<path class="arrow" marker-end="url(#oa4)" d="M45,140 L90,90 M185,140 L160,90"/>
 <rect x="10" y="140" width="70" height="24" class="dashed"/><text x="45" y="156" text-anchor="middle" font-size="8">Hash01</text>
 <rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
 <path class="arrow" marker-end="url(#oa4)" d="M27,195 L38,164 M92,195 L52,164 M167,195 L178,164 M232,195 L192,164"/>
@@ -881,12 +882,12 @@ const ORIG_DIAGRAMS = {
 <text x="125" y="270" text-anchor="middle" font-size="8" font-style="italic">Transactions Hashed in a Merkle Tree</text>
 </g>
 <g transform="translate(300,10)">
-<rect x="0" y="0" width="250" height="90"/><text x="6" y="14" font-size="9">Block</text>
-<rect x="30" y="8" width="210" height="55"/><text x="36" y="21" font-size="8">Block Header (Block Hash)</text>
-<rect x="45" y="28" width="80" height="24"/><text x="85" y="44" text-anchor="middle" font-size="8">Prev Hash</text>
-<rect x="135" y="28" width="65" height="24"/><text x="167" y="44" text-anchor="middle" font-size="8">Nonce</text>
-<rect x="60" y="62" width="130" height="24"/><text x="125" y="78" text-anchor="middle" font-size="8">Root Hash</text>
-<path class="arrow" marker-end="url(#oa4)" d="M185,140 L160,86"/>
+<rect x="0" y="0" width="250" height="98"/><text x="6" y="13" font-size="9">Block</text>
+<rect x="15" y="20" width="220" height="70"/><text x="21" y="33" font-size="8">Block Header (Block Hash)</text>
+<rect x="30" y="40" width="80" height="22"/><text x="70" y="55" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="125" y="40" width="65" height="22"/><text x="157" y="55" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="60" y="70" width="130" height="20"/><text x="125" y="84" text-anchor="middle" font-size="8">Root Hash</text>
+<path class="arrow" marker-end="url(#oa4)" d="M185,140 L160,90"/>
 <rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
 <path class="arrow" marker-end="url(#oa4)" d="M167,195 L178,164 M232,195 L192,164"/>
 <rect x="140" y="195" width="55" height="22"/><text x="167" y="210" text-anchor="middle" font-size="7">Hash2</text>
@@ -1574,8 +1575,7 @@ double AttackerSuccessProbability(double q, int z)
 ];
 /* ============ STATE ============ */
 const STORE = {
-  get theme(){ return localStorage.getItem('bwe-theme') || 'light'; },
-  set theme(v){ localStorage.setItem('bwe-theme', v); },
+  theme: 'light', // Hell ist immer der Startzustand, nicht persistiert
   get lang(){ return localStorage.getItem('bwe-lang') || 'de'; },
   set lang(v){ localStorage.setItem('bwe-lang', v); },
   get fontsize(){ return parseInt(localStorage.getItem('bwe-fontsize'), 10) || 17; },
