@@ -262,13 +262,13 @@ button{ font-family:inherit; }
 .step-list li::before{ content:counter(step) ")"; counter-increment:step; position:absolute; left:0; font-weight:700; }
 
 .formula-box, .code-box, .table-box{
-  margin:14px 0; border:1px solid var(--line); border-radius:5px;
-  background:var(--surface-raised); padding:12px 14px; font-family:var(--mono);
+  margin:14px 0; font-family:var(--mono);
   font-size:calc(var(--doc-fs) * 0.72); overflow-x:auto; text-align:left;
 }
 .formula-box .fl{ color:var(--ink-faint); }
 .formula-box .fv{ color:var(--accent-2); }
 .formula-box div{ white-space:nowrap; margin:3px 0; }
+.code-box{ padding-left:20px; }
 .code-box pre{ white-space:pre; color:var(--ink-dim); }
 .table-box table{ border-collapse:collapse; width:100%; }
 .table-box th{ text-align:left; color:var(--ink-faint); font-weight:600; padding:3px 10px 6px 0; border-bottom:1px solid var(--line); }
@@ -279,7 +279,6 @@ button{ font-family:inherit; }
   margin:18px 0; overflow-x:auto;
 }
 .orig-diagram svg{ display:block; margin:0 auto; max-width:100%; height:auto; }
-.orig-diagram .od-cap{ text-align:center; font-family:var(--serif); font-style:italic; font-size:calc(var(--doc-fs)*0.72); color:var(--ink-faint); margin-top:10px; }
 .od rect{ fill:none; stroke:var(--ink); stroke-width:1; }
 .od rect.dashed{ stroke-dasharray:2 2; }
 .od text{ font-family:var(--sans); fill:var(--ink); }
@@ -297,7 +296,6 @@ button{ font-family:inherit; }
 }
 .formula-visual svg{ display:block; max-width:100%; height:auto; color:var(--ink); flex:none; }
 .formula-visual svg text{ fill:currentColor; font-family:var(--serif); }
-.formula-visual .cap{ font-family:var(--sans); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-ghost); text-align:center; margin-top:10px; }
 .formula-wrap{ display:flex; flex-direction:column; align-items:center; width:100%; }
 
 /* ---------- interactive probability chart ---------- */
@@ -778,8 +776,8 @@ const FORMULAS = {
   <text x="345" y="60" font-size="40">)</text>
 </svg>`
 };
-function formulaBox(key, capDe, capEn, lang){
-  return '<div class="formula-visual"><div class="formula-wrap">'+FORMULAS[key]+'<div class="cap">'+(lang==='en'?capEn:capDe)+'</div></div></div>';
+function formulaBox(key){
+  return '<div class="formula-visual"><div class="formula-wrap">'+FORMULAS[key]+'</div></div>';
 }
 
 /* ============ ORIGINAL DIAGRAMS (1:1-Nachbau der PDF-Abbildungen, im Dokument) ============ */
@@ -967,8 +965,8 @@ const ORIG_DIAGRAMS = {
 <rect x="255" y="115" width="70" height="26"/><text x="290" y="132" text-anchor="middle" font-size="8">Public</text>
 </svg>`
 };
-function origDiagramBox(key, capDe, capEn, lang){
-  return '<div class="orig-diagram">'+ORIG_DIAGRAMS[key]+'<div class="od-cap">'+(lang==='en'?capEn:capDe)+'</div></div>';
+function origDiagramBox(key){
+  return '<div class="orig-diagram">'+ORIG_DIAGRAMS[key]+'</div>';
 }
 
 /* ============ INTERACTIVE PROBABILITY CHARTS ============ */
@@ -1209,7 +1207,6 @@ const DOC = [
 
 {type:'sectionhead', num:'2', label_de:'Transaktionen', label_en:'Transactions'},
 {type:'block', id:'t1', icon:'link', diagram:'coin-chain', origDiagram:'tx-chain',
-  origCapDe:'Original-Abbildung, Kapitel 2', origCapEn:'Original figure, chapter 2',
   title:'Eine Münze ist eine Kette von Unterschriften',
   text_de:[`Wir definieren eine elektronische Münze als eine Kette digitaler Signaturen. Jeder Besitzer überträgt die Münze an den nächsten, indem er einen Hash der vorherigen Transaktion sowie den öffentlichen Schlüssel des nächsten Besitzers digital signiert und diese Angaben an das Ende der Münze anfügt. Ein Zahlungsempfänger kann die Signaturen prüfen, um die Kette der Eigentümerschaft zu verifizieren.`],
   text_en:[`We define an electronic coin as a chain of digital signatures. Each owner transfers the coin to the next by digitally signing a hash of the previous transaction and the public key of the next owner and adding these to the end of the coin. A payee can verify the signatures to verify the chain of ownership.`],
@@ -1233,7 +1230,6 @@ const DOC = [
 
 {type:'sectionhead', num:'3', label_de:'Zeitstempel-Server', label_en:'Timestamp Server'},
 {type:'block', id:'ts1', icon:'hash', diagram:'hash-chain', origDiagram:'hash-chain-orig',
-  origCapDe:'Original-Abbildung, Kapitel 3', origCapEn:'Original figure, chapter 3',
   title:'Ein Zeitstempel, der nicht lügen kann',
   text_de:[`Die von uns vorgeschlagene Lösung beginnt mit einem Zeitstempel-Dienst. Ein Zeitstempel-Dienst funktioniert, indem er einen Hash eines Blocks zu stempelnder Datensätze bildet und diesen Hash breit veröffentlicht, etwa in einer Zeitungsanzeige oder einem Usenet-Beitrag [2-5]. Der Zeitstempel beweist, dass die Daten zu diesem Zeitpunkt existiert haben müssen, da sie sonst nicht in den Hash eingeflossen wären. Jeder Zeitstempel enthält den vorherigen Zeitstempel in seinem Hash und bildet so eine Kette, in der jeder weitere Zeitstempel die davorliegenden zusätzlich bekräftigt.`],
   text_en:[`The solution we propose begins with a timestamp server. A timestamp server works by taking a hash of a block of items to be timestamped and widely publishing the hash, such as in a newspaper or Usenet post [2-5]. The timestamp proves that the data must have existed at the time, obviously, in order to get into the hash. Each timestamp includes the previous timestamp in its hash, forming a chain, with each additional timestamp reinforcing the ones before it.`],
@@ -1252,7 +1248,6 @@ const DOC = [
   `Praktisch bedeutet das: Man probiert immer wieder eine Zufallszahl (die "Nonce") aus und hasht sie zusammen mit den Blockdaten, bis der resultierende Hash mit einer bestimmten Anzahl Nullen beginnt. Da ein Hash komplett unvorhersehbar ist, hilft nur stures Durchprobieren — wie beim Würfeln, bis eine bestimmte Zahl fällt.`,
   `Je mehr Nullen gefordert sind, desto exponentiell aufwendiger wird die Suche (mehr Rechenleistung, mehr Strom). Der entscheidende Vorteil: Das Ergebnis zu überprüfen dauert nur einen einzigen Hash-Vorgang — extrem schnell. Schwer zu finden, aber leicht zu prüfen: genau dieses Ungleichgewicht macht Proof-of-Work nützlich.`]},
 {type:'block', id:'pow2', icon:'layers', diagram:'pow-block', origDiagram:'pow-block-orig',
-  origCapDe:'Original-Abbildung, Kapitel 4', origCapEn:'Original figure, chapter 4',
   title:'Blöcke werden aneinandergekettet',
   text_de:[`Für unser Zeitstempel-Netzwerk implementieren wir den Arbeitsnachweis, indem wir eine Nonce im Block so lange erhöhen, bis ein Wert gefunden ist, der dem Block-Hash die geforderten Nullbits verleiht. Sobald der Rechenaufwand erbracht wurde, um den Arbeitsnachweis zu erfüllen, kann der Block nicht mehr verändert werden, ohne die Arbeit zu wiederholen. Da spätere Blöcke an ihn angekettet werden, würde die Arbeit zur Änderung eines Blocks auch die Wiederholung sämtlicher nachfolgenden Blöcke einschließen.`],
   text_en:[`For our timestamp network, we implement the proof-of-work by incrementing a nonce in the block until a value is found that gives the block's hash the required zero bits. Once the CPU effort has been expended to make it satisfy the proof-of-work, the block cannot be changed without redoing the work. As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.`],
@@ -1335,7 +1330,6 @@ const DOC = [
   `Satoshis Punkt: Option 2 ist rational lohnender. Wer das System betrügt, untergräbt gleichzeitig das Vertrauen in Bitcoin selbst — und damit den Wert der eigenen, redlich verdienten Coins. Es ist wirtschaftlich klüger, mit den Regeln Geld zu verdienen, die einen ohnehin bevorzugen, als das eigene Nest zu beschmutzen.`]},
 {type:'sectionhead', num:'7', label_de:'Rückgewinnung von Speicherplatz', label_en:'Reclaiming Disk Space'},
 {type:'block', id:'rds1', icon:'git-merge', diagram:'merkle-tree', origDiagram:'merkle-orig',
-  origCapDe:'Original-Abbildung, Kapitel 7', origCapEn:'Original figure, chapter 7',
   title:'Alte Transaktionen wegwerfen, ohne die Kette zu brechen',
   text_de:[`Sobald die jüngste Transaktion einer Münze unter genügend Blöcken vergraben ist, können die davor liegenden, bereits ausgegebenen Transaktionen verworfen werden, um Speicherplatz zu sparen. Damit dies möglich ist, ohne den Block-Hash zu brechen, werden Transaktionen in einem Merkle-Baum gehasht [7][2][5], wobei nur die Wurzel in den Block-Hash eingeht. Alte Blöcke lassen sich dann verdichten, indem Zweige des Baums abgeschnitten werden. Die inneren Hashes müssen nicht gespeichert werden.`],
   text_en:[`Once the latest transaction in a coin is buried under enough blocks, the spent transactions before it can be discarded to save disk space. To facilitate this without breaking the block's hash, transactions are hashed in a Merkle Tree [7][2][5], with only the root included in the block's hash. Old blocks can then be compacted by stubbing off branches of the tree. The interior hashes do not need to be stored.`],
@@ -1353,7 +1347,6 @@ const DOC = [
 
 {type:'sectionhead', num:'8', label_de:'Vereinfachte Zahlungsverifikation', label_en:'Simplified Payment Verification'},
 {type:'block', id:'spv1', icon:'smartphone', diagram:'spv', origDiagram:'spv-orig',
-  origCapDe:'Original-Abbildung, Kapitel 8', origCapEn:'Original figure, chapter 8',
   title:'Bitcoin nutzen, ohne die ganze Kette zu speichern',
   text_de:[`Es ist möglich, Zahlungen zu verifizieren, ohne einen vollständigen Netzwerkknoten zu betreiben. Ein Nutzer muss lediglich eine Kopie der Block-Header der längsten Proof-of-Work-Kette vorhalten, die er sich durch Anfragen bei Netzwerkknoten beschaffen kann, bis er überzeugt ist, die längste Kette zu besitzen, sowie den Merkle-Zweig erhalten, der die Transaktion mit dem Block verknüpft, in dem sie zeitgestempelt wurde. Er kann die Transaktion nicht selbst überprüfen, doch durch ihre Verknüpfung mit einer Stelle in der Kette sieht er, dass ein Netzwerkknoten sie akzeptiert hat, und nachfolgend hinzugefügte Blöcke bestätigen diese Akzeptanz zusätzlich.`],
   text_en:[`It is possible to verify payments without running a full network node. A user only needs to keep a copy of the block headers of the longest proof-of-work chain, which he can get by querying network nodes until he's convinced he has the longest chain, and obtain the Merkle branch linking the transaction to the block it's timestamped in. He can't check the transaction for himself, but by linking it to a place in the chain, he can see that a network node has accepted it, and blocks added after it further confirm the network has accepted it.`],
@@ -1370,7 +1363,6 @@ const DOC = [
 
 {type:'sectionhead', num:'9', label_de:'Zusammenführen und Aufteilen von Werten', label_en:'Combining and Splitting Value'},
 {type:'block', id:'csv1', icon:'split', diagram:'tx-io', origDiagram:'tx-io-orig',
-  origCapDe:'Original-Abbildung, Kapitel 9', origCapEn:'Original figure, chapter 9',
   title:'Wechselgeld: mehrere Ein- und Ausgänge pro Transaktion',
   text_de:[`Obwohl es möglich wäre, Münzen einzeln zu handhaben, wäre es unhandlich, für jeden Cent einer Überweisung eine eigene Transaktion zu erstellen. Damit sich Werte aufteilen und zusammenführen lassen, enthalten Transaktionen mehrere Ein- und Ausgänge. Normalerweise gibt es entweder einen einzelnen Eingang aus einer größeren vorherigen Transaktion oder mehrere Eingänge, die kleinere Beträge kombinieren, sowie höchstens zwei Ausgänge: einen für die Zahlung und einen, der das Wechselgeld – sofern vorhanden – an den Absender zurückgibt.`],
   text_en:[`Although it would be possible to handle coins individually, it would be unwieldy to make a separate transaction for every cent in a transfer. To allow value to be split and combined, transactions contain multiple inputs and outputs. Normally there will be either a single input from a larger previous transaction or multiple inputs combining smaller amounts, and at most two outputs: one for the payment, and one returning the change, if any, back to the sender.`],
@@ -1388,7 +1380,6 @@ const DOC = [
 
 {type:'sectionhead', num:'10', label_de:'Privatsphäre', label_en:'Privacy'},
 {type:'block', id:'priv1', icon:'eye-off', diagram:'privacy', origDiagram:'privacy-orig',
-  origCapDe:'Original-Abbildung, Kapitel 10', origCapEn:'Original figure, chapter 10',
   title:'Öffentlich, aber trotzdem anonym?',
   text_de:[`Das traditionelle Bankmodell erreicht ein gewisses Maß an Privatsphäre, indem es den Zugang zu Informationen auf die beteiligten Parteien und die vertrauenswürdige dritte Partei beschränkt. Die Notwendigkeit, alle Transaktionen öffentlich bekanntzugeben, schließt diese Methode aus, doch Privatsphäre lässt sich weiterhin wahren, indem der Informationsfluss an anderer Stelle unterbrochen wird: durch die Anonymität der öffentlichen Schlüssel. Die Öffentlichkeit kann sehen, dass jemand einen Betrag an jemand anderen sendet, jedoch ohne Informationen, die die Transaktion mit einer Person verknüpfen. Das ähnelt dem Informationsniveau, das Börsen veröffentlichen, wo Zeitpunkt und Umfang einzelner Handelsgeschäfte, das „Tape“, öffentlich gemacht werden, ohne preiszugeben, wer die Parteien waren.`],
   text_en:[`The traditional banking model achieves a level of privacy by limiting access to information to the parties involved and the trusted third party. The necessity to announce all transactions publicly precludes this method, but privacy can still be maintained by breaking the flow of information in another place: by keeping public keys anonymous. The public can see that someone is sending an amount to someone else, but without information linking the transaction to anyone. This is similar to the level of information released by stock exchanges, where the time and size of individual trades, the "tape", is made public, but without telling who the parties were.`],
@@ -1420,12 +1411,12 @@ const DOC = [
   <div><i>p</i> = Wahrscheinlichkeit, dass ein ehrlicher Knoten den n&auml;chsten Block findet</div>
   <div><i>q</i> = Wahrscheinlichkeit, dass der Angreifer den n&auml;chsten Block findet</div>
   <div><i>q<sub>z</sub></i> = Wahrscheinlichkeit, dass der Angreifer von <i>z</i> Bl&ouml;cken R&uuml;ckstand je aufholt</div>
-  </div>${formulaBox('qz','Original-Formel &sect; 11','Original formula &sect; 11','de')}`,
+  </div>${formulaBox('qz')}`,
   extraHTML_en:`<div class="math-defs">
   <div><i>p</i> = probability an honest node finds the next block</div>
   <div><i>q</i> = probability the attacker finds the next block</div>
   <div><i>q<sub>z</sub></i> = probability the attacker will ever catch up from <i>z</i> blocks behind</div>
-  </div>${formulaBox('qz','Original-Formel &sect; 11','Original formula &sect; 11','en')}`,
+  </div>${formulaBox('qz')}`,
   explain:[`Das Wettrennen zwischen der ehrlichen Kette und einer Angreifer-Kette lässt sich als "Binomial Random Walk" beschreiben — ein Zufallsspaziergang, bei dem der Abstand zwischen beiden Ketten bei jedem neuen Block entweder um 1 wächst oder um 1 schrumpft.`,
   `Das ist mathematisch identisch mit "Gambler's Ruin": Ein Spieler mit unbegrenztem Kredit startet im Minus und spielt unendlich oft weiter, in der Hoffnung, irgendwann auf null zu kommen. Hier ist der "Spieler" der Angreifer, und "auf null kommen" heißt: die ehrliche Kette einholen.`,
   `Die Formel oben ist das Ergebnis: p ist die Chance pro Block, dass die ehrliche Seite gewinnt, q die Chance für den Angreifer. Ist der Angreifer mindestens gleich stark (p ≤ q), holt er mit Sicherheit irgendwann auf. Ist er schwächer (p > q), sinkt seine Aufholchance mit jedem zusätzlichen Blockvorsprung exponentiell. Genau dieser exponentielle Abfall ist der eigentliche Sicherheitsmechanismus von Bitcoin.`]},
@@ -1447,11 +1438,11 @@ const DOC = [
   title:'Die Formel, mit der man das Risiko berechnet',
   parts_de:[
     {p:`Der Empfänger wartet, bis die Transaktion in einen Block aufgenommen wurde und z weitere Blöcke daran angehängt sind. Er kennt das genaue Ausmaß des Fortschritts des Angreifers nicht, doch unter der Annahme, dass die ehrlichen Blöcke die durchschnittlich erwartete Zeit pro Block benötigten, folgt der mögliche Fortschritt des Angreifers einer Poisson-Verteilung mit dem Erwartungswert:`},
-    {html:formulaBox('lambda','Erwartungswert &lambda;','Expected value &lambda;','de')},
+    {html:formulaBox('lambda')},
     {p:`Um die Wahrscheinlichkeit zu erhalten, dass der Angreifer jetzt noch aufholen könnte, multiplizieren wir die Poisson-Dichte für jeden möglichen Fortschritt mit der Wahrscheinlichkeit, von diesem Punkt aus aufzuholen:`},
-    {html:formulaBox('poisson-sum','Poisson-gewichtete Aufhol-Wahrscheinlichkeit','Poisson-weighted catch-up probability','de')},
+    {html:formulaBox('poisson-sum')},
     {p:`Umgeformt, um die Summierung des unendlichen Randbereichs der Verteilung zu vermeiden:`},
-    {html:formulaBox('rearranged','Umgeformt','Rearranged','de')},
+    {html:formulaBox('rearranged')},
     {p:`Übersetzt in C-Code:`},
     {html:`<div class="code-box"><pre>#include &lt;math.h&gt;
 double AttackerSuccessProbability(double q, int z)
@@ -1472,11 +1463,11 @@ double AttackerSuccessProbability(double q, int z)
   ],
   parts_en:[
     {p:`The recipient waits until the transaction has been added to a block and z blocks have been linked after it. He doesn't know the exact amount of progress the attacker has made, but assuming the honest blocks took the average expected time per block, the attacker's potential progress will be a Poisson distribution with expected value:`},
-    {html:formulaBox('lambda','Erwartungswert &lambda;','Expected value &lambda;','en')},
+    {html:formulaBox('lambda')},
     {p:`To get the probability the attacker could still catch up now, we multiply the Poisson density for each amount of progress he could have made by the probability he could catch up from that point:`},
-    {html:formulaBox('poisson-sum','Poisson-gewichtete Aufhol-Wahrscheinlichkeit','Poisson-weighted catch-up probability','en')},
+    {html:formulaBox('poisson-sum')},
     {p:`Rearranging to avoid summing the infinite tail of the distribution:`},
-    {html:formulaBox('rearranged','Umgeformt','Rearranged','en')},
+    {html:formulaBox('rearranged')},
     {p:`Converting to C code:`},
     {html:`<div class="code-box"><pre>#include &lt;math.h&gt;
 double AttackerSuccessProbability(double q, int z)
@@ -1663,7 +1654,7 @@ function renderDoc(){
       if (extra) inner += extra;
     }
     if (item.origDiagram) {
-      inner += origDiagramBox(item.origDiagram, item.origCapDe, item.origCapEn, LANG);
+      inner += origDiagramBox(item.origDiagram);
     }
 
     html += `<div class="para-wrap"><div class="para${indentCls}" id="block-${item.id}" data-id="${item.id}" tabindex="0" role="button" aria-pressed="false"><span class="gutter-mark">&para;${num}</span>${inner}</div></div>`;
