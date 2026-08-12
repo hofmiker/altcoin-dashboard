@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitcoin: Der Quellcode erklärt</title>
+<meta name="description" content="Der allererste Bitcoin-Quellcode (v0.1.0, Januar 2009) — Funktion für Funktion erklärt, mit Diagrammen.">
+
+<style>
+@font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-400.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-500.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-600.woff2') format('woff2'); font-weight:600; font-display:swap; }
+@font-face { font-family:'JetBrains Mono'; src:url('vendor/fonts/jetbrains-mono-700.woff2') format('woff2'); font-weight:700; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-500.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-600.woff2') format('woff2'); font-weight:600; font-display:swap; }
+@font-face { font-family:'Space Grotesk'; src:url('vendor/fonts/space-grotesk-700.woff2') format('woff2'); font-weight:700; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-400.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-500.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('vendor/fonts/inter-600.woff2') format('woff2'); font-weight:600; font-display:swap; }
+
+:root{
+  --bg:#111214; --surface:#17181b; --surface-raised:#1e2023; --line:rgba(255,255,255,.09); --line-soft:rgba(255,255,255,.06);
+  --ink:rgba(255,255,255,.92); --ink-faint:rgba(255,255,255,.62); --ink-ghost:rgba(255,255,255,.38);
+  --accent:#ff4d76; --accent-deep:rgba(255,77,118,.16); --accent-bg:rgba(255,77,118,.08); --accent-bg-strong:rgba(255,77,118,.14); --accent-border:#ff4d76;
+  --ok:#5fd08a; --ok-bg:rgba(95,208,138,.12); --bad:#ff6b6b; --bad-bg:rgba(255,107,107,.12);
+  --sans:'Inter',-apple-system,sans-serif; --display:'Space Grotesk',var(--sans); --mono:'JetBrains Mono',ui-monospace,monospace;
+  --code-bg:#1e1e1e; --code-line-hover:rgba(255,255,255,.035); --code-fg:#d4d4d4; --code-comment:#6e7681; --code-keyword:#c586c0;
+  --code-string:#9fca7d; --code-type:#56b6c2; --code-func:#dcdcaa; --code-number:#d19a66; --code-punc:#b7bac0; --code-linenum:#585a60;
+  --code-region-hover:rgba(255,255,255,.045); --code-region-active:rgba(255,77,118,.10);
+  --explain-fs:16px;
+}
+:root[data-theme="light"]{
+  --bg:#eeece6; --surface:#ffffff; --surface-raised:#f4f2ec; --line:rgba(0,0,0,.10); --line-soft:rgba(0,0,0,.06);
+  --ink:rgba(20,20,18,.92); --ink-faint:rgba(20,20,18,.62); --ink-ghost:rgba(20,20,18,.38);
+  --accent:#b3123f; --accent-deep:rgba(179,18,63,.10); --accent-bg:rgba(179,18,63,.06); --accent-bg-strong:rgba(179,18,63,.11); --accent-border:#b3123f;
+  --ok:#1f8a4c; --ok-bg:rgba(31,138,76,.10); --bad:#c23434; --bad-bg:rgba(194,52,52,.10);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  min-height:100vh; transition:background .2s,color .2s;
+}
+a{ color:inherit; }
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:16px;
+  height:56px; padding:0 18px; background:var(--surface); border-bottom:1px solid var(--line);
+}
+.back-link{
+  display:flex; align-items:center; gap:6px; font-size:12px; letter-spacing:.04em; color:var(--ink-faint);
+  text-decoration:none; white-space:nowrap;
+}
+.back-link:hover{ color:var(--ink); }
+.back-link svg{ width:14px; height:14px; transform:rotate(180deg); }
+.topbar-title{ display:flex; flex-direction:column; gap:1px; margin-right:auto; min-width:0; }
+.topbar-title .name{ font-family:var(--display); font-size:15px; font-weight:600; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.topbar-title .name .accent{ color:var(--accent); }
+.topbar-title .sub{ font-size:10.5px; letter-spacing:.05em; color:var(--ink-ghost); white-space:nowrap; }
+.settings-btn, .theme-switch{
+  border:1px solid var(--line); background:var(--surface-raised); color:var(--ink-faint); border-radius:8px;
+  height:32px; cursor:pointer; font-family:var(--display); transition:border-color .15s,color .15s;
+}
+.settings-btn{ width:38px; font-size:13px; font-weight:600; }
+.settings-btn:hover, .theme-switch:hover{ border-color:var(--ink-ghost); color:var(--ink); }
+.theme-switch{ width:38px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.settings-pop{
+  position:absolute; top:52px; right:66px; z-index:50; background:var(--surface); border:1px solid var(--line);
+  border-radius:12px; padding:14px; width:220px; box-shadow:0 12px 32px rgba(0,0,0,.35);
+  display:none; flex-direction:column; gap:12px;
+}
+.settings-pop.is-open{ display:flex; }
+.settings-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.settings-label{ font-size:11.5px; color:var(--ink-faint); letter-spacing:.03em; }
+.fs-stepper{ display:flex; align-items:center; gap:8px; }
+.fs-btn{
+  width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:var(--surface-raised);
+  color:var(--ink); cursor:pointer; font-size:11px; line-height:1;
+}
+.fs-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.fs-val{ font-size:11px; color:var(--ink-ghost); min-width:34px; text-align:center; }
+
+/* ---------- layout ---------- */
+.layout{ display:grid; grid-template-columns:200px minmax(0,1fr); max-width:1480px; margin:0 auto; }
+.rail{ padding:22px 12px; border-right:1px solid var(--line); position:sticky; top:56px; align-self:start; height:calc(100vh - 56px); overflow-y:auto; }
+.rail-heading{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-ghost); padding:0 8px 10px; }
+.rail-item{
+  display:flex; align-items:flex-start; gap:8px; width:100%; text-align:left; padding:8px 8px; border-radius:7px;
+  border:none; background:none; color:var(--ink-faint); font-family:var(--mono); font-size:11px; line-height:1.4; cursor:pointer;
+}
+.rail-item:hover{ background:var(--surface-raised); color:var(--ink); }
+.rail-item.is-active{ background:var(--accent-bg-strong); color:var(--ink); box-shadow:inset 2px 0 0 var(--accent); }
+.rail-item.is-disabled{ cursor:default; opacity:.42; }
+.rail-item.is-disabled:hover{ background:none; color:var(--ink-faint); }
+.rail-item .dot{ width:5px; height:5px; border-radius:50%; background:var(--ink-ghost); margin-top:5px; flex:none; }
+.rail-item.is-active .dot{ background:var(--accent); }
+
+.main-col{ min-width:0; padding:26px 26px 80px; }
+.panel-col{
+  position:sticky; top:56px; height:calc(100vh - 56px); overflow-y:auto; border-left:1px solid var(--line);
+  background:var(--surface); padding:26px 24px 60px;
+}
+.layout{ grid-template-columns:200px minmax(0,1fr) 380px; }
+
+@media (max-width:1180px){
+  .layout{ grid-template-columns:170px minmax(0,1fr); }
+  .panel-col{ position:fixed; inset:auto 0 0 0; height:auto; max-height:78vh; border-left:none; border-top:1px solid var(--line);
+    border-radius:16px 16px 0 0; transform:translateY(100%); transition:transform .25s ease; box-shadow:0 -12px 32px rgba(0,0,0,.4); z-index:45; }
+  .panel-col.is-open{ transform:translateY(0); }
+  .panel-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); opacity:0; pointer-events:none; transition:opacity .2s; z-index:44; }
+  .panel-backdrop.is-open{ opacity:1; pointer-events:auto; }
+  .panel-close{ display:flex !important; }
+}
+@media (max-width:760px){
+  .rail{ display:none; }
+  .layout{ grid-template-columns:1fr; }
+}
+
+/* ---------- source card ---------- */
+.source-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:22px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px 22px;
+}
+.source-card .field-label{ font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-ghost); margin-bottom:3px; }
+.source-card .field-value{ font-size:13px; color:var(--ink); font-weight:500; }
+.source-card .field-value.mono{ font-family:var(--mono); font-size:12px; }
+.source-card a.field-value{ color:var(--accent); text-decoration:none; }
+.source-card a.field-value:hover{ text-decoration:underline; }
+.source-note{
+  grid-column:1/-1; margin-top:2px; padding-top:12px; border-top:1px solid var(--line-soft);
+  font-size:12px; line-height:1.55; color:var(--ink-faint);
+}
+.source-note code{ font-family:var(--mono); font-size:11.5px; background:var(--surface-raised); padding:1px 5px; border-radius:4px; }
+
+.fn-heading{ display:flex; align-items:baseline; gap:10px; margin:0 0 14px; flex-wrap:wrap; }
+.fn-heading h1{ font-family:var(--display); font-size:22px; font-weight:600; letter-spacing:.01em; }
+.fn-heading .lines{ font-family:var(--mono); font-size:12px; color:var(--ink-ghost); }
+
+/* ---------- code panel ---------- */
+.code-frame{
+  background:var(--code-bg); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.code-titlebar{
+  display:flex; align-items:center; gap:8px; padding:10px 16px; background:rgba(255,255,255,.03);
+  border-bottom:1px solid rgba(255,255,255,.06); font-family:var(--mono); font-size:11.5px; color:#8a8d93;
+}
+.code-titlebar .tl-dots{ display:flex; gap:6px; margin-right:6px; }
+.code-titlebar .tl-dots span{ width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.14); }
+.code-body{ padding:14px 0; overflow-x:auto; }
+.code-line{
+  display:flex; font-family:var(--mono); font-size:calc(var(--explain-fs) * .8); line-height:1.65; white-space:pre;
+}
+.ln{ flex:none; width:44px; text-align:right; padding-right:16px; color:var(--code-linenum); user-select:none; }
+.code-line .src{ flex:1; padding-right:24px; color:var(--code-fg); }
+.code-line.blank{ height:calc(var(--explain-fs) * .8 * 1.65); }
+.code-region{ position:relative; cursor:pointer; border-radius:4px; transition:background .12s; }
+.code-region::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent; transition:background .12s;
+}
+.code-region:hover{ background:var(--code-region-hover); }
+.code-region.is-active{ background:var(--code-region-active); }
+.code-region.is-active::before{ background:var(--accent); }
+.code-static .code-line{ opacity:.55; }
+
+.tok-comment{ color:var(--code-comment); font-style:italic; }
+.tok-string{ color:var(--code-string); }
+.tok-keyword{ color:var(--code-keyword); }
+.tok-type{ color:var(--code-type); }
+.tok-func{ color:var(--code-func); }
+.tok-number{ color:var(--code-number); }
+.tok-ident{ color:var(--code-fg); }
+
+.scope-hint{
+  display:flex; align-items:center; gap:8px; margin-top:16px; padding:10px 14px; border:1px dashed var(--line);
+  border-radius:10px; font-size:12px; color:var(--ink-ghost); line-height:1.5;
+}
+.scope-hint svg{ flex:none; width:15px; height:15px; }
+
+/* ---------- panel (explanation) ---------- */
+.panel-empty{ display:flex; flex-direction:column; gap:14px; color:var(--ink-faint); font-size:13px; line-height:1.6; }
+.panel-empty .big-icon{ width:30px; height:30px; color:var(--accent); }
+.panel-close{ display:none; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%;
+  border:1px solid var(--line); background:var(--surface-raised); color:var(--ink-faint); position:absolute; top:14px; right:14px; cursor:pointer; }
+.panel-content{ display:none; }
+.panel-content.is-visible{ display:block; }
+.panel-eyebrow{ display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+.panel-eyebrow svg{ width:15px; height:15px; }
+.panel-content h2{ font-family:var(--display); font-size:19px; font-weight:600; line-height:1.3; margin-bottom:14px; }
+.panel-body{ font-family:var(--sans); font-size:var(--explain-fs); line-height:1.65; color:var(--ink); }
+.panel-body p{ margin-bottom:13px; }
+.panel-body code{ font-family:var(--mono); font-size:.86em; background:var(--surface-raised); padding:1px 5px; border-radius:4px; }
+.panel-body strong{ color:var(--ink); font-weight:600; }
+.panel-whitepaper-ref{
+  display:inline-flex; align-items:center; gap:6px; margin-top:2px; margin-bottom:16px; padding:5px 11px;
+  border:1px solid var(--line); border-radius:999px; font-size:11px; color:var(--ink-faint); text-decoration:none;
+}
+.panel-whitepaper-ref:hover{ border-color:var(--accent); color:var(--accent); }
+.panel-whitepaper-ref svg{ width:12px; height:12px; }
+
+.diagram-box{ margin:16px 0 18px; }
+.diagram-box svg{ display:block; width:100%; height:auto; max-width:100%; }
+.diagram-cap{ margin-top:8px; font-size:11px; color:var(--ink-ghost); text-align:center; font-style:italic; }
+
+/* ---------- footer coverage note ---------- */
+.coverage-card{
+  margin-top:26px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px;
+  font-size:12.5px; line-height:1.65; color:var(--ink-faint);
+}
+.coverage-card h3{ font-family:var(--display); font-size:13.5px; color:var(--ink); margin-bottom:8px; font-weight:600; }
+.coverage-bar{ display:flex; height:8px; border-radius:5px; overflow:hidden; margin:12px 0 10px; background:var(--surface-raised); }
+.coverage-bar .seg{ height:100%; }
+.coverage-legend{ display:flex; flex-wrap:wrap; gap:12px; font-size:11px; }
+.coverage-legend span{ display:inline-flex; align-items:center; gap:5px; }
+.coverage-legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="../" aria-label="Zurück zu den Projekten">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    Projekte
+  </a>
+  <div class="topbar-title">
+    <span class="name">bitcoin-source<span class="accent">.explained</span></span>
+    <span class="sub">v0.1.0 · 8. Januar 2009 · Satoshi Nakamoto</span>
+  </div>
+  <button class="settings-btn" id="settings-btn" aria-label="Einstellungen">Aa</button>
+  <button class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus"><span id="theme-thumb">&#9789;</span></button>
+</div>
+
+<div class="settings-pop" id="settings-pop">
+  <div class="settings-row">
+    <span class="settings-label">Textgröße</span>
+    <div class="fs-stepper">
+      <button class="fs-btn" id="fs-minus" aria-label="Kleiner">A</button>
+      <span class="fs-val" id="fs-val">16px</span>
+      <button class="fs-btn" id="fs-plus" aria-label="Größer">A</button>
+    </div>
+  </div>
+  <div class="settings-row">
+    <span class="settings-label">Design</span>
+    <span style="font-size:11px;color:var(--ink-ghost)">Code bleibt immer dunkel</span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="rail">
+    <div class="rail-heading">Funktionen</div>
+    <button class="rail-item is-active" data-fn="checkblock"><span class="dot"></span> CBlock::CheckBlock()</button>
+    <button class="rail-item is-disabled" disabled><span class="dot"></span> BuildMerkleTree() <span style="margin-left:auto;opacity:.7">bald</span></button>
+    <button class="rail-item is-disabled" disabled><span class="dot"></span> BitcoinMiner() <span style="margin-left:auto;opacity:.7">bald</span></button>
+    <button class="rail-item is-disabled" disabled><span class="dot"></span> CheckTransaction() <span style="margin-left:auto;opacity:.7">bald</span></button>
+    <button class="rail-item is-disabled" disabled><span class="dot"></span> ConnectInputs() <span style="margin-left:auto;opacity:.7">bald</span></button>
+    <button class="rail-item is-disabled" disabled><span class="dot"></span> AddToWallet() <span style="margin-left:auto;opacity:.7">bald</span></button>
+  </nav>
+
+  <main class="main-col">
+    <div class="source-card">
+      <div><div class="field-label">Quelle</div><a class="field-value" href="https://github.com/0xMagnuz/Bitcoin-v0.1" target="_blank" rel="noopener">0xMagnuz/Bitcoin-v0.1 ↗</a></div>
+      <div><div class="field-label">Datei</div><div class="field-value mono">bitcoin0.1/src/main.cpp</div></div>
+      <div><div class="field-label">Version</div><div class="field-value">v0.1.0 (Erstveröffentlichung)</div></div>
+      <div><div class="field-label">Datum</div><div class="field-value">8. Januar 2009</div></div>
+      <div><div class="field-label">Urheber</div><div class="field-value">Satoshi Nakamoto</div></div>
+      <div><div class="field-label">Lizenz</div><div class="field-value">MIT/X11</div></div>
+      <div class="source-note">
+        Community-Archiv des Original-Release, kein offizielles Bitcoin-Repo. Satoshi verteilte den Code am 8./9. Januar 2009 über die Cryptography-Mailingliste und SourceForge — Jahre bevor <code>bitcoin/bitcoin</code> auf GitHub entstand. Codeausschnitte hier sind wortwörtlich übernommen (nur CRLF→LF), Farben/Formatierung sind unsere Ergänzung.
+      </div>
+    </div>
+
+    <div class="fn-heading">
+      <h1 id="fn-title">CBlock::CheckBlock()</h1>
+      <span class="lines" id="fn-lines">main.cpp, Zeilen 1154–1190</span>
+    </div>
+
+    <div class="code-frame">
+      <div class="code-titlebar"><span class="tl-dots"><span></span><span></span><span></span></span> main.cpp</div>
+      <div class="code-body" id="code-body"></div>
+    </div>
+
+    <div class="scope-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      Testausschnitt: aktuell ist nur diese eine Funktion aufbereitet. Die grau hinterlegten Zeilen (Signatur, <code>return true;</code>, Klammern) sind nicht anklickbar — klicke auf einen der hervorgehobenen Codeblöcke, um ihn rechts erklärt zu bekommen.
+    </div>
+
+    <div class="coverage-card">
+      <h3>Wie viel vom Original-Code lässt sich so aufbereiten?</h3>
+      <p><code>main.cpp</code> (v0.1.0) hat 2.660 Zeilen. Grob geschätzt:</p>
+      <div class="coverage-bar">
+        <span class="seg" style="width:18%;background:var(--ok)"></span>
+        <span class="seg" style="width:27%;background:#d19a66"></span>
+        <span class="seg" style="width:55%;background:var(--line)"></span>
+      </div>
+      <div class="coverage-legend">
+        <span><i style="background:var(--ok)"></i> ~18 % Kernalgorithmen — gut visualisierbar (CheckBlock, BuildMerkleTree, BitcoinMiner-Schleife, CheckTransaction/ConnectInputs, Coinbase-Reward)</span>
+        <span><i style="background:#d19a66"></i> ~27 % Netzwerk/Wallet-Logik — erklärbar, aber eher Ablauf- als Konzept-Diagramme (AddToWallet, Sync, IRC-Peer-Discovery)</span>
+        <span><i style="background:var(--line)"></i> ~55 % Plumbing — Windows-GUI (<code>ui.cpp</code>/<code>uibase.cpp</code>), Datenbank-Boilerplate, Serialisierung: für's Verständnis des Whitepapers uninteressant</span>
+      </div>
+    </div>
+  </main>
+
+  <aside class="panel-col" id="panel-col">
+    <button class="panel-close" id="panel-close" aria-label="Schließen">&times;</button>
+    <div class="panel-empty" id="panel-empty">
+      <svg class="big-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+      <p><strong>So funktioniert's:</strong> Klicke links auf einen hervorgehobenen Codeblock — hier erscheint dann in einfachen Worten, was er tut und warum, teils mit eigenem Schaubild.</p>
+      <p>Diese Funktion, <code>CBlock::CheckBlock()</code>, ist die Torwächter-Prüfung: Jeder neue Block muss sie bestehen, bevor ein Knoten ihn überhaupt akzeptiert.</p>
+    </div>
+    <div class="panel-content" id="panel-content"></div>
+  </aside>
+</div>
+<div class="panel-backdrop" id="panel-backdrop"></div>
+
+<script>
+/* ============ ICONS (subset of lucide-static, ISC license) ============ */
+const ICONS = {
+"scale":"<path d=\"M12 3v18\" /><path d=\"m19 8 3 8a5 5 0 0 1-6 0zV7\" /><path d=\"M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1\" /><path d=\"m5 8 3 8a5 5 0 0 1-6 0zV7\" /><path d=\"M7 21h10\" />",
+"clock":"<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"M12 6v6l4 2\" />",
+"coins":"<path d=\"M13.744 17.736a6 6 0 1 1-7.48-7.48\" /><path d=\"M15 6h1v4\" /><path d=\"m6.134 14.768.866-.5 2 3.464\" /><circle cx=\"16\" cy=\"8\" r=\"6\" />",
+"shield-check":"<path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\" /><path d=\"m9 12 2 2 4-4\" />",
+"cpu":"<path d=\"M12 20v2\" /><path d=\"M12 2v2\" /><path d=\"M17 20v2\" /><path d=\"M17 2v2\" /><path d=\"M2 12h2\" /><path d=\"M2 17h2\" /><path d=\"M2 7h2\" /><path d=\"M20 12h2\" /><path d=\"M20 17h2\" /><path d=\"M20 7h2\" /><path d=\"M7 20v2\" /><path d=\"M7 2v2\" /><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\" rx=\"2\" /><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\" />",
+"git-merge":"<circle cx=\"18\" cy=\"18\" r=\"3\" /><circle cx=\"6\" cy=\"6\" r=\"3\" /><path d=\"M6 21V9a9 9 0 0 0 9 9\" />",
+"book-open":"<path d=\"M12 5v16\" /><path d=\"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z\" />",
+"link":"<path d=\"M9 17H7A5 5 0 0 1 7 7h2\"/><path d=\"M15 7h2a5 5 0 1 1 0 10h-2\"/><line x1=\"8\" x2=\"16\" y1=\"12\" y2=\"12\"/>"
+};
+function icon(name, cls){ return '<svg class="'+(cls||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>'; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ============ SOURCE: main.cpp, lines 1154-1190 (v0.1.0, CRLF normalized to LF) ============ */
+const CODE_LINES = [
+"bool CBlock::CheckBlock() const",
+"{",
+"    // These are checks that are independent of context",
+"    // that can be verified before saving an orphan block.",
+"",
+"    // Size limits",
+"    if (vtx.empty() || vtx.size() > MAX_SIZE || ::GetSerializeSize(*this, SER_DISK) > MAX_SIZE)",
+"        return error(\"CheckBlock() : size limits failed\");",
+"",
+"    // Check timestamp",
+"    if (nTime > GetAdjustedTime() + 2 * 60 * 60)",
+"        return error(\"CheckBlock() : block timestamp too far in the future\");",
+"",
+"    // First transaction must be coinbase, the rest must not be",
+"    if (vtx.empty() || !vtx[0].IsCoinBase())",
+"        return error(\"CheckBlock() : first tx is not coinbase\");",
+"    for (int i = 1; i < vtx.size(); i++)",
+"        if (vtx[i].IsCoinBase())",
+"            return error(\"CheckBlock() : more than one coinbase\");",
+"",
+"    // Check transactions",
+"    foreach(const CTransaction& tx, vtx)",
+"        if (!tx.CheckTransaction())",
+"            return error(\"CheckBlock() : CheckTransaction failed\");",
+"",
+"    // Check proof of work matches claimed amount",
+"    if (CBigNum().SetCompact(nBits) > bnProofOfWorkLimit)",
+"        return error(\"CheckBlock() : nBits below minimum work\");",
+"    if (GetHash() > CBigNum().SetCompact(nBits).getuint256())",
+"        return error(\"CheckBlock() : hash doesn't match nBits\");",
+"",
+"    // Check merkleroot",
+"    if (hashMerkleRoot != BuildMerkleTree())",
+"        return error(\"CheckBlock() : hashMerkleRoot mismatch\");",
+"",
+"    return true;",
+"}"
+];
+const FIRST_LINE = 1154; // real line number in main.cpp for CODE_LINES[0]
+
+/* Regions: [startIdx, endIdx] into CODE_LINES (inclusive), rest renders as static/spacer */
+const REGIONS = [
+  { id:'size', range:[5,7], icon:'scale', title:'Größenlimit',
+    explain:[
+      `Bevor überhaupt irgendetwas inhaltlich geprüft wird: Ist der Block leer, enthält er zu viele Transaktionen, oder ist er als Ganzes zu groß (<code>MAX_SIZE</code>)? Dann fliegt er sofort raus.`,
+      `Das ist reine Selbstverteidigung des Knotens: Bevor auch nur eine einzige Signatur oder ein Hash geprüft wird — beides nicht ganz billig zu berechnen — filtert diese Zeile plumpe, überdimensionierte Blöcke, mit denen jemand versuchen könnte, das Netzwerk zu fluten.`
+    ] },
+  { id:'time', range:[9,11], icon:'clock', title:'Zeitstempel-Plausibilität',
+    explain:[
+      `Der im Block behauptete Zeitstempel darf höchstens zwei Stunden in der Zukunft liegen (<code>2 * 60 * 60</code> Sekunden).`,
+      `Ein Miner könnte versucht sein, mit einem falschen (zu weit in der Zukunft liegenden) Zeitstempel zu tricksen, um sich bei der späteren Schwierigkeitsanpassung einen Vorteil zu verschaffen. Diese simple Grenze verhindert die gröbsten Fälle davon.`
+    ] },
+  { id:'coinbase', range:[13,18], icon:'coins', title:'Genau eine Coinbase-Transaktion',
+    explain:[
+      `Jeder Block enthält genau eine "Coinbase"-Transaktion — die Belohnung, die sich der Miner für seine Arbeit selbst gutschreibt (siehe Kapitel 6, "Incentive" im Whitepaper). Diese muss zwingend die <strong>erste</strong> Transaktion im Block sein.`,
+      `Und: Keine der übrigen Transaktionen darf ebenfalls eine Coinbase sein. Ohne diese Regel könnte ein Miner sich in einem einzigen Block beliebig oft neue Bitcoin selbst gutschreiben, statt nur einmal.`
+    ],
+    diagram:'coinbase' },
+  { id:'txcheck', range:[20,23], icon:'shield-check', title:'Jede Transaktion einzeln prüfen',
+    explain:[
+      `<code>foreach</code> ist hier ein Makro (kein Standard-C++ von 2009) für eine simple Schleife über alle Transaktionen im Block. Jede einzelne durchläuft <code>CheckTransaction()</code> — Basisprüfungen wie: Ein-/Ausgabemengen nicht negativ, keine leeren Ein-/Ausgabelisten.`,
+      `Erst wenn wirklich <strong>jede</strong> Transaktion für sich genommen sauber ist, wird überhaupt weitergeprüft. Ein einziger fauler Apfel lässt den kompletten Block durchfallen.`
+    ] },
+  { id:'pow', range:[25,29], icon:'cpu', title:'Der Proof-of-Work-Beweis', highlight:true,
+    explain:[
+      `Das ist Kapitel 4 des Whitepapers, direkt in Code gegossen. Zwei Prüfungen:`,
+      `<strong>Erstens</strong>: Die im Block behauptete Schwierigkeit <code>nBits</code> darf nicht leichter sein als das Netzwerk-Minimum (<code>bnProofOfWorkLimit</code>) — sonst könnte sich ein Miner selbst eine leichtere Aufgabe stellen, als das Protokoll erlaubt.`,
+      `<strong>Zweitens</strong>, die eigentliche Arbeit: <code>GetHash()</code> — der SHA-256-Hash des kompletten Blockheaders — muss kleiner oder gleich dem aus <code>nBits</code> abgeleiteten Ziel sein. Genau das ist die Aufgabe, die im Mining stumpf durch Ausprobieren des Nonce gelöst wird (siehe <code>BitcoinMiner()</code> im gleichen File).`
+    ],
+    diagram:'pow' },
+  { id:'merkle', range:[31,33], icon:'git-merge', title:'Merkle-Root gegenprüfen',
+    explain:[
+      `Kapitel 7 des Whitepapers ("Reclaiming Disk Space") im Code: Der im Blockheader gespeicherte <code>hashMerkleRoot</code> muss exakt mit dem Wert übereinstimmen, den man bekommt, wenn man <strong>alle</strong> Transaktionen im Block gerade eben frisch zu einem Merkle-Baum zusammenhasht (<code>BuildMerkleTree()</code>).`,
+      `Stimmen beide Werte nicht überein, wurde entweder eine Transaktion nachträglich verändert oder unterschlagen — der Block ist ungültig.`
+    ],
+    diagram:'merkle' }
+];
+
+/* ============ small explanatory diagrams (colorful, own SVGs) ============ */
+const DIAGRAMS = {
+
+"coinbase": `<svg viewBox="0 0 340 130" width="340" height="130">
+<defs><marker id="dah1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path fill="var(--accent)" d="M0,0L8,4L0,8Z"/></marker></defs>
+<rect x="8" y="20" width="324" height="60" rx="8" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+<text x="20" y="14" font-size="9" fill="var(--ink-ghost)" font-family="var(--sans)">Block, vtx[]</text>
+<rect x="20" y="34" width="70" height="32" rx="6" fill="var(--ok-bg)" stroke="var(--ok)" stroke-width="1.6"/>
+<text x="55" y="54" text-anchor="middle" font-size="10" fill="var(--ink)" font-family="var(--sans)" font-weight="600">Coinbase</text>
+<text x="55" y="30" text-anchor="middle" font-size="8" fill="var(--ok)" font-family="var(--sans)">vtx[0] ✓</text>
+<rect x="102" y="34" width="60" height="32" rx="6" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+<text x="132" y="54" text-anchor="middle" font-size="9" fill="var(--ink-faint)" font-family="var(--sans)">Tx</text>
+<rect x="174" y="34" width="60" height="32" rx="6" fill="none" stroke="var(--line)" stroke-width="1.4"/>
+<text x="204" y="54" text-anchor="middle" font-size="9" fill="var(--ink-faint)" font-family="var(--sans)">Tx</text>
+<rect x="246" y="34" width="70" height="32" rx="6" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="1.6" stroke-dasharray="3 3"/>
+<text x="281" y="54" text-anchor="middle" font-size="10" fill="var(--ink)" font-family="var(--sans)" font-weight="600">Coinbase</text>
+<text x="281" y="94" text-anchor="middle" font-size="8" fill="var(--bad)" font-family="var(--sans)">✗ zweite Coinbase → Block ungültig</text>
+</svg>`,
+
+"pow": `<svg viewBox="0 0 380 150" width="380" height="150">
+<defs><marker id="dah2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path fill="var(--ink-ghost)" d="M0,0L8,4L0,8Z"/></marker></defs>
+<text x="4" y="14" font-size="9" fill="var(--ink-ghost)" font-family="var(--sans)">Zahlenraum aller möglichen Hashes (0 … 2²⁵⁶)</text>
+<rect x="6" y="26" width="368" height="16" rx="8" fill="var(--surface-raised)" stroke="var(--line)" stroke-width="1"/>
+<rect x="6" y="26" width="132" height="16" rx="8" fill="var(--ok-bg)"/>
+<line x1="138" y1="18" x2="138" y2="50" stroke="var(--ink)" stroke-width="1.4"/>
+<text x="138" y="64" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--sans)" font-weight="600">Ziel (aus nBits)</text>
+<circle cx="70" cy="34" r="5.5" fill="var(--ok)"/>
+<text x="70" y="90" text-anchor="middle" font-size="9" fill="var(--ok)" font-family="var(--sans)">GetHash() ≤ Ziel</text>
+<text x="70" y="102" text-anchor="middle" font-size="9" fill="var(--ok)" font-family="var(--sans)" font-weight="600">✓ gültiger Block</text>
+<circle cx="280" cy="34" r="5.5" fill="var(--bad)"/>
+<text x="280" y="90" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="var(--sans)">GetHash() &gt; Ziel</text>
+<text x="280" y="102" text-anchor="middle" font-size="9" fill="var(--bad)" font-family="var(--sans)" font-weight="600">✗ verworfen, weiter minen</text>
+<text x="6" y="132" font-size="8" fill="var(--ink-ghost)" font-family="var(--sans)">Je kleiner das Ziel (grüner Bereich), desto weniger Hashes treffen hinein → desto schwerer das Mining.</text>
+</svg>`,
+
+"merkle": `<svg viewBox="0 0 340 175" width="340" height="175">
+<defs><marker id="dah3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path fill="var(--ink-ghost)" d="M0,0L8,4L0,8Z"/></marker></defs>
+<rect x="10" y="118" width="46" height="24" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="33" y="134" text-anchor="middle" font-size="8" fill="var(--ink-faint)" font-family="var(--sans)">Tx0</text>
+<rect x="64" y="118" width="46" height="24" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="87" y="134" text-anchor="middle" font-size="8" fill="var(--ink-faint)" font-family="var(--sans)">Tx1</text>
+<rect x="118" y="118" width="46" height="24" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="141" y="134" text-anchor="middle" font-size="8" fill="var(--ink-faint)" font-family="var(--sans)">Tx2</text>
+<rect x="172" y="118" width="46" height="24" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="195" y="134" text-anchor="middle" font-size="8" fill="var(--ink-faint)" font-family="var(--sans)">Tx3</text>
+<path d="M33,118 L60,90 M87,118 L60,90 M141,118 L168,90 M195,118 L168,90" stroke="var(--ink-ghost)" stroke-width="1.2" fill="none"/>
+<rect x="36" y="76" width="48" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="60" y="90" text-anchor="middle" font-size="7.5" fill="var(--ink-faint)" font-family="var(--sans)">Hash01</text>
+<rect x="144" y="76" width="48" height="20" rx="5" fill="none" stroke="var(--line)" stroke-width="1.3"/><text x="168" y="90" text-anchor="middle" font-size="7.5" fill="var(--ink-faint)" font-family="var(--sans)">Hash23</text>
+<path d="M60,76 L114,50 M168,76 L114,50" stroke="var(--ink-ghost)" stroke-width="1.2" fill="none"/>
+<rect x="84" y="36" width="60" height="22" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.6"/><text x="114" y="51" text-anchor="middle" font-size="8.5" fill="var(--ink)" font-family="var(--sans)" font-weight="600">frisch berechnet</text>
+<text x="240" y="45" font-size="20" fill="var(--ink-ghost)" font-family="var(--sans)">=?</text>
+<rect x="264" y="36" width="66" height="22" rx="6" fill="var(--surface-raised)" stroke="var(--line)" stroke-width="1.4"/><text x="297" y="51" text-anchor="middle" font-size="8.5" fill="var(--ink)" font-family="var(--sans)" font-weight="600">im Header</text>
+<text x="297" y="15" text-anchor="middle" font-size="8" fill="var(--ink-ghost)" font-family="var(--sans)">hashMerkleRoot</text>
+</svg>`
+};
+
+/* ============ tiny C++ syntax highlighter ============ */
+const KEYWORDS = /\b(bool|const|if|else|return|for|while|void|int|char|unsigned|static|class|struct|public|private|protected|new|delete|true|false|this|namespace|using|typedef|template|virtual|break|continue|sizeof|NULL|foreach)\b/;
+const TYPES = /\b(uint256|CBlock|CBigNum|CTransaction|CBlockIndex|CDataStream|CWalletTx|CPrivKey|CCriticalSection|CInPoint|COutPoint|CTxIndex|CTxDB|CDiskTxPos)\b/;
+const TOKEN_RE = new RegExp(
+  '(\\/\\/.*$)' +                              // 1 comment
+  '|("(?:[^"\\\\]|\\\\.)*")' +                 // 2 string
+  '|(\\b\\d+\\b)' +                            // 3 number
+  '|(' + KEYWORDS.source.slice(2,-2) + ')' +   // 4 keyword
+  '|(' + TYPES.source.slice(2,-2) + ')' +      // 5 type
+  '|(\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\s*\\())' + // 6 function call
+  '|(\\b[A-Za-z_][A-Za-z0-9_]*\\b)',           // 7 identifier
+  'g'
+);
+function highlightCpp(line){
+  let out = '', last = 0, m;
+  TOKEN_RE.lastIndex = 0;
+  while ((m = TOKEN_RE.exec(line))) {
+    if (m.index > last) out += esc(line.slice(last, m.index));
+    const text = m[0];
+    let cls = 'tok-ident';
+    if (m[1]) cls = 'tok-comment';
+    else if (m[2]) cls = 'tok-string';
+    else if (m[3]) cls = 'tok-number';
+    else if (m[4]) cls = 'tok-keyword';
+    else if (m[5]) cls = 'tok-type';
+    else if (m[6]) cls = 'tok-func';
+    out += '<span class="'+cls+'">'+esc(text)+'</span>';
+    last = m.index + text.length;
+  }
+  out += esc(line.slice(last));
+  return out || '&nbsp;';
+}
+
+/* ============ render code ============ */
+function inRegion(idx){
+  return REGIONS.find(r => idx >= r.range[0] && idx <= r.range[1]);
+}
+function renderCode(){
+  const el = document.getElementById('code-body');
+  let html = '';
+  let i = 0;
+  while (i < CODE_LINES.length) {
+    const region = inRegion(i);
+    if (region) {
+      html += '<div class="code-region" data-region="'+region.id+'" tabindex="0" role="button" aria-pressed="false">';
+      for (let j = region.range[0]; j <= region.range[1]; j++) {
+        html += '<div class="code-line"><span class="ln">'+(FIRST_LINE+j)+'</span><span class="src">'+highlightCpp(CODE_LINES[j])+'</span></div>';
+      }
+      html += '</div>';
+      i = region.range[1] + 1;
+    } else {
+      const line = CODE_LINES[i];
+      const cls = line.trim() === '' ? 'code-line blank' : 'code-line';
+      html += '<div class="'+cls+' code-static"><span class="ln">'+(FIRST_LINE+i)+'</span><span class="src">'+highlightCpp(line)+'</span></div>';
+      i++;
+    }
+  }
+  el.innerHTML = html;
+}
+
+/* ============ panel ============ */
+const panelEmpty = document.getElementById('panel-empty');
+const panelContent = document.getElementById('panel-content');
+const panelCol = document.getElementById('panel-col');
+const panelBackdrop = document.getElementById('panel-backdrop');
+
+function renderPanel(region){
+  let html = '<div class="panel-eyebrow">'+icon(region.icon)+' main.cpp · Zeile '+(FIRST_LINE+region.range[0])+'–'+(FIRST_LINE+region.range[1])+'</div>';
+  html += '<h2>'+esc(region.title)+'</h2>';
+  html += '<a class="panel-whitepaper-ref" href="../bitcoin-whitepaper-explained/" target="_blank" rel="noopener">'+icon('book-open')+' Whitepaper dazu lesen</a>';
+  html += '<div class="panel-body">' + region.explain.map(p => '<p>'+p+'</p>').join('') + '</div>';
+  if (region.diagram && DIAGRAMS[region.diagram]) {
+    html += '<div class="diagram-box">'+DIAGRAMS[region.diagram]+'<div class="diagram-cap">Vereinfachte Illustration, nicht Teil des Original-Codes</div></div>';
+  }
+  panelContent.innerHTML = html;
+  panelEmpty.style.display = 'none';
+  panelContent.classList.add('is-visible');
+  if (window.innerWidth <= 1180) {
+    panelCol.classList.add('is-open');
+    panelBackdrop.classList.add('is-open');
+  }
+}
+
+function selectRegion(id){
+  const region = REGIONS.find(r => r.id === id);
+  if (!region) return;
+  document.querySelectorAll('.code-region').forEach(el => {
+    const active = el.dataset.region === id;
+    el.classList.toggle('is-active', active);
+    el.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  renderPanel(region);
+}
+function closePanel(){
+  panelCol.classList.remove('is-open');
+  panelBackdrop.classList.remove('is-open');
+}
+document.getElementById('panel-close').addEventListener('click', closePanel);
+panelBackdrop.addEventListener('click', closePanel);
+
+function attachCodeHandlers(){
+  document.querySelectorAll('.code-region').forEach(el => {
+    el.addEventListener('click', () => selectRegion(el.dataset.region));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectRegion(el.dataset.region); }
+    });
+  });
+}
+
+/* ============ settings: font size + theme ============ */
+const root = document.documentElement;
+const STORE = {
+  get fontsize(){ return parseInt(localStorage.getItem('bsce-fontsize'), 10) || 16; },
+  set fontsize(v){ localStorage.setItem('bsce-fontsize', String(v)); },
+  theme: 'dark' // dunkel ist der Startzustand für diese Seite, nicht persistiert
+};
+function applyFontSize(v){
+  v = Math.max(13, Math.min(22, v));
+  STORE.fontsize = v;
+  root.style.setProperty('--explain-fs', v + 'px');
+  document.getElementById('fs-val').textContent = v + 'px';
+}
+function applyTheme(theme){
+  STORE.theme = theme;
+  if (theme === 'light') root.setAttribute('data-theme', 'light'); else root.removeAttribute('data-theme');
+  document.getElementById('theme-thumb').textContent = theme === 'light' ? '☀' : '☽';
+}
+document.getElementById('fs-minus').addEventListener('click', () => applyFontSize(STORE.fontsize - 1));
+document.getElementById('fs-plus').addEventListener('click', () => applyFontSize(STORE.fontsize + 1));
+document.getElementById('theme-toggle').addEventListener('click', () => applyTheme(STORE.theme === 'light' ? 'dark' : 'light'));
+
+const settingsBtn = document.getElementById('settings-btn');
+const settingsPop = document.getElementById('settings-pop');
+settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); settingsPop.classList.toggle('is-open'); });
+document.addEventListener('click', (e) => {
+  if (settingsPop.classList.contains('is-open') && !settingsPop.contains(e.target) && e.target !== settingsBtn) {
+    settingsPop.classList.remove('is-open');
+  }
+});
+
+/* ============ init ============ */
+renderCode();
+attachCodeHandlers();
+applyFontSize(STORE.fontsize);
+applyTheme(STORE.theme);
+</script>
+</body>
+</html>
