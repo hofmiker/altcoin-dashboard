@@ -47,13 +47,13 @@
   --doc-fs:17px;
 }
 :root[data-theme="dark"]{
-  --bg:#08080a;
-  --paper-bg:#111114;
-  --surface:#0c0c0e;
-  --surface-raised:#17171a;
-  --line:rgba(255,255,255,.13);
-  --line-soft:rgba(255,255,255,.07);
-  --line-strong:rgba(255,255,255,.26);
+  --bg:#020203;
+  --paper-bg:#1c1c21;
+  --surface:#101013;
+  --surface-raised:#28282e;
+  --line:rgba(255,255,255,.16);
+  --line-soft:rgba(255,255,255,.10);
+  --line-strong:rgba(255,255,255,.30);
   --ink:rgba(255,255,255,.92);
   --ink-dim:rgba(255,255,255,.62);
   --ink-faint:rgba(255,255,255,.40);
@@ -274,6 +274,20 @@ button{ font-family:inherit; }
 .table-box th{ text-align:left; color:var(--ink-faint); font-weight:600; padding:3px 10px 6px 0; border-bottom:1px solid var(--line); }
 .table-box td{ padding:2px 10px 2px 0; }
 .table-box tr.hi td{ color:var(--accent-2); font-weight:700; }
+
+.orig-diagram{
+  margin:16px 0; padding:16px 12px 12px; border:1px solid var(--line); border-radius:4px;
+  background:var(--surface); overflow-x:auto;
+}
+.orig-diagram svg{ display:block; margin:0 auto; max-width:100%; height:auto; }
+.orig-diagram .od-cap{ text-align:center; font-family:var(--serif); font-style:italic; font-size:calc(var(--doc-fs)*0.72); color:var(--ink-faint); margin-top:10px; }
+.od rect{ fill:none; stroke:var(--ink); stroke-width:1; }
+.od rect.dashed{ stroke-dasharray:2 2; }
+.od text{ font-family:var(--sans); fill:var(--ink); }
+.od .arrow{ stroke:var(--ink); stroke-width:1; fill:none; }
+.od .arrowhead{ fill:var(--ink); }
+.od .dash{ stroke:var(--ink); stroke-width:.8; stroke-dasharray:2 2; fill:none; }
+.od line.sep{ stroke:var(--ink); stroke-width:1; }
 
 .math-defs{ margin:14px 0 4px; font-size:calc(var(--doc-fs) * 0.92); }
 .math-defs div{ margin:2px 0; }
@@ -769,6 +783,195 @@ function formulaBox(key, capDe, capEn, lang){
   return '<div class="formula-visual"><div class="formula-wrap">'+FORMULAS[key]+'<div class="cap">'+(lang==='en'?capEn:capDe)+'</div></div></div>';
 }
 
+/* ============ ORIGINAL DIAGRAMS (1:1-Nachbau der PDF-Abbildungen, im Dokument) ============ */
+const ORIG_DIAGRAMS = {
+
+"tx-chain": `<svg class="od" viewBox="0 0 560 300" width="560" height="300">
+<defs><marker id="oa1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<line class="arrow" x1="0" y1="60" x2="560" y2="60"/>
+<g transform="translate(10,20)">
+  <rect x="0" y="0" width="150" height="190"/><text x="5" y="12" font-size="9">Transaction</text>
+  <rect x="10" y="30" width="130" height="30"/><text x="75" y="46" text-anchor="middle" font-size="8">Owner 1's</text><text x="75" y="56" text-anchor="middle" font-size="8">Public Key</text>
+  <rect x="45" y="90" width="60" height="22"/><text x="75" y="104" text-anchor="middle" font-size="8">Hash</text>
+  <rect x="10" y="150" width="130" height="30"/><text x="75" y="166" text-anchor="middle" font-size="8">Owner 0's</text><text x="75" y="176" text-anchor="middle" font-size="8">Signature</text>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,60 V90"/>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,112 V150"/>
+</g>
+<g transform="translate(205,20)">
+  <rect x="0" y="0" width="150" height="190"/><text x="5" y="12" font-size="9">Transaction</text>
+  <rect x="10" y="30" width="130" height="30"/><text x="75" y="46" text-anchor="middle" font-size="8">Owner 2's</text><text x="75" y="56" text-anchor="middle" font-size="8">Public Key</text>
+  <rect x="45" y="90" width="60" height="22"/><text x="75" y="104" text-anchor="middle" font-size="8">Hash</text>
+  <rect x="10" y="150" width="130" height="30"/><text x="75" y="166" text-anchor="middle" font-size="8">Owner 1's</text><text x="75" y="176" text-anchor="middle" font-size="8">Signature</text>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,60 V90"/>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,112 V150"/>
+</g>
+<g transform="translate(400,20)">
+  <rect x="0" y="0" width="150" height="190"/><text x="5" y="12" font-size="9">Transaction</text>
+  <rect x="10" y="30" width="130" height="30"/><text x="75" y="46" text-anchor="middle" font-size="8">Owner 3's</text><text x="75" y="56" text-anchor="middle" font-size="8">Public Key</text>
+  <rect x="45" y="90" width="60" height="22"/><text x="75" y="104" text-anchor="middle" font-size="8">Hash</text>
+  <rect x="10" y="150" width="130" height="30"/><text x="75" y="166" text-anchor="middle" font-size="8">Owner 2's</text><text x="75" y="176" text-anchor="middle" font-size="8">Signature</text>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,60 V90"/>
+  <path class="arrow" marker-end="url(#oa1)" d="M75,112 V150"/>
+</g>
+<rect x="20" y="245" width="130" height="30"/><text x="85" y="261" text-anchor="middle" font-size="8">Owner 1's</text><text x="85" y="271" text-anchor="middle" font-size="8">Private Key</text>
+<rect x="215" y="245" width="130" height="30"/><text x="280" y="261" text-anchor="middle" font-size="8">Owner 2's</text><text x="280" y="271" text-anchor="middle" font-size="8">Private Key</text>
+<rect x="410" y="245" width="130" height="30"/><text x="475" y="261" text-anchor="middle" font-size="8">Owner 3's</text><text x="475" y="271" text-anchor="middle" font-size="8">Private Key</text>
+<path class="dash" marker-end="url(#oa1)" d="M85,245 C 130,210 170,190 220,180"/><text x="150" y="215" font-size="7" transform="rotate(-25 150 215)">Sign</text>
+<path class="dash" marker-end="url(#oa1)" d="M280,140 C 250,150 240,160 225,170"/><text x="255" y="150" font-size="7" transform="rotate(20 255 150)">Verify</text>
+<path class="dash" marker-end="url(#oa1)" d="M280,245 C 325,210 365,190 415,180"/><text x="345" y="215" font-size="7" transform="rotate(-25 345 215)">Sign</text>
+<path class="dash" marker-end="url(#oa1)" d="M475,140 C 445,150 435,160 420,170"/><text x="450" y="150" font-size="7" transform="rotate(20 450 150)">Verify</text>
+</svg>`,
+
+"hash-chain-orig": `<svg class="od" viewBox="0 0 500 190" width="500" height="190">
+<defs><marker id="oa2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<path class="arrow" marker-end="url(#oa2)" d="M10,55 H105"/>
+<rect x="105" y="35" width="65" height="30"/><text x="137" y="54" text-anchor="middle" font-size="9">Hash</text>
+<path class="arrow" marker-end="url(#oa2)" d="M170,50 H240"/>
+<rect x="45" y="95" width="180" height="70"/><text x="52" y="110" font-size="9">Block</text>
+<rect x="60" y="125" width="45" height="24"/><text x="82" y="141" text-anchor="middle" font-size="8">Item</text>
+<rect x="115" y="125" width="45" height="24"/><text x="137" y="141" text-anchor="middle" font-size="8">Item</text>
+<rect x="170" y="125" width="40" height="24"/><text x="190" y="141" text-anchor="middle" font-size="8">...</text>
+<path class="arrow" marker-end="url(#oa2)" d="M137,95 V65"/>
+<rect x="290" y="35" width="65" height="30"/><text x="322" y="54" text-anchor="middle" font-size="9">Hash</text>
+<path class="arrow" marker-end="url(#oa2)" d="M355,50 H480"/>
+<rect x="230" y="95" width="180" height="70"/><text x="237" y="110" font-size="9">Block</text>
+<rect x="245" y="125" width="45" height="24"/><text x="267" y="141" text-anchor="middle" font-size="8">Item</text>
+<rect x="300" y="125" width="45" height="24"/><text x="322" y="141" text-anchor="middle" font-size="8">Item</text>
+<rect x="355" y="125" width="40" height="24"/><text x="375" y="141" text-anchor="middle" font-size="8">...</text>
+<path class="arrow" marker-end="url(#oa2)" d="M322,95 V65"/>
+</svg>`,
+
+"pow-block-orig": `<svg class="od" viewBox="0 0 480 170" width="480" height="170">
+<defs><marker id="oa3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<path class="arrow" marker-end="url(#oa3)" d="M5,55 H55"/>
+<rect x="55" y="15" width="180" height="120"/><text x="62" y="30" font-size="9">Block</text>
+<rect x="70" y="45" width="75" height="26"/><text x="107" y="63" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="155" y="45" width="65" height="26"/><text x="187" y="63" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="70" y="95" width="45" height="24"/><text x="92" y="111" text-anchor="middle" font-size="8">Tx</text>
+<rect x="125" y="95" width="45" height="24"/><text x="147" y="111" text-anchor="middle" font-size="8">Tx</text>
+<rect x="180" y="95" width="40" height="24"/><text x="200" y="111" text-anchor="middle" font-size="8">...</text>
+<path class="arrow" marker-end="url(#oa3)" d="M235,58 H285"/>
+<rect x="285" y="15" width="180" height="120"/><text x="292" y="30" font-size="9">Block</text>
+<rect x="300" y="45" width="75" height="26"/><text x="337" y="63" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="385" y="45" width="65" height="26"/><text x="417" y="63" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="300" y="95" width="45" height="24"/><text x="322" y="111" text-anchor="middle" font-size="8">Tx</text>
+<rect x="355" y="95" width="45" height="24"/><text x="377" y="111" text-anchor="middle" font-size="8">Tx</text>
+<rect x="410" y="95" width="40" height="24"/><text x="430" y="111" text-anchor="middle" font-size="8">...</text>
+</svg>`,
+
+"merkle-orig": `<svg class="od" viewBox="0 0 560 285" width="560" height="285">
+<defs><marker id="oa4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<g transform="translate(10,10)">
+<rect x="0" y="0" width="250" height="90"/><text x="6" y="14" font-size="9">Block</text>
+<rect x="30" y="8" width="210" height="55"/><text x="36" y="21" font-size="8">Block Header (Block Hash)</text>
+<rect x="45" y="28" width="80" height="24"/><text x="85" y="44" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="135" y="28" width="65" height="24"/><text x="167" y="44" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="60" y="62" width="130" height="24"/><text x="125" y="78" text-anchor="middle" font-size="8">Root Hash</text>
+<path class="arrow" marker-end="url(#oa4)" d="M45,140 L90,86 M185,140 L160,86"/>
+<rect x="10" y="140" width="70" height="24" class="dashed"/><text x="45" y="156" text-anchor="middle" font-size="8">Hash01</text>
+<rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
+<path class="arrow" marker-end="url(#oa4)" d="M27,195 L38,164 M92,195 L52,164 M167,195 L178,164 M232,195 L192,164"/>
+<rect x="0" y="195" width="55" height="22" class="dashed"/><text x="27" y="210" text-anchor="middle" font-size="7">Hash0</text>
+<rect x="65" y="195" width="55" height="22" class="dashed"/><text x="92" y="210" text-anchor="middle" font-size="7">Hash1</text>
+<rect x="140" y="195" width="55" height="22" class="dashed"/><text x="167" y="210" text-anchor="middle" font-size="7">Hash2</text>
+<rect x="205" y="195" width="55" height="22" class="dashed"/><text x="232" y="210" text-anchor="middle" font-size="7">Hash3</text>
+<path class="arrow" marker-end="url(#oa4)" d="M22,230 V217 M92,230 V217 M162,230 V217 M227,230 V217"/>
+<rect x="0" y="230" width="45" height="20"/><text x="22" y="244" text-anchor="middle" font-size="7">Tx0</text>
+<rect x="70" y="230" width="45" height="20"/><text x="92" y="244" text-anchor="middle" font-size="7">Tx1</text>
+<rect x="140" y="230" width="45" height="20"/><text x="162" y="244" text-anchor="middle" font-size="7">Tx2</text>
+<rect x="205" y="230" width="45" height="20"/><text x="227" y="244" text-anchor="middle" font-size="7">Tx3</text>
+<text x="125" y="270" text-anchor="middle" font-size="8" font-style="italic">Transactions Hashed in a Merkle Tree</text>
+</g>
+<g transform="translate(300,10)">
+<rect x="0" y="0" width="250" height="90"/><text x="6" y="14" font-size="9">Block</text>
+<rect x="30" y="8" width="210" height="55"/><text x="36" y="21" font-size="8">Block Header (Block Hash)</text>
+<rect x="45" y="28" width="80" height="24"/><text x="85" y="44" text-anchor="middle" font-size="8">Prev Hash</text>
+<rect x="135" y="28" width="65" height="24"/><text x="167" y="44" text-anchor="middle" font-size="8">Nonce</text>
+<rect x="60" y="62" width="130" height="24"/><text x="125" y="78" text-anchor="middle" font-size="8">Root Hash</text>
+<path class="arrow" marker-end="url(#oa4)" d="M185,140 L160,86"/>
+<rect x="150" y="140" width="70" height="24" class="dashed"/><text x="185" y="156" text-anchor="middle" font-size="8">Hash23</text>
+<path class="arrow" marker-end="url(#oa4)" d="M167,195 L178,164 M232,195 L192,164"/>
+<rect x="140" y="195" width="55" height="22"/><text x="167" y="210" text-anchor="middle" font-size="7">Hash2</text>
+<rect x="205" y="195" width="55" height="22" class="dashed"/><text x="232" y="210" text-anchor="middle" font-size="7">Hash3</text>
+<path class="arrow" marker-end="url(#oa4)" d="M227,230 V217"/>
+<rect x="205" y="230" width="45" height="20"/><text x="227" y="244" text-anchor="middle" font-size="7">Tx3</text>
+<text x="125" y="270" text-anchor="middle" font-size="8" font-style="italic">After Pruning Tx0-2 from the Block</text>
+</g>
+</svg>`,
+
+"spv-orig": `<svg class="od" viewBox="0 0 600 230" width="600" height="230">
+<defs><marker id="oa5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<text x="10" y="12" font-size="9">Longest Proof-of-Work Chain</text>
+<path class="arrow" marker-end="url(#oa5)" d="M2,55 H35"/>
+<g transform="translate(35,25)">
+<rect x="0" y="0" width="150" height="65"/><text x="6" y="14" font-size="8">Block Header</text>
+<rect x="10" y="20" width="65" height="22"/><text x="42" y="35" text-anchor="middle" font-size="7">Prev Hash</text>
+<rect x="85" y="20" width="55" height="22"/><text x="112" y="35" text-anchor="middle" font-size="7">Nonce</text>
+<rect x="25" y="46" width="100" height="20"/><text x="75" y="60" text-anchor="middle" font-size="7">Merkle Root</text>
+</g>
+<path class="arrow" marker-end="url(#oa5)" d="M188,55 H222"/>
+<g transform="translate(222,25)">
+<rect x="0" y="0" width="150" height="65"/><text x="6" y="14" font-size="8">Block Header</text>
+<rect x="10" y="20" width="65" height="22"/><text x="42" y="35" text-anchor="middle" font-size="7">Prev Hash</text>
+<rect x="85" y="20" width="55" height="22"/><text x="112" y="35" text-anchor="middle" font-size="7">Nonce</text>
+<rect x="25" y="46" width="100" height="20"/><text x="75" y="60" text-anchor="middle" font-size="7">Merkle Root</text>
+</g>
+<path class="arrow" marker-end="url(#oa5)" d="M375,55 H409"/>
+<g transform="translate(409,25)">
+<rect x="0" y="0" width="150" height="65"/><text x="6" y="14" font-size="8">Block Header</text>
+<rect x="10" y="20" width="65" height="22"/><text x="42" y="35" text-anchor="middle" font-size="7">Prev Hash</text>
+<rect x="85" y="20" width="55" height="22"/><text x="112" y="35" text-anchor="middle" font-size="7">Nonce</text>
+<rect x="25" y="46" width="100" height="20"/><text x="75" y="60" text-anchor="middle" font-size="7">Merkle Root</text>
+</g>
+<path class="arrow" marker-end="url(#oa5)" d="M562,55 H595"/>
+<rect x="245" y="115" width="60" height="22"/><text x="275" y="130" text-anchor="middle" font-size="7">Hash01</text>
+<path class="arrow" marker-end="url(#oa5)" d="M275,115 L280,90"/>
+<rect x="325" y="115" width="60" height="22" class="dashed"/><text x="355" y="130" text-anchor="middle" font-size="7">Hash23</text>
+<path class="arrow" marker-end="url(#oa5)" d="M355,115 L345,90"/>
+<text x="400" y="128" font-size="8" font-style="italic">Merkle Branch for Tx3</text>
+<rect x="290" y="160" width="55" height="22"/><text x="317" y="175" text-anchor="middle" font-size="7">Hash2</text>
+<rect x="360" y="160" width="55" height="22" class="dashed"/><text x="387" y="175" text-anchor="middle" font-size="7">Hash3</text>
+<path class="arrow" marker-end="url(#oa5)" d="M317,160 L325,137 M387,160 L363,137"/>
+<rect x="330" y="205" width="45" height="22"/><text x="352" y="220" text-anchor="middle" font-size="7">Tx3</text>
+<path class="arrow" marker-end="url(#oa5)" d="M352,205 V182"/>
+</svg>`,
+
+"tx-io-orig": `<svg class="od" viewBox="0 0 220 130" width="220" height="130">
+<defs><marker id="oa6" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<rect x="60" y="10" width="100" height="100"/><text x="65" y="24" font-size="8">Transaction</text>
+<rect x="72" y="35" width="30" height="20"/><text x="87" y="49" text-anchor="middle" font-size="7">In</text>
+<rect x="118" y="35" width="32" height="20"/><text x="134" y="49" text-anchor="middle" font-size="7">Out</text>
+<rect x="72" y="62" width="30" height="20"/><text x="87" y="76" text-anchor="middle" font-size="7">In</text>
+<rect x="118" y="62" width="32" height="20"/><text x="134" y="76" text-anchor="middle" font-size="7">...</text>
+<rect x="72" y="89" width="30" height="18"/><text x="87" y="102" text-anchor="middle" font-size="7">...</text>
+<path class="arrow" marker-end="url(#oa6)" d="M20,45 H72 M20,72 H72 M20,98 H72"/>
+<path class="arrow" marker-end="url(#oa6)" d="M150,45 H200 M150,72 H200"/>
+</svg>`,
+
+"privacy-orig": `<svg class="od" viewBox="0 0 480 190" width="480" height="190">
+<defs><marker id="oa7" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="arrowhead" d="M0,0L8,4L0,8Z"/></marker></defs>
+<text x="5" y="14" font-size="9">Traditional Privacy Model</text>
+<rect x="5" y="30" width="80" height="26"/><text x="45" y="47" text-anchor="middle" font-size="8">Identities</text>
+<rect x="95" y="30" width="90" height="26"/><text x="140" y="47" text-anchor="middle" font-size="8">Transactions</text>
+<path class="arrow" marker-end="url(#oa7)" d="M85,43 H95"/>
+<path class="arrow" marker-end="url(#oa7)" d="M185,43 H210"/>
+<rect x="210" y="25" width="75" height="36"/><text x="247" y="40" text-anchor="middle" font-size="7">Trusted</text><text x="247" y="52" text-anchor="middle" font-size="7">Third Party</text>
+<path class="arrow" marker-end="url(#oa7)" d="M285,43 H310"/>
+<rect x="310" y="30" width="85" height="26"/><text x="352" y="47" text-anchor="middle" font-size="8">Counterparty</text>
+<line class="sep" x1="415" y1="20" x2="415" y2="65"/>
+<rect x="430" y="30" width="45" height="26"/><text x="452" y="47" text-anchor="middle" font-size="8">Public</text>
+<text x="5" y="100" font-size="9">New Privacy Model</text>
+<rect x="5" y="115" width="80" height="26"/><text x="45" y="132" text-anchor="middle" font-size="8">Identities</text>
+<line class="sep" x1="105" y1="105" x2="105" y2="150"/>
+<rect x="125" y="115" width="90" height="26"/><text x="170" y="132" text-anchor="middle" font-size="8">Transactions</text>
+<path class="arrow" marker-end="url(#oa7)" d="M215,128 H255"/>
+<rect x="255" y="115" width="70" height="26"/><text x="290" y="132" text-anchor="middle" font-size="8">Public</text>
+</svg>`
+};
+function origDiagramBox(key, capDe, capEn, lang){
+  return '<div class="orig-diagram">'+ORIG_DIAGRAMS[key]+'<div class="od-cap">'+(lang==='en'?capEn:capDe)+'</div></div>';
+}
+
 /* ============ INTERACTIVE PROBABILITY CHARTS ============ */
 /* Direktes JS-Portierung der Original-C-Funktion aus dem Whitepaper */
 function attackerSuccessProbability(q, z){
@@ -1006,7 +1209,8 @@ const DOC = [
 {type:'divider', page:1},
 
 {type:'sectionhead', num:'2', label_de:'Transaktionen', label_en:'Transactions'},
-{type:'block', id:'t1', icon:'link', diagram:'coin-chain',
+{type:'block', id:'t1', icon:'link', diagram:'coin-chain', origDiagram:'tx-chain',
+  origCapDe:'Original-Abbildung, Kapitel 2', origCapEn:'Original figure, chapter 2',
   title:'Eine Münze ist eine Kette von Unterschriften',
   text_de:[`Wir definieren eine elektronische Münze als eine Kette digitaler Signaturen. Jeder Besitzer überträgt die Münze an den nächsten, indem er einen Hash der vorherigen Transaktion sowie den öffentlichen Schlüssel des nächsten Besitzers digital signiert und diese Angaben an das Ende der Münze anfügt. Ein Zahlungsempfänger kann die Signaturen prüfen, um die Kette der Eigentümerschaft zu verifizieren.`],
   text_en:[`We define an electronic coin as a chain of digital signatures. Each owner transfers the coin to the next by digitally signing a hash of the previous transaction and the public key of the next owner and adding these to the end of the coin. A payee can verify the signatures to verify the chain of ownership.`],
@@ -1029,7 +1233,8 @@ const DOC = [
   `Satoshis Trick, das ohne Zentrale hinzubekommen: Jede Transaktion wird öffentlich an alle im Netzwerk bekanntgegeben, und alle Teilnehmer müssen sich gemeinsam auf eine einzige, verbindliche Reihenfolge einigen. Der Empfänger braucht am Ende einen Beweis, dass die Mehrheit des Netzwerks seine Transaktion als die zuerst empfangene anerkannt hat. Genau dieses "Sich-Einigen-auf-eine-Reihenfolge" ist das Problem, das der Rest des Papers löst.`]},
 
 {type:'sectionhead', num:'3', label_de:'Zeitstempel-Server', label_en:'Timestamp Server'},
-{type:'block', id:'ts1', icon:'hash', diagram:'hash-chain',
+{type:'block', id:'ts1', icon:'hash', diagram:'hash-chain', origDiagram:'hash-chain-orig',
+  origCapDe:'Original-Abbildung, Kapitel 3', origCapEn:'Original figure, chapter 3',
   title:'Ein Zeitstempel, der nicht lügen kann',
   text_de:[`Die von uns vorgeschlagene Lösung beginnt mit einem Zeitstempel-Dienst. Ein Zeitstempel-Dienst funktioniert, indem er einen Hash eines Blocks zu stempelnder Datensätze bildet und diesen Hash breit veröffentlicht, etwa in einer Zeitungsanzeige oder einem Usenet-Beitrag [2-5]. Der Zeitstempel beweist, dass die Daten zu diesem Zeitpunkt existiert haben müssen, da sie sonst nicht in den Hash eingeflossen wären. Jeder Zeitstempel enthält den vorherigen Zeitstempel in seinem Hash und bildet so eine Kette, in der jeder weitere Zeitstempel die davorliegenden zusätzlich bekräftigt.`],
   text_en:[`The solution we propose begins with a timestamp server. A timestamp server works by taking a hash of a block of items to be timestamped and widely publishing the hash, such as in a newspaper or Usenet post [2-5]. The timestamp proves that the data must have existed at the time, obviously, in order to get into the hash. Each timestamp includes the previous timestamp in its hash, forming a chain, with each additional timestamp reinforcing the ones before it.`],
@@ -1047,7 +1252,8 @@ const DOC = [
   explain:[`Eine Zeitung gibt es im Internet nicht als neutrale, fälschungssichere Instanz — also braucht Bitcoin einen anderen Weg, um "öffentlich und unveränderlich zu bezeugen". Die Lösung heißt Proof-of-Work (Arbeitsnachweis), angelehnt an ein älteres System namens Hashcash.`,
   `Praktisch bedeutet das: Man probiert immer wieder eine Zufallszahl (die "Nonce") aus und hasht sie zusammen mit den Blockdaten, bis der resultierende Hash mit einer bestimmten Anzahl Nullen beginnt. Da ein Hash komplett unvorhersehbar ist, hilft nur stures Durchprobieren — wie beim Würfeln, bis eine bestimmte Zahl fällt.`,
   `Je mehr Nullen gefordert sind, desto exponentiell aufwendiger wird die Suche (mehr Rechenleistung, mehr Strom). Der entscheidende Vorteil: Das Ergebnis zu überprüfen dauert nur einen einzigen Hash-Vorgang — extrem schnell. Schwer zu finden, aber leicht zu prüfen: genau dieses Ungleichgewicht macht Proof-of-Work nützlich.`]},
-{type:'block', id:'pow2', icon:'layers', diagram:'pow-block',
+{type:'block', id:'pow2', icon:'layers', diagram:'pow-block', origDiagram:'pow-block-orig',
+  origCapDe:'Original-Abbildung, Kapitel 4', origCapEn:'Original figure, chapter 4',
   title:'Blöcke werden aneinandergekettet',
   text_de:[`Für unser Zeitstempel-Netzwerk implementieren wir den Arbeitsnachweis, indem wir eine Nonce im Block so lange erhöhen, bis ein Wert gefunden ist, der dem Block-Hash die geforderten Nullbits verleiht. Sobald der Rechenaufwand erbracht wurde, um den Arbeitsnachweis zu erfüllen, kann der Block nicht mehr verändert werden, ohne die Arbeit zu wiederholen. Da spätere Blöcke an ihn angekettet werden, würde die Arbeit zur Änderung eines Blocks auch die Wiederholung sämtlicher nachfolgenden Blöcke einschließen.`],
   text_en:[`For our timestamp network, we implement the proof-of-work by incrementing a nonce in the block until a value is found that gives the block's hash the required zero bits. Once the CPU effort has been expended to make it satisfy the proof-of-work, the block cannot be changed without redoing the work. As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.`],
@@ -1129,7 +1335,8 @@ const DOC = [
   `Option 1: Betrügen — zum Beispiel eigene, bereits ausgegebene Zahlungen rückgängig machen (Double-Spend-Angriff). Option 2: Einfach ehrlich mitmachen und dabei den Löwenanteil der Blockbelohnungen einstreichen, weil er ja die meiste Rechenleistung hat.`,
   `Satoshis Punkt: Option 2 ist rational lohnender. Wer das System betrügt, untergräbt gleichzeitig das Vertrauen in Bitcoin selbst — und damit den Wert der eigenen, redlich verdienten Coins. Es ist wirtschaftlich klüger, mit den Regeln Geld zu verdienen, die einen ohnehin bevorzugen, als das eigene Nest zu beschmutzen.`]},
 {type:'sectionhead', num:'7', label_de:'Rückgewinnung von Speicherplatz', label_en:'Reclaiming Disk Space'},
-{type:'block', id:'rds1', icon:'git-merge', diagram:'merkle-tree',
+{type:'block', id:'rds1', icon:'git-merge', diagram:'merkle-tree', origDiagram:'merkle-orig',
+  origCapDe:'Original-Abbildung, Kapitel 7', origCapEn:'Original figure, chapter 7',
   title:'Alte Transaktionen wegwerfen, ohne die Kette zu brechen',
   text_de:[`Sobald die jüngste Transaktion einer Münze unter genügend Blöcken vergraben ist, können die davor liegenden, bereits ausgegebenen Transaktionen verworfen werden, um Speicherplatz zu sparen. Damit dies möglich ist, ohne den Block-Hash zu brechen, werden Transaktionen in einem Merkle-Baum gehasht [7][2][5], wobei nur die Wurzel in den Block-Hash eingeht. Alte Blöcke lassen sich dann verdichten, indem Zweige des Baums abgeschnitten werden. Die inneren Hashes müssen nicht gespeichert werden.`],
   text_en:[`Once the latest transaction in a coin is buried under enough blocks, the spent transactions before it can be discarded to save disk space. To facilitate this without breaking the block's hash, transactions are hashed in a Merkle Tree [7][2][5], with only the root included in the block's hash. Old blocks can then be compacted by stubbing off branches of the tree. The interior hashes do not need to be stored.`],
@@ -1146,7 +1353,8 @@ const DOC = [
 {type:'divider', page:4},
 
 {type:'sectionhead', num:'8', label_de:'Vereinfachte Zahlungsverifikation', label_en:'Simplified Payment Verification'},
-{type:'block', id:'spv1', icon:'smartphone', diagram:'spv',
+{type:'block', id:'spv1', icon:'smartphone', diagram:'spv', origDiagram:'spv-orig',
+  origCapDe:'Original-Abbildung, Kapitel 8', origCapEn:'Original figure, chapter 8',
   title:'Bitcoin nutzen, ohne die ganze Kette zu speichern',
   text_de:[`Es ist möglich, Zahlungen zu verifizieren, ohne einen vollständigen Netzwerkknoten zu betreiben. Ein Nutzer muss lediglich eine Kopie der Block-Header der längsten Proof-of-Work-Kette vorhalten, die er sich durch Anfragen bei Netzwerkknoten beschaffen kann, bis er überzeugt ist, die längste Kette zu besitzen, sowie den Merkle-Zweig erhalten, der die Transaktion mit dem Block verknüpft, in dem sie zeitgestempelt wurde. Er kann die Transaktion nicht selbst überprüfen, doch durch ihre Verknüpfung mit einer Stelle in der Kette sieht er, dass ein Netzwerkknoten sie akzeptiert hat, und nachfolgend hinzugefügte Blöcke bestätigen diese Akzeptanz zusätzlich.`],
   text_en:[`It is possible to verify payments without running a full network node. A user only needs to keep a copy of the block headers of the longest proof-of-work chain, which he can get by querying network nodes until he's convinced he has the longest chain, and obtain the Merkle branch linking the transaction to the block it's timestamped in. He can't check the transaction for himself, but by linking it to a place in the chain, he can see that a network node has accepted it, and blocks added after it further confirm the network has accepted it.`],
@@ -1162,7 +1370,8 @@ const DOC = [
   `Fazit: Für Alltagsnutzer ist SPV ein guter Kompromiss. Wer aber häufig hohe Beträge empfängt, sollte lieber einen eigenen vollen Node betreiben.`]},
 
 {type:'sectionhead', num:'9', label_de:'Zusammenführen und Aufteilen von Werten', label_en:'Combining and Splitting Value'},
-{type:'block', id:'csv1', icon:'split', diagram:'tx-io',
+{type:'block', id:'csv1', icon:'split', diagram:'tx-io', origDiagram:'tx-io-orig',
+  origCapDe:'Original-Abbildung, Kapitel 9', origCapEn:'Original figure, chapter 9',
   title:'Wechselgeld: mehrere Ein- und Ausgänge pro Transaktion',
   text_de:[`Obwohl es möglich wäre, Münzen einzeln zu handhaben, wäre es unhandlich, für jeden Cent einer Überweisung eine eigene Transaktion zu erstellen. Damit sich Werte aufteilen und zusammenführen lassen, enthalten Transaktionen mehrere Ein- und Ausgänge. Normalerweise gibt es entweder einen einzelnen Eingang aus einer größeren vorherigen Transaktion oder mehrere Eingänge, die kleinere Beträge kombinieren, sowie höchstens zwei Ausgänge: einen für die Zahlung und einen, der das Wechselgeld – sofern vorhanden – an den Absender zurückgibt.`],
   text_en:[`Although it would be possible to handle coins individually, it would be unwieldy to make a separate transaction for every cent in a transfer. To allow value to be split and combined, transactions contain multiple inputs and outputs. Normally there will be either a single input from a larger previous transaction or multiple inputs combining smaller amounts, and at most two outputs: one for the payment, and one returning the change, if any, back to the sender.`],
@@ -1179,7 +1388,8 @@ const DOC = [
 {type:'divider', page:5},
 
 {type:'sectionhead', num:'10', label_de:'Privatsphäre', label_en:'Privacy'},
-{type:'block', id:'priv1', icon:'eye-off', diagram:'privacy',
+{type:'block', id:'priv1', icon:'eye-off', diagram:'privacy', origDiagram:'privacy-orig',
+  origCapDe:'Original-Abbildung, Kapitel 10', origCapEn:'Original figure, chapter 10',
   title:'Öffentlich, aber trotzdem anonym?',
   text_de:[`Das traditionelle Bankmodell erreicht ein gewisses Maß an Privatsphäre, indem es den Zugang zu Informationen auf die beteiligten Parteien und die vertrauenswürdige dritte Partei beschränkt. Die Notwendigkeit, alle Transaktionen öffentlich bekanntzugeben, schließt diese Methode aus, doch Privatsphäre lässt sich weiterhin wahren, indem der Informationsfluss an anderer Stelle unterbrochen wird: durch die Anonymität der öffentlichen Schlüssel. Die Öffentlichkeit kann sehen, dass jemand einen Betrag an jemand anderen sendet, jedoch ohne Informationen, die die Transaktion mit einer Person verknüpfen. Das ähnelt dem Informationsniveau, das Börsen veröffentlichen, wo Zeitpunkt und Umfang einzelner Handelsgeschäfte, das „Tape“, öffentlich gemacht werden, ohne preiszugeben, wer die Parteien waren.`],
   text_en:[`The traditional banking model achieves a level of privacy by limiting access to information to the parties involved and the trusted third party. The necessity to announce all transactions publicly precludes this method, but privacy can still be maintained by breaking the flow of information in another place: by keeping public keys anonymous. The public can see that someone is sending an amount to someone else, but without information linking the transaction to anyone. This is similar to the level of information released by stock exchanges, where the time and size of individual trades, the "tape", is made public, but without telling who the parties were.`],
@@ -1453,6 +1663,9 @@ function renderDoc(){
       if (texts) inner += texts.map(p => `<p>${isRefBlock ? p : linkifyCitations(p)}</p>`).join('');
       const extra = LANG==='en' ? item.extraHTML_en : item.extraHTML_de;
       if (extra) inner += extra;
+    }
+    if (item.origDiagram) {
+      inner += origDiagramBox(item.origDiagram, item.origCapDe, item.origCapEn, LANG);
     }
 
     html += `<div class="para-wrap"><div class="para${indentCls}" id="block-${item.id}" data-id="${item.id}" tabindex="0" role="button" aria-pressed="false"><span class="gutter-mark">&para;${num}</span>${inner}</div></div>`;
