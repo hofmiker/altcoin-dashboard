@@ -16,7 +16,7 @@ SVG-Nachbildung der vier mathematischen Original-Formeln aus Kapitel 11
 Vektorgrafik nach den Original-PDF-Seiten 6/7 nachgezeichnet, inkl.
 geschweifter Klammern für die Fallunterscheidungen).
 
-Drei Interaktionsebenen:
+Vier Interaktionsebenen:
 1. **Text markieren** → kurze Glossar-Definition (Popover) für ca. 40
    kuratierte Fachbegriffe (Hash, Nonce, Proof-of-Work, Merkle Tree, …),
    erkannt in Deutsch und Englisch.
@@ -24,17 +24,33 @@ Drei Interaktionsebenen:
    (auf Mobilgeräten als Bottom-Sheet-Overlay), bei zentralen Konzepten
    mit eigenem SVG-Schaubild (Transaktionskette, Hash-Kette,
    Proof-of-Work-Block, Merkle-Baum, SPV, Transaktions-Ein-/Ausgänge,
-   Privacy-Modell).
-3. **"Aa"-Einstellungen** oben rechts: Schriftgröße (14–24px, Kindle-
+   Privacy-Modell, Netzwerk-Knoten/Broadcast, Blockchain-Gabelung/
+   längste-Kette-gewinnt). Jedes Schaubild ist anklickbar und öffnet
+   vergrößert in einer Lightbox (Marker-IDs werden beim Klonen
+   umbenannt, um SVG-`<marker>`-Kollisionen mit dem Panel-Original zu
+   vermeiden).
+3. **Interaktive Graphen** bei den Kapitel-11-Formeln: Kapitel „Gambler's
+   Ruin" (q_z) und „Warum sich mehrere Bestätigungen lohnen" zeigen je
+   einen live berechneten Graphen (echte JS-Portierung der
+   `AttackerSuccessProbability`-C-Funktion bzw. der einfachen
+   q_z=(q/p)^z-Formel) mit Schieberegler für den Angreifer-Rechenanteil
+   q; Kurve, Marker bei z=6 und Live-Ablesewert aktualisieren sich sofort.
+4. **"Aa"-Button** oben rechts: nur Schriftgröße (14–24px, Kindle-
    Paperwhite-artig — größere Schrift lässt Zeilen im festen
-   Papier-Spaltenmaß kürzer umbrechen), Hell-/Dunkel-Umschalter
-   (Hell ist Standard), Sprachumschalter DE/EN.
+   Papier-Spaltenmaß kürzer umbrechen) und Hell-/Dunkel-Umschalter
+   (Hell ist Standard). Der Sprachumschalter DE/EN ist ein eigener
+   Segmented-Button direkt daneben in der Top-Bar, bewusst nicht im
+   "Aa"-Formatierungs-Popup.
 
 Der Originaltext stammt aus dem PDF (`pdftotext -layout`); die
 Original-Diagramme wurden NICHT im Dokumentfluss nachgebaut (nur die vier
 mathematischen Formeln), um die Textwiedergabe möglichst 1:1 zu halten —
-schematische Illustrationen zu den Diagramm-Stellen erscheinen
-ausschließlich im Erklärungs-Panel.
+schematische Illustrationen erscheinen ausschließlich im
+Erklärungs-Panel rechts. Aus demselben Grund lebt auch die
+Bedienungsanleitung ("So funktionierts") nicht im Dokument, sondern als
+Standardinhalt des leeren Panels rechts. Zitatmarker wie `[1]` oder
+`[7][2][5]` im Fließtext sind anklickbar und springen mit
+Flash-Highlight zur Quellenliste am Ende.
 
 ## Dateien
 - `index.html` — komplette Seite (Dokument-Renderer, Formeln,
@@ -79,4 +95,4 @@ ausschließlich im Erklärungs-Panel.
 ## Thumbnail
 `screenshots/bitcoin-whitepaper-explained.png` ist ein echter Screenshot
 der App (960×600) im Hell-Modus mit geöffnetem Erklärungs-Panel zu
-Kapitel 11 (Gambler's Ruin).
+Kapitel 11 samt interaktivem Wahrscheinlichkeits-Graphen.
