@@ -293,7 +293,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 12.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · 13.08.2026 · <span id="versionTag" class="mono"></span></p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$62.500–65.000</div>
-          <div class="ctx">Pendelt bei ~$63,8k (−0,3% heute), Markt wartet auf US-CPI-Daten am Nachmittag</div>
+          <div class="ctx">Pendelt bei ~$63,8k (+0,2% heute) — CPI kam wie erwartet (3,4% YoY), löste aber keine breite Rally aus</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">41 / 100</div>
-          <div class="ctx">Deutlicher Rückgang von 57 auf 41 — Kapital fließt zurück in Richtung Bitcoin, klar unter der Altseason-Schwelle von 75</div>
-          <div class="gauge"><i style="width:41%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">44 / 100</div>
+          <div class="ctx">Leicht von 41 auf 44 gestiegen, bleibt aber klar unter der Altseason-Schwelle von 75</div>
+          <div class="gauge"><i style="width:44%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~58,7%</div>
-          <div class="ctx">Steigt von ~57,2% auf ~58,7% — passend zum defensiveren Altcoin Season Index</div>
+          <div class="ctx">Unverändert bei ~58,7% (keine neue verlässlich datierte Messung gefunden)</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–12.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–13.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -406,13 +406,14 @@
 <script>
 (function(){
   // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 47;
+  const DASHBOARD_VERSION = 48;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "13.08.2026", text: "Bitcoin pendelt bei ~$63,8k (+0,2%), nachdem die US-CPI-Daten wie erwartet bei 3,4% YoY hereinkamen — der Markt reagierte darauf ohne breite Rally. Der Altcoin Season Index steigt leicht von 41 auf 44, BTC-Dominanz bleibt mangels neuer verlässlicher Messung bei ~58,7%. Auffällig: keine frischen Tier-1-Listings, neuen Whale-Käufe oder AI-Token-Launches gefunden — ein ruhiger, ereignisarmer Tag nach der CPI-Veröffentlichung." },
     { date: "12.08.2026", text: "Bitcoin pendelt bei ~$63,8k (−0,3%), der Markt hält sich vor den US-CPI-Daten am Nachmittag zurück. BTC-Dominanz steigt spürbar von ~57,2% auf ~58,7%, während der Altcoin Season Index von 57 auf 41 fällt — Kapital rotiert klar zurück in Richtung Bitcoin. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden, Arthur Hayes' fortgesetzte ENA-Käufe bleiben das einzige wiederkehrende Whale-Signal." },
     { date: "11.08.2026", text: "Bitcoin gibt nach auf ~$64,0k (−1,9%), Ethereum verliert noch stärker (−2,6%) — ein spürbarer Rücksetzer nach Tagen relativer Ruhe. BTC-Dominanz und Altcoin Season Index bleiben mangels neuer verlässlicher Messung unverändert bei ~57,2% bzw. 57. Auffällig: Upbit listete gleich sechs neue Coins auf einmal (CYS, ICNT, XAN, EDEN, AIOZ, ALLO) — Allora (ALLO, dezentrales KI-Netzwerk) und das bereits bekannte Cysic (CYS) sticht mit einem neuen Allzeithoch heraus, während Anoma (XAN) prompt um 38% einbrach." },
     { date: "10.08.2026", text: "Bitcoin klettert leicht auf ~$65,2k (+0,5%), der Gesamtmarkt legt auf $2,28 Billionen zu (+0,2%). BTC-Dominanz bleibt mit ~57,2% praktisch unverändert, der Altcoin Season Index verharrt bei 57. Auffällig: Mehrfach zitierte Top-Gainer wie Bubblemaps (BMT, +164%) und Pump.fun (PUMP) laufen laut mehreren Quellen selbst „ohne erkennbaren Katalysator“ — Momentum (MMT) profitierte von einer bereits mehrere Tage alten BNB-Chain-Integration, keine davon erfüllt unser Frische-Kriterium für einen neuen Kandidaten." },
