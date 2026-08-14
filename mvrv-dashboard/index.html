@@ -263,7 +263,8 @@
         <p><b>Quantile Bands:</b> An jedem Tag t werden die erweiternden Perzentile (5/25/50/75/95 %) aller MVRV-Werte von Beginn der Historie bis t berechnet — keine fixen, sondern mit der Zeit präziser werdende Bänder. Jedes Perzentil wird über Band-Preis(t) = Realized Price(t) × Perzentil-MVRV(t) zurück in eine Preislinie umgerechnet.</p>
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
-        <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen.</p>
+        <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
+        <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
       </div>
@@ -447,6 +448,15 @@
   // (confirmed via a real fetch). So only price+mvrv are required; the rest stay null when the API
   // doesn't grant them, and computeDerived() below falls back to what's still mathematically derivable
   // rather than inventing numbers for what isn't.
+  // Coin Metrics' Realized Cap - and everything derived from it (MVRV, NUPL, Z-Score, quantile bands,
+  // MVRV percentile) - isn't representative yet in Bitcoin's very first weeks of trading. With almost
+  // no coins having moved on-chain, the "average acquisition price" statistic starts at a near-zero
+  // basis and MVRV swings from ~146x down through the teens over about two weeks (confirmed against
+  // the real snapshot: 2010-07-18 = 146.0, 2010-07-31 = 12.1, 2010-08-01 = 10.5) before settling into a
+  // representative range. Trimming those first ~14 days keeps every MVRV-derived chart showing actual
+  // market history instead of a data artifact from before the metric had enough inputs to mean anything.
+  const MVRV_DATA_CUTOFF = "2010-08-01";
+
   function parseRows(rows){
     return rows.map(d=>({
       date: d.time.slice(0,10),
@@ -461,7 +471,7 @@
       roi30d: d.ROI30d!=null ? parseFloat(d.ROI30d) : null,
       roi1yr: d.ROI1yr!=null ? parseFloat(d.ROI1yr) : null,
       activeSupply1yr: d.SplyAct1yr!=null ? parseFloat(d.SplyAct1yr) : null
-    })).filter(d=> d.price!=null && d.price>0 && d.mvrv!=null && d.mvrv>0);
+    })).filter(d=> d.price!=null && d.price>0 && d.mvrv!=null && d.mvrv>0 && d.date>=MVRV_DATA_CUTOFF);
   }
 
   // ---------- math ----------
@@ -478,6 +488,23 @@
         const lo2 = Math.floor(pos), hi2 = Math.ceil(pos);
         out[qi][i] = sorted[lo2] + (sorted[hi2]-sorted[lo2])*(pos-lo2);
       });
+    }
+    return out;
+  }
+
+  // For each point in time, the percentile rank (0-100) of that value within the expanding history up
+  // to and including that point - "how cheap or expensive is this reading compared to everything seen
+  // so far", the same insertion-sort approach as expandingQuantiles but reporting the rank of the
+  // inserted value itself rather than interpolating fixed quantile boundaries.
+  function expandingPercentileRank(values){
+    const sorted = [];
+    const out = new Array(values.length);
+    for(let i=0;i<values.length;i++){
+      const v = values[i];
+      let lo=0, hi=sorted.length;
+      while(lo<hi){ const mid=(lo+hi)>>1; if(sorted[mid]<v) lo=mid+1; else hi=mid; }
+      sorted.splice(lo,0,v);
+      out[i] = sorted.length>1 ? (lo/(sorted.length-1))*100 : 50;
     }
     return out;
   }
@@ -549,6 +576,7 @@
       p95: realizedPrice.map((rp,i)=> rp*q95[i])
     };
     const mvrvQuantiles = {p05:q05, p25:q25, p50:q50, p75:q75, p95:q95};
+    const mvrvPercentile = expandingPercentileRank(mvrv);
 
     let runningMax = -Infinity;
     const athDrawdown = price.map(p=>{ runningMax = Math.max(runningMax,p); return (p-runningMax)/runningMax*100; });
@@ -557,7 +585,7 @@
       ? supply.map((s,i)=> (i>=365 && supply[i-365]!=null && s!=null) ? (s/supply[i-365]-1)*100 : null)
       : supply.map(()=> null);
 
-    return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,athDrawdown,supplyGrowth,
+    return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,mvrvPercentile,athDrawdown,supplyGrowth,
       nvt,activeAddr,roi30d,roi1yr,activeSupply1yr,
       hasRealizedCap,hasSupply,hasMarketCap,hasZScore,
       hasNvt,hasActiveAddr,hasRoi30d,hasRoi1yr,hasActiveSupply1yr};
@@ -573,6 +601,7 @@
       dates:s("dates"), t:s("t"), price:s("price"), mvrv:s("mvrv"), realizedCap:s("realizedCap"),
       marketCap:s("marketCap"), supply:s("supply"), realizedPrice:s("realizedPrice"), nupl:s("nupl"), zscore:s("zscore"),
       nvt:s("nvt"), activeAddr:s("activeAddr"), roi30d:s("roi30d"), roi1yr:s("roi1yr"), activeSupply1yr:s("activeSupply1yr"),
+      mvrvPercentile:s("mvrvPercentile"),
       bands:{p05:d.bands.p05.slice(idx), p25:d.bands.p25.slice(idx), p50:d.bands.p50.slice(idx), p75:d.bands.p75.slice(idx), p95:d.bands.p95.slice(idx)},
       mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx), p25:d.mvrvQuantiles.p25.slice(idx), p50:d.mvrvQuantiles.p50.slice(idx), p75:d.mvrvQuantiles.p75.slice(idx), p95:d.mvrvQuantiles.p95.slice(idx)},
       athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth"),
@@ -668,19 +697,27 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    let allVals = [];
-    cfg.series.forEach(s=> s.values.forEach(v=>{ if(v!=null && isFinite(v)) allVals.push(v); }));
-    (cfg.refLines||[]).forEach(r=> allVals.push(r.value));
-    if(allVals.length===0) allVals = [0,1];
-    let min = Math.min(...allVals), max = Math.max(...allVals);
-    if(cfg.log){ min = Math.max(min, 1e-6); if(max<=min) max = min*10; }
-    if(min===max){ min -= (Math.abs(min)||1)*0.1; max += (Math.abs(max)||1)*0.1; }
-    if(!cfg.log){
-      const pad = (max-min)*0.08;
-      min -= pad; max += pad;
+    let min, max;
+    if(cfg.yMin!=null && cfg.yMax!=null){
+      // Fixed domain (e.g. a 0-100% bounded percentile/oscillator chart) - skip auto-fit/padding so
+      // background zoneBands land exactly on their intended boundaries instead of being cropped by
+      // whatever range the currently visible data happens to span.
+      min = cfg.yMin; max = cfg.yMax;
     } else {
-      const lmin = Math.log(min), lmax = Math.log(max), lpad = (lmax-lmin)*0.06 || 0.1;
-      min = Math.exp(lmin-lpad); max = Math.exp(lmax+lpad);
+      let allVals = [];
+      cfg.series.forEach(s=> s.values.forEach(v=>{ if(v!=null && isFinite(v)) allVals.push(v); }));
+      (cfg.refLines||[]).forEach(r=> allVals.push(r.value));
+      if(allVals.length===0) allVals = [0,1];
+      min = Math.min(...allVals); max = Math.max(...allVals);
+      if(cfg.log){ min = Math.max(min, 1e-6); if(max<=min) max = min*10; }
+      if(min===max){ min -= (Math.abs(min)||1)*0.1; max += (Math.abs(max)||1)*0.1; }
+      if(!cfg.log){
+        const pad = (max-min)*0.08;
+        min -= pad; max += pad;
+      } else {
+        const lmin = Math.log(min), lmax = Math.log(max), lpad = (lmax-lmin)*0.06 || 0.1;
+        min = Math.exp(lmin-lpad); max = Math.exp(lmax+lpad);
+      }
     }
 
     function yOf(v){
@@ -927,7 +964,7 @@
   // ---------- tile definitions ----------
   const TILES = [
     {
-      title:"MVRV-Ratio", desc:"Market Cap ÷ Realized Cap. Zeigt, wie weit der Kurs vom durchschnittlichen Einstandspreis aller Coins entfernt ist: >1 = Markt im Schnitt im Gewinn, <1 = im Schnitt im Verlust. Sehr hohe Werte fielen historisch mit überhitzten, teuren Marktphasen zusammen, Werte nahe oder unter 1 mit unterbewerteten Phasen. Standardmäßig log-skaliert (unten rechts umschaltbar): MVRV ist ein multiplikatives Verhältnis um 1 herum, und ein einzelner extremer Ausreißer aus den ersten Handelstagen 2010 würde eine lineare Achse sonst so stark stauchen, dass der Rest der Historie flach wirkt.",
+      title:"MVRV-Ratio", desc:"Market Cap ÷ Realized Cap. Zeigt, wie weit der Kurs vom durchschnittlichen Einstandspreis aller Coins entfernt ist: >1 = Markt im Schnitt im Gewinn, <1 = im Schnitt im Verlust. Sehr hohe Werte fielen historisch mit überhitzten, teuren Marktphasen zusammen, Werte nahe oder unter 1 mit unterbewerteten Phasen. Standardmäßig log-skaliert (unten rechts umschaltbar), da MVRV ein multiplikatives Verhältnis um 1 herum ist. Die ersten rund zwei Handelswochen (Juli 2010) sind aus der gesamten Historie entfernt, weil die Realized Cap dort mangels bewegter Coins noch keine verlässliche Kennzahl ergibt.",
       zone(){ return mvrvZoneForCurrent(); },
       scaleToggle:{get:()=>mvrvScale, set:v=>{mvrvScale=v;}},
       build(view){
@@ -935,6 +972,25 @@
           dates:view.dates, height:chartHeight(), log:mvrvScale,
           series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:1.4, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
+        });
+      }
+    },
+    {
+      title:"MVRV-Perzentil", desc:"Wo die aktuelle MVRV-Ratio im Vergleich zu ihrer gesamten bisherigen Historie steht, als Perzentilrang von 0–100 %: 0 % = die günstigste je gemessene Bewertung, 100 % = die teuerste. Die Hintergrundfarben entsprechen den Zonen der MVRV Quantile Bands oben (rot = Euphorie, orange = Teuer, neutral = Fair Value, grün = Günstig, türkis = Fire Sale) und machen dieselbe Einordnung unabhängig von der absoluten MVRV-Skala direkt ablesbar.",
+      zone(){ return mvrvZoneForCurrent(); },
+      build(view){
+        return buildLineChart({
+          dates:view.dates, height:chartHeight(), log:false,
+          series:[{key:"mvrvPercentile", label:"MVRV-Perzentil", color:"var(--c-mvrv)", values:view.mvrvPercentile, width:1.6, fmt:v=>v.toFixed(0)+"%"}],
+          axisFmt:v=>v.toFixed(0)+"%",
+          yMin:0, yMax:100,
+          zoneBands:[
+            {from:95, to:100, color:"var(--critical-bg)"},
+            {from:75, to:95, color:"var(--caution-bg)"},
+            {from:25, to:75, color:"var(--neutral-bg)"},
+            {from:5, to:25, color:"var(--good-bg)"},
+            {from:0, to:5, color:"var(--accent-bg)"}
+          ]
         });
       }
     },
