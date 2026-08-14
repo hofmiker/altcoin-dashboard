@@ -319,6 +319,7 @@
   let logScale = true;
   let mvrvScale = true;
   let areaGradCounter = 0;
+  let clipIdCounter = 0;
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -711,6 +712,29 @@
     const defs = document.createElementNS(NS,"defs");
     svg.appendChild(defs);
 
+    // The plot frame - a fixed rectangle the zoomed content must always stay contained within,
+    // regardless of how much the zoom transform below scales it up or down. A clip-path can't just be
+    // set on zoomG itself alongside its own transform: SVG resolves a clip-path in the coordinate
+    // system already in effect for the element referencing it, which for an element with its own
+    // transform is the space AFTER that transform - so the clip boundary would scale/move together
+    // with the content instead of staying put, defeating the point. Putting the clip-path on this
+    // untransformed outer wrapper instead, with the transform only on the zoomG it contains, keeps the
+    // frame fixed while the content inside it zooms - without this, a strong starting scale (a big
+    // zoom-out's initial transform can be a 10x+ enlargement, since it has to shrink the new, wider
+    // view down to where the old, narrower one sat) pushed the scaled content past the plot edges, into
+    // the axis-label margins or past the svg edge entirely, before the animation had even started.
+    const clipId = "chartClip" + (++clipIdCounter);
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id", clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+    const clipG = document.createElementNS(NS,"g");
+    clipG.setAttribute("clip-path", `url(#${clipId})`);
+    svg.appendChild(clipG);
+
     // Only the genuine data curves - series paths and the band fills between them - live in this one
     // group, so a range or log/linear change can be animated as a single matrix transform on the group
     // instead of a hide/rebuild/show cut - see renderAllZoom(). Everything else stays outside it and
@@ -722,7 +746,7 @@
     // The crosshair and hit-rect also stay outside it, positioned by JS in the final coordinate system.
     const zoomG = document.createElementNS(NS,"g");
     zoomG.setAttribute("class","zoom-content");
-    svg.appendChild(zoomG);
+    clipG.appendChild(zoomG);
 
     let min, max;
     if(cfg.yMin!=null && cfg.yMax!=null){
