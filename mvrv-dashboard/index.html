@@ -973,6 +973,22 @@
     cross.style.opacity = "0";
     svg.appendChild(cross);
 
+    // hover markers - one dot per series, placed at the point where the crosshair meets that
+    // series' line. Live outside zoomG (like the crosshair) so they always track the current,
+    // non-animating domain rather than a mid-zoom transform.
+    const markers = cfg.series.map(s=>{
+      const dot = document.createElementNS(NS,"circle");
+      dot.setAttribute("r","4");
+      dot.setAttribute("fill", s.color);
+      dot.setAttribute("stroke","var(--card)");
+      dot.setAttribute("stroke-width","1.5");
+      dot.setAttribute("vector-effect","non-scaling-stroke");
+      dot.style.opacity = "0";
+      dot.style.pointerEvents = "none";
+      svg.appendChild(dot);
+      return dot;
+    });
+
     const hitRect = document.createElementNS(NS,"rect");
     hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
     hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
@@ -986,6 +1002,14 @@
       cross.setAttribute("x1",x); cross.setAttribute("x2",x);
       const values = cfg.series.map(s=> s.tooltipValues ? s.tooltipValues[i] : s.values[i]);
       readout.update(isDefault ? "Aktuell" : cfg.dates[i], values);
+      cfg.series.forEach((s,si)=>{
+        const v = s.values[i];
+        const dot = markers[si];
+        if(v==null || !isFinite(v)){ dot.style.display="none"; return; }
+        dot.style.display="";
+        dot.setAttribute("cx", x);
+        dot.setAttribute("cy", yOf(v));
+      });
     }
     renderAt(n-1, true);
 
@@ -997,12 +1021,13 @@
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
       cross.style.opacity = "1";
+      markers.forEach(d=> d.style.opacity="1");
       renderAt(i, false);
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
-    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
+    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; markers.forEach(d=> d.style.opacity="0"); renderAt(n-1, true); });
     hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
+    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; markers.forEach(d=> d.style.opacity="0"); renderAt(n-1, true); });
 
     // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
