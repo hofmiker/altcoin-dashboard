@@ -59,6 +59,8 @@ a{ color:inherit; }
 .topbar-title .name{ font-family:var(--display); font-size:15px; font-weight:600; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .topbar-title .name .accent{ color:var(--accent); }
 .topbar-title .sub{ font-size:10.5px; letter-spacing:.05em; color:var(--ink-ghost); white-space:nowrap; }
+.deploy-meta{ font-size:10px; letter-spacing:.05em; color:var(--ink-ghost); white-space:nowrap; flex:none; }
+@media (max-width:640px){ .deploy-meta{ display:none; } }
 .settings-btn, .theme-switch{
   border:1px solid var(--line); background:var(--surface-raised); color:var(--ink-faint); border-radius:8px;
   height:32px; cursor:pointer; font-family:var(--display); transition:border-color .15s,color .15s;
@@ -228,6 +230,7 @@ a{ color:inherit; }
     <span class="name">bitcoin-source<span class="accent">.explained</span></span>
     <span class="sub">v0.1.0 · 8. Januar 2009 · Satoshi Nakamoto</span>
   </div>
+  <div class="deploy-meta">{{VERSION}} · {{DEPLOY_DATE}}</div>
   <button class="settings-btn" id="settings-btn" aria-label="Einstellungen">Aa</button>
   <button class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus"><span id="theme-thumb">&#9789;</span></button>
 </div>

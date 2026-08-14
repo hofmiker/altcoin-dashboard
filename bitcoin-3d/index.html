@@ -36,6 +36,8 @@
         #hud-title.show { opacity: 1; }
         #hud-sub { color: rgba(255,255,255,.25); font-size: .58rem;
             letter-spacing: .2em; margin-top: 5px; text-transform: uppercase; }
+        #hud-deploy { color: rgba(255,255,255,.15); font-size: .52rem;
+            letter-spacing: .18em; margin-top: 4px; text-transform: uppercase; }
         #refresh-btn {
             pointer-events: all; cursor: pointer; user-select: none;
             color: rgba(255,215,0,.45); font-size: .68rem; letter-spacing: .15em;
@@ -84,6 +86,7 @@
     <div>
         <div id="hud-title">BITCOIN / USD &nbsp;·&nbsp; 3D KERZENCHART</div>
         <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; MONATS-KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
+        <div id="hud-deploy">{{VERSION}} &nbsp;·&nbsp; {{DEPLOY_DATE}}</div>
     </div>
     <div id="refresh-btn" onclick="location.reload()">⟳ &nbsp;RELOAD</div>
 </div>
