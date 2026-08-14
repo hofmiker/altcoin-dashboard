@@ -306,6 +306,7 @@
   let mode = "tiles";
   let rangeDays = 1825;
   let logScale = true;
+  let mvrvScale = true;
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -893,21 +894,22 @@
     return seg;
   }
 
-  // ---------- log/linear scale selector (only relevant for the charts plotting raw USD price/cap
-  // values across several orders of magnitude - synced globally like the range selector) ----------
+  // ---------- log/linear scale selector - each chart family (USD price/cap vs. the MVRV ratio) gets
+  // its own independent toggle state (get/set pair), synced globally within that family like the
+  // range selector, but not across families since a reader may want e.g. price linear and MVRV log ----------
   const SCALE_OPTIONS = [{value:"log", label:"Log"}, {value:"linear", label:"Linear"}];
-  function buildScaleSeg(){
+  function buildScaleSeg(getVal, setVal){
     const seg = document.createElement("div");
     seg.className = "seg seg-sm";
     seg.setAttribute("role","group"); seg.setAttribute("aria-label","Skala");
-    const currentVal = logScale ? "log" : "linear";
+    const currentVal = getVal() ? "log" : "linear";
     SCALE_OPTIONS.forEach(opt=>{
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = opt.label;
       if(opt.value === currentVal) btn.classList.add("active");
       btn.addEventListener("click", ()=>{
-        logScale = opt.value === "log";
+        setVal(opt.value === "log");
         renderAll();
       });
       seg.appendChild(btn);
@@ -925,11 +927,12 @@
   // ---------- tile definitions ----------
   const TILES = [
     {
-      title:"MVRV-Ratio", desc:"Market Cap ÷ Realized Cap. Zeigt, wie weit der Kurs vom durchschnittlichen Einstandspreis aller Coins entfernt ist: >1 = Markt im Schnitt im Gewinn, <1 = im Schnitt im Verlust. Sehr hohe Werte fielen historisch mit überhitzten, teuren Marktphasen zusammen, Werte nahe oder unter 1 mit unterbewerteten Phasen.",
+      title:"MVRV-Ratio", desc:"Market Cap ÷ Realized Cap. Zeigt, wie weit der Kurs vom durchschnittlichen Einstandspreis aller Coins entfernt ist: >1 = Markt im Schnitt im Gewinn, <1 = im Schnitt im Verlust. Sehr hohe Werte fielen historisch mit überhitzten, teuren Marktphasen zusammen, Werte nahe oder unter 1 mit unterbewerteten Phasen. Standardmäßig log-skaliert (unten rechts umschaltbar): MVRV ist ein multiplikatives Verhältnis um 1 herum, und ein einzelner extremer Ausreißer aus den ersten Handelstagen 2010 würde eine lineare Achse sonst so stark stauchen, dass der Rest der Historie flach wirkt.",
       zone(){ return mvrvZoneForCurrent(); },
+      scaleToggle:{get:()=>mvrvScale, set:v=>{mvrvScale=v;}},
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), log:mvrvScale,
           series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:1.4, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
         });
@@ -937,7 +940,7 @@
     },
     {
       title:"Realized Price vs. Marktpreis", desc:"Durchschnittlicher On-Chain-Einstandspreis (Realized Price) vs. tatsächlicher Kurs. Liegt der Kurs unter der Realized Price, ist der Markt im Schnitt im Verlust — historisch eher eine Boden- als eine Topregion. Standardmäßig log-skaliert (unten rechts umschaltbar), da beide Werte seit 2010 um mehrere Größenordnungen gewachsen sind.",
-      scaleToggle:true,
+      scaleToggle:{get:()=>logScale, set:v=>{logScale=v;}},
       build(view){
         const series = [
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
@@ -980,7 +983,7 @@
       title:"Market Cap vs. Realized Cap", desc:"Beide in USD — das Verhältnis der beiden Linien ist die MVRV-Ratio. Klafft die Market Cap weit über die Realized Cap, sitzt viel Kapital auf großen Buchgewinnen; nähern sie sich an oder kreuzen sie, hat der Markt einen Großteil seiner Gewinne bereits abgegeben. Standardmäßig log-skaliert (unten rechts umschaltbar), da beide Werte seit 2010 um mehrere Größenordnungen gewachsen sind.",
       requires:"hasMarketCapAndRealizedCap",
       unavailableNote:"Braucht CapMrktCurUSD und CapRealUSD in absoluten Dollar — Coin Metrics gibt diese Metriken der aktuellen (schlüssellosen) Anfrage nicht frei.",
-      scaleToggle:true,
+      scaleToggle:{get:()=>logScale, set:v=>{logScale=v;}},
       build(view){
         const series = [
           {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:1.4, fmt:fmtUSD},
@@ -1088,7 +1091,7 @@
     const readoutHost = document.getElementById("heroReadout");
     const toolbarHost = document.getElementById("heroToolbar");
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
-    toolbarHost.appendChild(buildScaleSeg());
+    toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg());
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
@@ -1168,7 +1171,7 @@
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
-      if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg());
+      if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg(tile.scaleToggle.get, tile.scaleToggle.set));
       toolbar.appendChild(buildRangeSeg());
       card.appendChild(toolbar);
 
