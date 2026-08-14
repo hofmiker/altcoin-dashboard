@@ -1,0 +1,74 @@
+name: Fetch Fear & Greed Data
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "37 6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-feargreed-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Crypto Fear & Greed Index (alternative.me, full history)
+        id: fetch
+        run: |
+          set -euo pipefail
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          URL="https://api.alternative.me/fng/?limit=0&format=json"
+
+          HTTP_CODE=$(curl -sS --retry 3 --retry-delay 5 -w "%{http_code}" -o /tmp/fng_response.json \
+            -H "User-Agent: $UA" -H "Accept: application/json" \
+            "$URL")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Fetch of Fear & Greed history returned HTTP $HTTP_CODE - aborting without committing anything. Response body:" >&2
+            cat /tmp/fng_response.json >&2
+            exit 1
+          fi
+          RAW=$(cat /tmp/fng_response.json)
+          ROWCOUNT=$(echo "$RAW" | jq '.data | length')
+          if [ -z "$ROWCOUNT" ] || [ "$ROWCOUNT" -lt 100 ]; then
+            echo "API returned too few rows ($ROWCOUNT) - aborting without committing anything." >&2
+            exit 1
+          fi
+          FETCHED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # alternative.me returns newest-first; sort oldest-first to match data/mvrv/latest.json's convention.
+          AS_OF=$(echo "$RAW" | jq -r '.data | sort_by(.timestamp|tonumber) | .[-1].timestamp | tonumber | strftime("%Y-%m-%d")')
+          mkdir -p data/feargreed
+          echo "$RAW" | jq --arg fetchedAt "$FETCHED_AT" --arg source "$URL" --arg asOf "$AS_OF" \
+            '{fetchedAt:$fetchedAt, source:$source, asOf:$asOf, rowCount:(.data|length), data:(.data | sort_by(.timestamp|tonumber))}' \
+            > data/feargreed/latest.json
+          echo "as_of=$AS_OF" >> "$GITHUB_OUTPUT"
+          echo "row_count=$ROWCOUNT" >> "$GITHUB_OUTPUT"
+          echo "fetched_at=$FETCHED_AT" >> "$GITHUB_OUTPUT"
+
+      - name: Commit snapshot and open PR (main is branch-protected, no direct push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- data/feargreed)" ]; then
+            echo "No data changes since last run, nothing to commit."
+            exit 0
+          fi
+          BRANCH="feargreed-data-${{ steps.fetch.outputs.as_of }}-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/feargreed
+          git commit -m "Update Fear & Greed data snapshot (${{ steps.fetch.outputs.as_of }}, ${{ steps.fetch.outputs.row_count }} rows)"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Update Fear & Greed data snapshot (${{ steps.fetch.outputs.as_of }})" \
+            --body "Automated alternative.me Fear & Greed API fetch, unmodified. Data as of ${{ steps.fetch.outputs.as_of }}, fetched at ${{ steps.fetch.outputs.fetched_at }}, ${{ steps.fetch.outputs.row_count }} rows." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
+          git push origin --delete "$BRANCH" || true
