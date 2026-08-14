@@ -128,16 +128,13 @@
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
-  /* Zoom transition used only for range and log/linear scale changes (renderAllZoom() toggles this
-     class before/after rebuilding) - a brief scale+fade "settle" on just the chart content itself.
-     The stat strip is deliberately excluded: it always shows FULL's latest values regardless of the
-     selected range, so it never actually changes on these triggers and shouldn't move. Every other
-     state change (mode switch, overlay selection, resize, initial load) goes through the plain,
-     un-animated renderAll() and snaps instantly - nothing moves for those. */
-  #heroChart, #heroReadout, #metricsHost{ transition: opacity .18s ease-in-out, transform .18s ease-in-out; }
-  #heroChart.chart-zoom, #heroReadout.chart-zoom, #metricsHost.chart-zoom{
-    opacity:0; transform:scale(0.97);
-  }
+  /* Real zoom used only for range and log/linear scale changes: renderAllZoom() rebuilds the chart
+     immediately (never hidden, never a blank/faded gap), computes how the OLD view's date window and
+     value domain map onto the freshly-rendered one, and applies that as a starting transform on the
+     chart's .zoom-content group - so the new chart briefly LOOKS like the old one - before animating
+     it to identity. That reveal animates via this transition; every other state change (mode switch,
+     overlay selection, resize, initial load) calls the plain renderAll() and nothing moves. */
+  .zoom-content{ transition: transform .38s cubic-bezier(.22,.61,.36,1); }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
@@ -700,13 +697,22 @@
 
     if(n < 2){
       wrap.innerHTML = '<div class="chart-empty">Keine Daten im gewählten Zeitraum</div>';
-      return {wrap, readoutEl: readout.el};
+      return {wrap, readoutEl: readout.el, domain:null};
     }
 
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
+
+    // Everything whose position depends on the date window or value domain (zone bands, gridlines,
+    // axis labels, ref/halving lines, series paths) lives in this one group, so a range or log/linear
+    // change can be animated as a single matrix transform on the group instead of a hide/rebuild/show
+    // cut - see renderAllZoom(). The crosshair and hit-rect stay outside it: they're positioned by
+    // JS using the final, correct coordinate system regardless of any visual transform on the group.
+    const zoomG = document.createElementNS(NS,"g");
+    zoomG.setAttribute("class","zoom-content");
+    svg.appendChild(zoomG);
 
     let min, max;
     if(cfg.yMin!=null && cfg.yMax!=null){
@@ -751,7 +757,7 @@
       rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
       rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
       rect.setAttribute("fill", z.color);
-      svg.appendChild(rect);
+      zoomG.appendChild(rect);
     });
 
     // gridlines + y labels
@@ -766,13 +772,13 @@
       const gl = document.createElementNS(NS,"line");
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(gl);
+      zoomG.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label");
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = axisFmt(val);
-      svg.appendChild(lbl);
+      zoomG.appendChild(lbl);
     }
 
     // band fills (between two named series)
@@ -793,7 +799,7 @@
       d += "Z";
       const path = document.createElementNS(NS,"path");
       path.setAttribute("d",d); path.setAttribute("fill",bf.color); path.setAttribute("stroke","none");
-      svg.appendChild(path);
+      zoomG.appendChild(path);
     });
 
     // vertical date markers (e.g. halvings) - dashed vertical line + short label at the nearest
@@ -807,14 +813,14 @@
       line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke", v.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","3 3"); line.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(line);
+      zoomG.appendChild(line);
       if(v.label){
         const lbl = document.createElementNS(NS,"text");
         lbl.setAttribute("class","refline-label");
         lbl.setAttribute("x",x+4); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", v.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = v.label;
-        svg.appendChild(lbl);
+        zoomG.appendChild(lbl);
       }
     });
 
@@ -826,14 +832,14 @@
       line.setAttribute("x1",padL); line.setAttribute("x2",w-padR); line.setAttribute("y1",y); line.setAttribute("y2",y);
       line.setAttribute("stroke", r.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","4 3"); line.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(line);
+      zoomG.appendChild(line);
       if(r.label){
         const lbl = document.createElementNS(NS,"text");
         lbl.setAttribute("class","refline-label");
         lbl.setAttribute("x",w-padR); lbl.setAttribute("y",y-4); lbl.setAttribute("text-anchor","end");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", r.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = r.label;
-        svg.appendChild(lbl);
+        zoomG.appendChild(lbl);
       }
     });
 
@@ -853,7 +859,7 @@
       if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
       path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
       path.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(path);
+      zoomG.appendChild(path);
     });
 
     // x-axis date labels (fewer ticks on narrow screens - the larger legible font size from
@@ -869,7 +875,7 @@
       lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = cfg.dates[i].slice(0,7);
-      svg.appendChild(lbl);
+      zoomG.appendChild(lbl);
     }
 
     // crosshair
@@ -911,7 +917,9 @@
     hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
     hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
 
-    return {wrap, readoutEl: readout.el};
+    // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
+    // chart's zoom-content group start out looking like the previous render, then animate to identity.
+    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w}};
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -1175,6 +1183,7 @@
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
     const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true});
+    registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
   }
@@ -1232,6 +1241,7 @@
       `;
       attachInfo(head.querySelector(".ticker-row"), tile.desc);
       const built = tile.build(view);
+      registerZoomChart(tile.title, built);
       head.appendChild(built.readoutEl);
       card.appendChild(head);
       card.appendChild(built.wrap);
@@ -1307,6 +1317,7 @@
         axisFmt: v=> (v*100).toFixed(0)+"%",
         compactReadout: series.length > 3
       });
+      registerZoomChart("overlay", built);
       const readoutRow = document.createElement("div");
       readoutRow.style.display = "flex";
       readoutRow.style.justifyContent = "flex-end";
@@ -1351,36 +1362,101 @@
     renderAllImmediate();
   }
 
-  // Brief zoom (scale + fade) on just the chart content, used only by the range selector and the
-  // log/linear scale toggles. The stat strip is excluded - it always shows FULL's latest values
-  // regardless of range, so it never actually changes here and shouldn't move either.
+  // Registry of {n, min, max, log, h, padL, padR, padT, padB, w} per currently-rendered chart, keyed
+  // by a stable id (hero / each tile's title / overlay). Every render pass - animated or not - keeps
+  // this in sync via registerZoomChart() below, so renderAllZoom() always has the previous state on
+  // hand to diff against, no separate snapshot step required.
+  let chartDomains = {};
+  function registerZoomChart(key, built){
+    if(!built || !built.wrap) return;
+    built.wrap.dataset.zoomKey = key;
+    chartDomains[key] = built.domain;
+  }
+
+  // Solves for the 2D affine transform (scaleX/translateX for the date window, scaleY/translateY for
+  // the value domain) that makes newDomain's zoom-content group visually match how oldDomain looked,
+  // given both share the same viewBox width/height and padding. Applied as the group's *starting*
+  // transform right after a rebuild, then animated to identity - the chart appears to zoom smoothly
+  // from the old view into the new one instead of cutting.
   //
-  // Guarded with a generation counter rather than clearTimeout/rAF-id bookkeeping: every call gets its
-  // own id, and every deferred step (the setTimeout rebuild, and the double-rAF fade-in afterwards)
-  // checks it's still the most recent call before touching the DOM. A second click while the first
-  // cycle is still fading out just re-adds the same class (harmless no-op) and starts its own cycle;
-  // a second click that lands mid-rebuild/fade-in makes the first cycle's now-stale callback bail out
-  // instead of finishing its fade-in over content a newer click has already superseded - the kind of
-  // interleaving that caused the garbled/overlapping chart labels reported earlier.
-  const ZOOM_MS = 180;
+  // X: every range is a suffix of the same date-ordered series ending "today", so new-index j is the
+  // same real date as old-index (j + oldDomain.n - newDomain.n). That shift is linear in xOf(), so the
+  // formula below holds whether the new window is narrower (zooming in - the shift lands inside the
+  // old view) or wider (zooming out - it extrapolates to a point off-screen past the old view's left
+  // edge, which is exactly the "reveal more history" effect wanted there). Log/linear changes don't
+  // touch n at all, so this naturally resolves to scaleX=1/translateX=0 (no horizontal movement).
+  //
+  // Y: yOf() maps a value to a pixel row for a given domain/log setting. Feeding newDomain's own
+  // min/max through oldDomain's yOf() gives the two pixel rows the new chart's top/bottom edge would
+  // have appeared at under the old mapping; solving those against the new chart's actual top/bottom
+  // (padT / h-padB) gives the scale+translate that reproduces that old appearance.
+  function computeZoomMatrix(oldDomain, newDomain){
+    const identity = {a:1, d:1, e:0, f:0};
+    if(!oldDomain || !newDomain) return identity;
+    const {w, padL, padR, padT, padB} = newDomain;
+    const h = newDomain.h;
+
+    let a = 1, e = 0;
+    if(oldDomain.n > 1 && newDomain.n > 1){
+      const PW = w - padL - padR;
+      const xOldAt = i => padL + (i/(oldDomain.n-1)) * PW;
+      const shift = oldDomain.n - newDomain.n;
+      const targetLeftX = xOldAt(shift);
+      a = ((w-padR) - targetLeftX) / ((w-padR) - padL);
+      e = (w-padR) - a*(w-padR);
+    }
+
+    let d = 1, f = 0;
+    const yOldOf = v=>{
+      if(oldDomain.log){
+        const lv = Math.log(Math.max(v,1e-9)), lmin = Math.log(oldDomain.min), lmax = Math.log(oldDomain.max);
+        return padT + (1-(lv-lmin)/(lmax-lmin))*(h-padT-padB);
+      }
+      return padT + (1-(v-oldDomain.min)/(oldDomain.max-oldDomain.min))*(h-padT-padB);
+    };
+    if(oldDomain.max > oldDomain.min && newDomain.max > newDomain.min){
+      const yTop = yOldOf(newDomain.max), yBot = yOldOf(newDomain.min);
+      d = (yBot - yTop) / ((h-padB) - padT);
+      f = yTop - d*padT;
+    }
+
+    return {a, d, e, f};
+  }
+
+  // Used only by the range selector and the two log/linear scale toggles (renderAllZoom, below).
+  // Rebuilds happen synchronously and immediately - never hidden, never mid-transition when a second
+  // click lands - so there's no gap for a stale callback to clobber newer content in. Only the final
+  // "reveal" step (resetting the transform to identity) is deferred via rAF, guarded by a generation
+  // counter so a rapid second click's own reveal always wins over a superseded first one.
   let zoomGen = 0;
   function renderAllZoom(){
-    const hosts = ["heroChart","heroReadout","metricsHost"].map(id=> document.getElementById(id)).filter(Boolean);
-    const hasExistingContent = hosts.some(h=> h.childNodes.length>0);
-    if(!hasExistingContent){
+    if(Object.keys(chartDomains).length === 0){
       renderAllImmediate();
       return;
     }
     const myGen = ++zoomGen;
-    hosts.forEach(h=> h.classList.add("chart-zoom"));
-    setTimeout(()=>{
-      if(myGen !== zoomGen) return;
-      renderAllImmediate();
+    // Shallow copy - chartDomains itself gets mutated in place by registerZoomChart() during the
+    // renderAllImmediate() call right below, so without copying, prevDomains would end up pointing at
+    // the same object and "the old state" would already have been overwritten with the new one.
+    const prevDomains = {...chartDomains};
+    renderAllImmediate();
+
+    document.querySelectorAll("[data-zoom-key]").forEach(wrap=>{
+      const key = wrap.dataset.zoomKey;
+      const oldDomain = prevDomains[key];
+      const newDomain = chartDomains[key];
+      const group = wrap.querySelector(".zoom-content");
+      if(!group || !oldDomain || !newDomain) return;
+      const m = computeZoomMatrix(oldDomain, newDomain);
+      group.style.transition = "none";
+      group.style.transform = `matrix(${m.a},0,0,${m.d},${m.e},${m.f})`;
+      group.getBoundingClientRect();
       requestAnimationFrame(()=> requestAnimationFrame(()=>{
         if(myGen !== zoomGen) return;
-        hosts.forEach(h=> h.classList.remove("chart-zoom"));
+        group.style.transition = "";
+        group.style.transform = "";
       }));
-    }, ZOOM_MS);
+    });
   }
 
   // ---------- status banner ----------
