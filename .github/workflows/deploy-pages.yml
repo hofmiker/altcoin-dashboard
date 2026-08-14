@@ -24,13 +24,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Stamp live deploy date and per-project stats
+      - name: Stamp live deploy date, per-page version and per-project stats
         run: |
           DEPLOY_DATE=$(date -u +'%d.%m.%Y %H:%M UTC')
-          sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/" index.html
-          # --follow on the project's index.html so renamed/restructured
-          # project folders keep their full history instead of being
-          # truncated at the rename commit.
+
+          # Repo-wide standard: every project's own index.html topline shows {{VERSION}} (vN, where N
+          # is the total commit count that ever touched that page - the same "how many changes has
+          # this seen" metric already used for the landing page's per-project cards, just also
+          # rendered inline on the page itself) and {{DEPLOY_DATE}} (this exact build's timestamp,
+          # identical across every page since they're all published together). --follow so a renamed/
+          # restructured project folder keeps its full history instead of being truncated at the
+          # rename commit. New project pages should follow the same two-placeholder pattern.
+          PROJECT_PAGES="index.html altcoin-dashboard/index.html btc/index.html bitcoin-3d/index.html mvrv-dashboard/index.html bitcoin-whitepaper-explained/index.html bitcoin-source-code-explained/index.html"
+          for page in $PROJECT_PAGES; do
+            [ -f "$page" ] || continue
+            COUNT=$(git log --follow --oneline -- "$page" 2>/dev/null | wc -l)
+            sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/g; s/{{VERSION}}/v$COUNT/g" "$page"
+          done
+
+          # Landing page also aggregates each other project's own last-updated date and commit count
+          # for its dashboard cards (separate from the per-page {{VERSION}} above).
           for folder in $(grep -oP '(?<=\{\{UPDATED:)[^}]+' index.html | sort -u); do
             DATE=$(git log --follow -1 --format=%ad --date=format:'%d.%m.%Y' -- "$folder/index.html" 2>/dev/null)
             if [ -z "$DATE" ]; then DATE=$(date -u +'%d.%m.%Y'); fi

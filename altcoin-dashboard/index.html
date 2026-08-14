@@ -293,7 +293,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Krypto Pump-Signal-Scan · 14.08.2026 · <span id="versionTag" class="mono"></span></p>
+        <p class="eyebrow">Krypto Pump-Signal-Scan · {{VERSION}} · Deployed {{DEPLOY_DATE}}</p>
         <h1>Kandidaten-Dashboard</h1>
       </div>
     </header>
@@ -405,8 +405,6 @@
 </div>
 <script>
 (function(){
-  // Bumped by 1 on every dashboard content update (manual or by the daily scan routine).
-  const DASHBOARD_VERSION = 49;
 
   // Rolling news history from the daily scan routine, newest first. Each day prepends a new
   // {date, text} entry to this array — never delete or overwrite older ones (same rolling model
@@ -967,10 +965,6 @@
       coinGeckoScheduleNext();
     });
   }
-
-  // The table view toggle is pure CSS (checkbox + label) now — no JS wiring needed, it can't break.
-  const versionTag = document.getElementById("versionTag");
-  if(versionTag) versionTag.textContent = "v" + DASHBOARD_VERSION;
 
   function renderNews(){
     const list = document.getElementById("newsList");

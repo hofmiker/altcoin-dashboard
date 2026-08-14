@@ -14,6 +14,7 @@
         .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 700; }
         .btc-circle { width: 34px; height: 34px; background: var(--btc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; color: white; flex-shrink: 0; }
         .header-right { display: flex; align-items: center; gap: 1rem; }
+        .deploy-info { font-size: 0.72rem; color: var(--muted); }
         .live-badge { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--muted); }
         .live-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 2s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -56,6 +57,7 @@
 <header>
     <div class="logo"><div class="btc-circle">&#8383;</div>Bitcoin On-Chain Dashboard</div>
     <div class="header-right">
+        <div class="deploy-info">{{VERSION}} &middot; {{DEPLOY_DATE}}</div>
         <div class="live-badge"><span class="live-dot"></span><span id="update-time">L&#228;dt&#8230;</span></div>
         <button class="btn" onclick="loadAll()">&#8635; Aktualisieren</button>
     </div>

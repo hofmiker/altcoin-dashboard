@@ -416,7 +416,7 @@ footer.doc-end{
   .top-bar .back-link{ padding:6px 8px; }
   .top-bar-title{ font-size:11.5px; }
   .top-bar-meta{ gap:6px; font-size:9px; }
-  #progress-indicator{ display:none; }
+  #progress-indicator, .deploy-dot, .deploy-meta{ display:none; }
   .settings-pop{ right:10px; left:10px; width:auto; }
 }
 @media (max-width:880px){
@@ -455,6 +455,8 @@ footer.doc-end{
     <span id="page-indicator">SEITE 1 / 9</span>
     <span class="dot">&middot;</span>
     <span id="progress-indicator"><strong>0</strong> / 32 erkl&auml;rt</span>
+    <span class="dot deploy-dot">&middot;</span>
+    <span class="deploy-meta">{{VERSION}} &middot; {{DEPLOY_DATE}}</span>
   </div>
   <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
 </div>
