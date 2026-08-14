@@ -318,6 +318,7 @@
   let rangeDays = 1825;
   let logScale = true;
   let mvrvScale = true;
+  let areaGradCounter = 0;
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -707,6 +708,9 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
+    const defs = document.createElementNS(NS,"defs");
+    svg.appendChild(defs);
+
     // Only the genuine data curves - series paths and the band fills between them - live in this one
     // group, so a range or log/linear change can be animated as a single matrix transform on the group
     // instead of a hide/rebuild/show cut - see renderAllZoom(). Everything else stays outside it and
@@ -856,6 +860,48 @@
         lbl.textContent = r.label;
         svg.appendChild(lbl);
       }
+    });
+
+    // area gradient fill for series explicitly opted in via s.area (currently just BTC-Kurs) - drawn
+    // before any line strokes so the lines render on top. Uses the series' own color, fading from
+    // translucent near the line to fully transparent at the chart's bottom edge, in the same style as
+    // the reference "Bitcoin Kursverlauf" chart on the BTC on-chain dashboard. Lives in zoomG like the
+    // line itself, since it's genuine data content and should zoom the same way. Handles internal gaps
+    // (null values) as separate closed sub-shapes, same segment-detection approach as the line loop.
+    cfg.series.forEach(s=>{
+      if(!s.area) return;
+      const gradId = "areaGrad" + (++areaGradCounter);
+      const grad = document.createElementNS(NS,"linearGradient");
+      grad.setAttribute("id", gradId);
+      grad.setAttribute("x1","0"); grad.setAttribute("y1","0"); grad.setAttribute("x2","0"); grad.setAttribute("y2","1");
+      const stop1 = document.createElementNS(NS,"stop");
+      stop1.setAttribute("offset","0%"); stop1.style.setProperty("stop-color", s.color); stop1.style.setProperty("stop-opacity","0.28");
+      const stop2 = document.createElementNS(NS,"stop");
+      stop2.setAttribute("offset","100%"); stop2.style.setProperty("stop-color", s.color); stop2.style.setProperty("stop-opacity","0");
+      grad.appendChild(stop1); grad.appendChild(stop2);
+      defs.appendChild(grad);
+
+      const baseline = h - padB;
+      let d = "", segStart = -1;
+      for(let i=0;i<=n;i++){
+        const v = i<n ? s.values[i] : null;
+        const valid = v!=null && isFinite(v);
+        if(valid && segStart<0) segStart = i;
+        if((!valid || i===n) && segStart>=0){
+          const segEnd = i-1;
+          d += "M"+xOf(segStart).toFixed(1)+","+baseline.toFixed(1)+" ";
+          for(let k=segStart;k<=segEnd;k++){
+            d += "L"+xOf(k).toFixed(1)+","+yOf(s.values[k]).toFixed(1)+" ";
+          }
+          d += "L"+xOf(segEnd).toFixed(1)+","+baseline.toFixed(1)+" Z ";
+          segStart = -1;
+        }
+      }
+      const areaPath = document.createElementNS(NS,"path");
+      areaPath.setAttribute("d", d.trim());
+      areaPath.setAttribute("fill", `url(#${gradId})`);
+      areaPath.setAttribute("stroke","none");
+      zoomG.appendChild(areaPath);
     });
 
     // series lines
@@ -1038,7 +1084,7 @@
       build(view){
         const series = [
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD}
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD, area:true}
         ];
         return buildLineChart({dates:view.dates, height:chartHeight(), log:logScale, series});
       }
@@ -1115,7 +1161,7 @@
       unavailableNote:"Braucht die Coin-Metrics-Metrik NVTAdj — noch nicht bestätigt, ob sie mit den aktuellen (schlüssellosen) Zugangsdaten frei verfügbar ist.",
       build(view){
         const series = [
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"nvt", label:"NVT (Adj.)", color:"var(--c-nvt)", values:normalize(view.nvt), tooltipValues:view.nvt, width:1.4, fmt:fmtRatio}
         ];
         return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
@@ -1127,7 +1173,7 @@
       unavailableNote:"Braucht die Coin-Metrics-Metrik AdrActCnt — noch nicht bestätigt, ob sie mit den aktuellen (schlüssellosen) Zugangsdaten frei verfügbar ist.",
       build(view){
         const series = [
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeAddr", label:"Aktive Adressen", color:"var(--c-addr)", values:normalize(view.activeAddr), tooltipValues:view.activeAddr, width:1.4, fmt:fmtCount}
         ];
         return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
@@ -1139,7 +1185,7 @@
       unavailableNote:"Braucht die Coin-Metrics-Metriken ROI30d und/oder ROI1yr — noch nicht bestätigt, ob sie mit den aktuellen (schlüssellosen) Zugangsdaten frei verfügbar sind.",
       build(view){
         const series = [
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD}
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true}
         ];
         if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctRaw});
         if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctRaw});
@@ -1152,7 +1198,7 @@
       unavailableNote:"Braucht die Coin-Metrics-Metrik SplyAct1yr — noch nicht bestätigt, ob sie mit den aktuellen (schlüssellosen) Zugangsdaten frei verfügbar ist.",
       build(view){
         const series = [
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD},
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeSupply1yr", label:"Aktive Supply (1J)", color:"var(--c-actsup)", values:normalize(view.activeSupply1yr), tooltipValues:view.activeSupply1yr, width:1.4, fmt:fmtBTC}
         ];
         return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
