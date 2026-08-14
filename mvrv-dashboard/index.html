@@ -128,15 +128,15 @@
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
-  /* Crossfade the chart/stat content whenever the user changes range, scale, mode or overlay
-     selection - renderAll() toggles this class before and after rebuilding the DOM. Not applied on
-     the very first render (nothing to fade from yet), and not on resize (that goes through the
-     un-animated renderAllImmediate() so a viewport change just snaps to the new layout). Pure
-     opacity, no transform offset - a vertical nudge on top of a full-grid fade read as a jittery
-     bounce rather than a smooth adjustment. */
-  #statStrip, #heroChart, #heroReadout, #metricsHost{ transition: opacity .22s ease-in-out; }
-  #statStrip.render-fade, #heroChart.render-fade, #heroReadout.render-fade, #metricsHost.render-fade{
-    opacity:0;
+  /* Zoom transition used only for range and log/linear scale changes (renderAllZoom() toggles this
+     class before/after rebuilding) - a brief scale+fade "settle" on just the chart content itself.
+     The stat strip is deliberately excluded: it always shows FULL's latest values regardless of the
+     selected range, so it never actually changes on these triggers and shouldn't move. Every other
+     state change (mode switch, overlay selection, resize, initial load) goes through the plain,
+     un-animated renderAll() and snaps instantly - nothing moves for those. */
+  #heroChart, #heroReadout, #metricsHost{ transition: opacity .18s ease-in-out, transform .18s ease-in-out; }
+  #heroChart.chart-zoom, #heroReadout.chart-zoom, #metricsHost.chart-zoom{
+    opacity:0; transform:scale(0.97);
   }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
@@ -935,7 +935,7 @@
       if(opt.value === currentVal) btn.classList.add("active");
       btn.addEventListener("click", ()=>{
         rangeDays = opt.value === "all" ? "all" : parseInt(opt.value, 10);
-        renderAll();
+        renderAllZoom();
       });
       seg.appendChild(btn);
     });
@@ -958,7 +958,7 @@
       if(opt.value === currentVal) btn.classList.add("active");
       btn.addEventListener("click", ()=>{
         setVal(opt.value === "log");
-        renderAll();
+        renderAllZoom();
       });
       seg.appendChild(btn);
     });
@@ -1344,30 +1344,43 @@
     fitChartTypography();
   }
 
-  // Crossfades the stat strip / hero / tiles-or-overlay content on every state change (range, scale,
-  // mode, overlay selection, resize) instead of the instant DOM-replace renderAllImmediate() does on
-  // its own. Skips the fade-out on the very first render (hosts are still empty then - nothing to fade
-  // from), and uses a double rAF before removing the fade class so the browser commits the "just
-  // rebuilt but still hidden" frame first; otherwise the opacity-0 -> 1 transition can get coalesced
-  // away since it'd happen within the same paint as the DOM rebuild.
-  const RENDER_FADE_MS = 160;
-  let renderFadeTimer = null;
+  // Default entry point for every state change - just rebuilds instantly, nothing moves. Mode switch,
+  // overlay selection, resize and the initial load all use this on purpose (per explicit feedback:
+  // only range and log/linear-scale changes should animate, everything else should snap).
   function renderAll(){
-    const hosts = ["statStrip","heroChart","heroReadout","metricsHost"]
-      .map(id=> document.getElementById(id)).filter(Boolean);
+    renderAllImmediate();
+  }
+
+  // Brief zoom (scale + fade) on just the chart content, used only by the range selector and the
+  // log/linear scale toggles. The stat strip is excluded - it always shows FULL's latest values
+  // regardless of range, so it never actually changes here and shouldn't move either.
+  //
+  // Guarded with a generation counter rather than clearTimeout/rAF-id bookkeeping: every call gets its
+  // own id, and every deferred step (the setTimeout rebuild, and the double-rAF fade-in afterwards)
+  // checks it's still the most recent call before touching the DOM. A second click while the first
+  // cycle is still fading out just re-adds the same class (harmless no-op) and starts its own cycle;
+  // a second click that lands mid-rebuild/fade-in makes the first cycle's now-stale callback bail out
+  // instead of finishing its fade-in over content a newer click has already superseded - the kind of
+  // interleaving that caused the garbled/overlapping chart labels reported earlier.
+  const ZOOM_MS = 180;
+  let zoomGen = 0;
+  function renderAllZoom(){
+    const hosts = ["heroChart","heroReadout","metricsHost"].map(id=> document.getElementById(id)).filter(Boolean);
     const hasExistingContent = hosts.some(h=> h.childNodes.length>0);
-    clearTimeout(renderFadeTimer);
     if(!hasExistingContent){
       renderAllImmediate();
       return;
     }
-    hosts.forEach(h=> h.classList.add("render-fade"));
-    renderFadeTimer = setTimeout(()=>{
+    const myGen = ++zoomGen;
+    hosts.forEach(h=> h.classList.add("chart-zoom"));
+    setTimeout(()=>{
+      if(myGen !== zoomGen) return;
       renderAllImmediate();
-      requestAnimationFrame(()=> requestAnimationFrame(()=>
-        hosts.forEach(h=> h.classList.remove("render-fade"))
-      ));
-    }, RENDER_FADE_MS);
+      requestAnimationFrame(()=> requestAnimationFrame(()=>{
+        if(myGen !== zoomGen) return;
+        hosts.forEach(h=> h.classList.remove("chart-zoom"));
+      }));
+    }, ZOOM_MS);
   }
 
   // ---------- status banner ----------
