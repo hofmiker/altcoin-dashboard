@@ -130,10 +130,13 @@
 
   /* Crossfade the chart/stat content whenever the user changes range, scale, mode or overlay
      selection - renderAll() toggles this class before and after rebuilding the DOM. Not applied on
-     the very first render (nothing to fade from yet). */
-  #statStrip, #heroChart, #heroReadout, #metricsHost{ transition: opacity .16s ease, transform .16s ease; }
+     the very first render (nothing to fade from yet), and not on resize (that goes through the
+     un-animated renderAllImmediate() so a viewport change just snaps to the new layout). Pure
+     opacity, no transform offset - a vertical nudge on top of a full-grid fade read as a jittery
+     bounce rather than a smooth adjustment. */
+  #statStrip, #heroChart, #heroReadout, #metricsHost{ transition: opacity .22s ease-in-out; }
   #statStrip.render-fade, #heroChart.render-fade, #heroReadout.render-fade, #metricsHost.render-fade{
-    opacity:0; transform:translateY(4px);
+    opacity:0;
   }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
@@ -1421,11 +1424,15 @@
     attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
-    // pick up the mobile <-> desktop viewBox switch instead of leaving them at whatever size loaded first.
+    // pick up the mobile <-> desktop viewBox switch instead of leaving them at whatever size loaded
+    // first. Uses the un-animated renderAllImmediate(), not renderAll(): fading content out and back
+    // in on every resize looks wrong on its own (a viewport change should snap, not crossfade), and
+    // if the height change this triggers ever toggles a scrollbar, an animated re-render here could
+    // fire a second resize event and re-trigger itself.
     let resizeTimer = null;
     window.addEventListener("resize", ()=>{
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(()=>{ if(FULL) renderAll(); }, 200);
+      resizeTimer = setTimeout(()=>{ if(FULL) renderAllImmediate(); }, 200);
     });
   }
 
