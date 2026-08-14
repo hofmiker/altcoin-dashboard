@@ -133,8 +133,10 @@
      value domain map onto the freshly-rendered one, and applies that as a starting transform on the
      chart's .zoom-content group - so the new chart briefly LOOKS like the old one - before animating
      it to identity. That reveal animates via this transition; every other state change (mode switch,
-     overlay selection, resize, initial load) calls the plain renderAll() and nothing moves. */
-  .zoom-content{ transition: transform .38s cubic-bezier(.22,.61,.36,1); }
+     overlay selection, resize, initial load) calls the plain renderAll() and nothing moves. Duration/
+     curve must match the JS ZOOM_DURATION_MS/zoomEase constants (the axis label value-counting
+     animation is JS-driven since CSS can't animate text content, so it's kept in sync by hand). */
+  .zoom-content{ transition: transform .57s cubic-bezier(.22,.61,.36,1); }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
@@ -705,13 +707,15 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    // The plotted content - zone bands, band fills, ref/halving lines, series paths - lives in this
-    // one group, so a range or log/linear change can be animated as a single matrix transform on the
-    // group instead of a hide/rebuild/show cut - see renderAllZoom(). The axis (gridlines, tick
-    // labels) is deliberately NOT in here: its own position never actually depends on the date window
-    // or value domain (see the comments where it's built, further down), only the plotted content
-    // genuinely has something to zoom. The crosshair and hit-rect also stay outside it, positioned by
-    // JS using the final, correct coordinate system regardless of any transform on the group.
+    // Only the genuine data curves - series paths and the band fills between them - live in this one
+    // group, so a range or log/linear change can be animated as a single matrix transform on the group
+    // instead of a hide/rebuild/show cut - see renderAllZoom(). Everything else stays outside it and
+    // renders at its final position immediately: the axis (gridlines, tick labels), the background
+    // zone bands (a fixed frame marking value thresholds, not a data curve) and ref/halving lines with
+    // their text labels. None of those have a real "old position" to animate from - a zone band's or
+    // axis label's position never actually depends on the date window or value domain, and text must
+    // never be visually stretched by a scale transform, only the plotted line/fill content should be.
+    // The crosshair and hit-rect also stay outside it, positioned by JS in the final coordinate system.
     const zoomG = document.createElementNS(NS,"g");
     zoomG.setAttribute("class","zoom-content");
     svg.appendChild(zoomG);
@@ -749,7 +753,9 @@
     }
     function xOf(i){ return n<=1 ? padL : padL + (i/(n-1))*(w-padL-padR); }
 
-    // background zone bands
+    // background zone bands - the chart's fixed "frame", appended to svg directly (not zoomG) for the
+    // same reason as the axis: these mark fixed value thresholds across the chart's full fixed width,
+    // not a data curve, so they must never visibly scale/shift during a zoom.
     (cfg.zoneBands||[]).forEach(z=>{
       const top = z.to===Infinity ? max : z.to;
       const bot = z.from===-Infinity ? min : z.from;
@@ -759,7 +765,7 @@
       rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
       rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
       rect.setAttribute("fill", z.color);
-      zoomG.appendChild(rect);
+      svg.appendChild(rect);
     });
 
     // gridlines + y labels - deliberately appended directly to the svg, NOT into zoomG: their
@@ -771,9 +777,7 @@
     const axisFmt = cfg.axisFmt || (cfg.series[0] && cfg.series[0].fmt) || fmtCompact;
     for(let i=0;i<=ticks;i++){
       const frac = i/ticks;
-      let val;
-      if(cfg.log){ const lmin=Math.log(min), lmax=Math.log(max); val = Math.exp(lmin+(1-frac)*(lmax-lmin)); }
-      else { val = min + (1-frac)*(max-min); }
+      const val = valueAtFraction({min,max,log:!!cfg.log}, frac);
       const y = padT + frac*(h-padT-padB);
       const gl = document.createElementNS(NS,"line");
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
@@ -781,6 +785,7 @@
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label");
+      lbl.dataset.frac = frac;
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = axisFmt(val);
@@ -809,7 +814,10 @@
     });
 
     // vertical date markers (e.g. halvings) - dashed vertical line + short label at the nearest
-    // available data point; silently skipped if the date falls outside the currently visible range
+    // available data point; silently skipped if the date falls outside the currently visible range.
+    // Appended to svg, not zoomG: text must never be visually scaled/stretched by the zoom transform
+    // (only the plotted line/band content should stretch), so both the line and its label render at
+    // their final position immediately rather than participating in the animation.
     (cfg.vLines||[]).forEach(v=>{
       if(v.date < cfg.dates[0] || v.date > cfg.dates[n-1]) return;
       const idx = cfg.dates.findIndex(d=> d >= v.date);
@@ -819,18 +827,19 @@
       line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke", v.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","3 3"); line.setAttribute("vector-effect","non-scaling-stroke");
-      zoomG.appendChild(line);
+      svg.appendChild(line);
       if(v.label){
         const lbl = document.createElementNS(NS,"text");
         lbl.setAttribute("class","refline-label");
         lbl.setAttribute("x",x+4); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", v.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = v.label;
-        zoomG.appendChild(lbl);
+        svg.appendChild(lbl);
       }
     });
 
-    // reference lines
+    // reference lines - same reasoning as the halving markers above: appended to svg, not zoomG, so
+    // the line and its text ("MVRV = 1" etc.) never get stretched, only the plotted content does.
     (cfg.refLines||[]).forEach(r=>{
       const y = yOf(r.value);
       if(y==null) return;
@@ -838,14 +847,14 @@
       line.setAttribute("x1",padL); line.setAttribute("x2",w-padR); line.setAttribute("y1",y); line.setAttribute("y2",y);
       line.setAttribute("stroke", r.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","4 3"); line.setAttribute("vector-effect","non-scaling-stroke");
-      zoomG.appendChild(line);
+      svg.appendChild(line);
       if(r.label){
         const lbl = document.createElementNS(NS,"text");
         lbl.setAttribute("class","refline-label");
         lbl.setAttribute("x",w-padR); lbl.setAttribute("y",y-4); lbl.setAttribute("text-anchor","end");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", r.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = r.label;
-        zoomG.appendChild(lbl);
+        svg.appendChild(lbl);
       }
     });
 
@@ -926,8 +935,10 @@
     hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; renderAt(n-1, true); });
 
     // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
-    // chart's zoom-content group start out looking like the previous render, then animate to identity.
-    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w}};
+    // chart's zoom-content group start out looking like the previous render, then animate to identity -
+    // and, via axisFmt, to smoothly count the y-axis tick labels from their old value to their new one
+    // (the labels' fixed screen position never moves; only the number they display does).
+    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt}};
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -1381,6 +1392,64 @@
     chartDomains[key] = built.domain;
   }
 
+  // The value a fixed axis-tick fraction (0 = top, 1 = bottom) represents under a given domain - the
+  // same formula used to build each gridline's label, factored out so the zoom-label-counting animation
+  // below can also evaluate it for arbitrary (old, new, interpolated-in-between) domains.
+  function valueAtFraction(domain, frac){
+    if(domain.log){
+      const lmin = Math.log(domain.min), lmax = Math.log(domain.max);
+      return Math.exp(lmin + (1-frac)*(lmax-lmin));
+    }
+    return domain.min + (1-frac)*(domain.max-domain.min);
+  }
+
+  // Cubic-bezier progress evaluator (Newton-Raphson on the parametric x(t) to find t for a given x,
+  // then reads y(t)) so the JS-driven axis-label counting below can track the same easing curve as the
+  // CSS `transform` transition - otherwise the label's displayed number and the line's on-screen
+  // position would visibly drift out of sync during the animation.
+  function cubicBezier(p1x,p1y,p2x,p2y){
+    const xAt = t=>{ const mt=1-t; return 3*mt*mt*t*p1x + 3*mt*t*t*p2x + t*t*t; };
+    const yAt = t=>{ const mt=1-t; return 3*mt*mt*t*p1y + 3*mt*t*t*p2y + t*t*t; };
+    const dxAt = t=> 3*(1-t)*(1-t)*p1x + 6*(1-t)*t*(p2x-p1x) + 3*t*t*(1-p2x);
+    return function(x){
+      let t = x;
+      for(let i=0;i<8;i++){
+        const d = dxAt(t);
+        if(Math.abs(d) < 1e-6) break;
+        t -= (xAt(t)-x)/d;
+        t = Math.max(0, Math.min(1, t));
+      }
+      return yAt(t);
+    };
+  }
+  // Kept in sync with .zoom-content's CSS transition (duration + curve) - see the stylesheet comment.
+  const ZOOM_DURATION_MS = 570;
+  const zoomEase = cubicBezier(0.22, 0.61, 0.36, 1);
+
+  // The axis's screen position never moves (see buildLineChart's comments on the gridline loop), but
+  // per explicit request the VALUE each fixed-position y-axis label shows should still count smoothly
+  // from its old reading to its new one rather than snapping - a CSS transition can't animate text
+  // content, so this drives it with its own rAF loop, timed and eased to match the geometric zoom.
+  function animateAxisLabelValues(wrap, oldDomain, newDomain){
+    if(!oldDomain || !newDomain) return;
+    const labels = wrap.querySelectorAll(".axis-label[data-frac]");
+    if(!labels.length) return;
+    const fmt = newDomain.axisFmt;
+    const start = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      labels.forEach(lbl=>{
+        const frac = parseFloat(lbl.dataset.frac);
+        const oldVal = valueAtFraction(oldDomain, frac);
+        const newVal = valueAtFraction(newDomain, frac);
+        lbl.textContent = fmt(oldVal + eased*(newVal-oldVal));
+      });
+      if(raw < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
   // Solves for the 2D affine transform (scaleX/translateX for the date window, scaleY/translateY for
   // the value domain) that makes newDomain's zoom-content group visually match how oldDomain looked,
   // given both share the same viewBox width/height and padding. Applied as the group's *starting*
@@ -1464,6 +1533,7 @@
         group.style.transition = "";
         group.style.transform = "";
       }));
+      animateAxisLabelValues(wrap, oldDomain, newDomain);
     });
   }
 
