@@ -705,11 +705,13 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    // Everything whose position depends on the date window or value domain (zone bands, gridlines,
-    // axis labels, ref/halving lines, series paths) lives in this one group, so a range or log/linear
-    // change can be animated as a single matrix transform on the group instead of a hide/rebuild/show
-    // cut - see renderAllZoom(). The crosshair and hit-rect stay outside it: they're positioned by
-    // JS using the final, correct coordinate system regardless of any visual transform on the group.
+    // The plotted content - zone bands, band fills, ref/halving lines, series paths - lives in this
+    // one group, so a range or log/linear change can be animated as a single matrix transform on the
+    // group instead of a hide/rebuild/show cut - see renderAllZoom(). The axis (gridlines, tick
+    // labels) is deliberately NOT in here: its own position never actually depends on the date window
+    // or value domain (see the comments where it's built, further down), only the plotted content
+    // genuinely has something to zoom. The crosshair and hit-rect also stay outside it, positioned by
+    // JS using the final, correct coordinate system regardless of any transform on the group.
     const zoomG = document.createElementNS(NS,"g");
     zoomG.setAttribute("class","zoom-content");
     svg.appendChild(zoomG);
@@ -760,7 +762,11 @@
       zoomG.appendChild(rect);
     });
 
-    // gridlines + y labels
+    // gridlines + y labels - deliberately appended directly to the svg, NOT into zoomG: their
+    // positions (padL / w-padR / the 5 evenly-spaced heights) never depend on n, min or max, only on
+    // the fixed pad constants - the axis itself never moves, only which value each fixed gridline
+    // height/tick label shows. Putting them in the transformed group made them appear to slide during
+    // a zoom even though their real geometry never changes; only the plot content genuinely zooms.
     const ticks = 5;
     const axisFmt = cfg.axisFmt || (cfg.series[0] && cfg.series[0].fmt) || fmtCompact;
     for(let i=0;i<=ticks;i++){
@@ -772,13 +778,13 @@
       const gl = document.createElementNS(NS,"line");
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
-      zoomG.appendChild(gl);
+      svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label");
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = axisFmt(val);
-      zoomG.appendChild(lbl);
+      svg.appendChild(lbl);
     }
 
     // band fills (between two named series)
@@ -863,7 +869,9 @@
     });
 
     // x-axis date labels (fewer ticks on narrow screens - the larger legible font size from
-    // fitChartTypography() would otherwise collide at 6 labels crammed into a ~350px-wide mobile card)
+    // fitChartTypography() would otherwise collide at 6 labels crammed into a ~350px-wide mobile card).
+    // Appended directly to svg, not zoomG, for the same reason as the y-axis above - the axis shows
+    // whatever dates the new view covers immediately, it doesn't slide there.
     const mobileTicks = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
     const xTicks = Math.min(mobileTicks ? 4 : 6, n);
     for(let k=0;k<xTicks;k++){
@@ -875,7 +883,7 @@
       lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = cfg.dates[i].slice(0,7);
-      zoomG.appendChild(lbl);
+      svg.appendChild(lbl);
     }
 
     // crosshair
