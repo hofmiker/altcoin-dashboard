@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -66,7 +66,10 @@
   .page{
     background:var(--bg); color:var(--ink); min-height:100%;
     font-family:var(--font-body);
-    padding:28px 20px 60px;
+    /* Plain padding on 3 sides, plus whatever the device's own notch/status-bar/home-indicator reserves
+       (0 on any normal browser tab - env() only resolves to something nonzero in a fullscreen/notched
+       context such as an installed PWA or an in-app webview), so content never renders underneath it. */
+    padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
   .mono{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
@@ -124,8 +127,15 @@
     display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.05em;
     text-transform:uppercase; color:var(--accent); align-self:flex-start;
   }
-  .narrative-text{font-size:15px; line-height:1.55; color:var(--ink); margin:0;}
+  .narrative-body{display:flex; align-items:center; gap:14px;}
+  .narrative-text{font-size:15px; line-height:1.55; color:var(--ink); margin:0; flex:1 1 auto;}
   .narrative-text b{font-family:var(--font-display);}
+  .narrative-chart{flex:0 0 auto; width:100px; height:32px;}
+  .narrative-chart svg{display:block; width:100%; height:100%; overflow:visible;}
+  @media (max-width:640px){
+    .narrative-body{flex-direction:column; align-items:stretch; gap:8px;}
+    .narrative-chart{width:100%; height:36px;}
+  }
 
   .strip.gauges{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
   .gauge-card{
@@ -313,7 +323,10 @@
 
     <section class="narrative-card" id="narrativeCard" style="display:none;">
       <div class="narrative-badge">✨ KI-generierte Einschätzung<span id="narrativeInfo"></span></div>
-      <p class="narrative-text" id="narrativeText"></p>
+      <div class="narrative-body">
+        <p class="narrative-text" id="narrativeText"></p>
+        <div class="narrative-chart" id="narrativeChart"></div>
+      </div>
     </section>
 
     <section class="strip gauges" id="gaugeStrip"></section>
@@ -380,13 +393,71 @@
   const CACHE_KEY = "mvrvDashboard_cache_v1";
   const CACHE_TTL = 6 * 60 * 60 * 1000;
 
-  // Historical Bitcoin block-reward halvings (real dates, fixed - not derived from any API).
+  // Historical Bitcoin block-reward halvings (real dates, fixed - not derived from any API) - each one
+  // starts a new ~4-year "Zyklus" (cycle), the label shown on the chart marker itself.
   const HALVING_DATES = [
-    {date:"2012-11-28", label:"Halving"},
-    {date:"2016-07-09", label:"Halving"},
-    {date:"2020-05-11", label:"Halving"},
-    {date:"2024-04-20", label:"Halving"}
+    {date:"2012-11-28", label:"Zyklus"},
+    {date:"2016-07-09", label:"Zyklus"},
+    {date:"2020-05-11", label:"Zyklus"},
+    {date:"2024-04-20", label:"Zyklus"}
   ];
+
+  // The date ranges between consecutive halvings (plus the pre-first-halving and current-ongoing
+  // cycles) - used to find each cycle's own high/low point (see cycleExtremes below). Depends only on
+  // FULL.dates' span, not on any chart's own current view, so it's computed once and cached.
+  let cycleBoundariesCache = null;
+  function cycleBoundaries(){
+    if(cycleBoundariesCache) return cycleBoundariesCache;
+    if(!FULL || !FULL.dates || !FULL.dates.length) return [];
+    const bounds = [FULL.dates[0], ...HALVING_DATES.map(h=>h.date), FULL.dates[FULL.dates.length-1]];
+    const cycles = [];
+    for(let i=0;i<bounds.length-1;i++){
+      if(bounds[i] < bounds[i+1]) cycles.push({from:bounds[i], to:bounds[i+1]});
+    }
+    cycleBoundariesCache = cycles;
+    return cycles;
+  }
+  // For each cycle, the date+value of that metric's own highest and lowest point within it - always
+  // computed against the FULL history (not whatever's currently zoomed in on), so the same real
+  // extremes are found regardless of range; the caller (buildLineChart) is responsible for only
+  // drawing whichever of these actually fall within the currently visible window.
+  function cycleExtremes(values){
+    const dates = FULL.dates;
+    const out = [];
+    cycleBoundaries().forEach(c=>{
+      let hiIdx=-1, loIdx=-1, hiV=-Infinity, loV=Infinity;
+      for(let i=0;i<dates.length;i++){
+        const dt = dates[i];
+        if(dt<c.from || dt>c.to) continue;
+        const v = values[i];
+        if(v==null || !isFinite(v)) continue;
+        if(v>hiV){ hiV=v; hiIdx=i; }
+        if(v<loV){ loV=v; loIdx=i; }
+      }
+      if(hiIdx>=0) out.push({date:dates[hiIdx], value:hiV, dir:1});
+      if(loIdx>=0 && loIdx!==hiIdx) out.push({date:dates[loIdx], value:loV, dir:-1});
+    });
+    return out;
+  }
+  // A small flag on a short pole, drawn in coordinates local to its own data point (origin at the
+  // point itself) so positioning it - initially, or live during a zoom animation - is just setting the
+  // enclosing <g>'s transform. dir=1 (cycle high) points the pole up with the pennant near its tip,
+  // like a flag planted on a peak; dir=-1 (cycle low) mirrors the whole thing downward, like a flag
+  // marking the bottom of a valley.
+  function buildFlagMarker(dir, color){
+    const g = document.createElementNS(NS,"g");
+    const poleLen = 13;
+    const poleEndY = -dir*poleLen;
+    const pole = document.createElementNS(NS,"line");
+    pole.setAttribute("x1","0"); pole.setAttribute("y1","0"); pole.setAttribute("x2","0"); pole.setAttribute("y2",poleEndY);
+    pole.setAttribute("stroke",color); pole.setAttribute("stroke-width","1.6"); pole.setAttribute("vector-effect","non-scaling-stroke");
+    g.appendChild(pole);
+    const pennant = document.createElementNS(NS,"path");
+    pennant.setAttribute("d", `M0,${poleEndY} L8,${poleEndY+dir*3} L0,${poleEndY+dir*6} Z`);
+    pennant.setAttribute("fill", color);
+    g.appendChild(pennant);
+    return g;
+  }
 
   let FULL = null;
   let mode = "tiles";
@@ -1127,8 +1198,15 @@
     (cfg.zoneBands||[]).forEach(z=>{
       const top = z.to===Infinity ? max : z.to;
       const bot = z.from===-Infinity ? min : z.from;
-      const yTop = yOf(Math.min(top,max)), yBot = yOf(Math.max(bot,min));
+      let yTop = yOf(Math.min(top,max)), yBot = yOf(Math.max(bot,min));
       if(yTop==null||yBot==null) return;
+      // Clamp to the plot's own drawn frame. A fixed-threshold zone (e.g. NUPL's "Euphorie" band starts
+      // at a literal value of 0.75) can lie outside the currently zoomed view's own min/max whenever that
+      // view's real data never reaches it - yOf() then extrapolates past padT/h-padB. These rects sit
+      // outside the clipped zoomG (see comment above), so without clamping here they'd bleed straight
+      // through the chart's own frame into whatever sits above/below the card.
+      yTop = Math.max(padT, Math.min(h-padB, yTop));
+      yBot = Math.max(padT, Math.min(h-padB, yBot));
       const rect = document.createElementNS(NS,"rect");
       rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
       rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
@@ -1218,21 +1296,46 @@
       line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke", v.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","3 3"); line.setAttribute("vector-effect","non-scaling-stroke");
-      // Identifies this marker across a rebuild (see renderAllZoom's animateVLines) so its line/label
-      // can slide from where it sat before the zoom to its new position instead of jump-cutting there,
-      // the same way the plotted data content itself animates.
+      // Identifies this marker across a rebuild (see renderAllZoom's collectVLineSyncTargets) so its
+      // x position can be kept in exact lockstep with the animating data during a zoom, instead of
+      // jump-cutting straight to its new spot.
       line.dataset.vlineDate = v.date;
       svg.appendChild(line);
       if(v.label){
         const lbl = document.createElementNS(NS,"text");
         lbl.setAttribute("class","refline-label");
-        lbl.setAttribute("x",x+4); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
+        lbl.setAttribute("x",x+9); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", v.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = v.label;
         lbl.dataset.vlineDate = v.date;
         svg.appendChild(lbl);
       }
     });
+
+    // Zyklus-Hoch/-Tief flags: for each cycle (the period between one halving and the next, plus the
+    // pre-first-halving and current-ongoing cycles), a small flag at that cycle's own high and low
+    // point of whichever metric cfg.cycleFlagsKey names - computed once against the FULL history (not
+    // just the current view) so the same real high/low is found regardless of zoom level, then simply
+    // not drawn if its date falls outside what's currently visible. Tied to the same showHalvings
+    // toggle as the halving lines themselves - both are "Zyklus" markers.
+    if(showHalvings && cfg.cycleFlagsKey && FULL && FULL[cfg.cycleFlagsKey]){
+      cycleExtremes(FULL[cfg.cycleFlagsKey]).forEach(pt=>{
+        if(pt.date < cfg.dates[0] || pt.date > cfg.dates[n-1]) return;
+        const idx = cfg.dates.indexOf(pt.date);
+        if(idx<0) return;
+        const x = xOf(idx), y = yOf(pt.value);
+        if(y==null) return;
+        const color = pt.dir>0 ? "var(--critical)" : "var(--good)";
+        const g = buildFlagMarker(pt.dir, color);
+        g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+        g.dataset.flagDate = pt.date; g.dataset.flagValue = pt.value;
+        g.style.pointerEvents = "none";
+        const title = document.createElementNS(NS,"title");
+        title.textContent = `${pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief"}: ${(cfg.series[0]&&cfg.series[0].fmt||fmtCompact)(pt.value)} am ${pt.date}`;
+        g.appendChild(title);
+        svg.appendChild(g);
+      });
+    }
 
     // reference lines - same reasoning as the halving markers above: appended to svg, not zoomG, so
     // the line and its text ("MVRV = 1" etc.) never get stretched, only the plotted content does.
@@ -1555,14 +1658,15 @@
       renderAllZoom();
     });
     group.appendChild(jumpBtn);
-    // Halving markers, on by default - shared across every chart (like rangeDays/panOffsetDays), so
-    // toggling it anywhere applies everywhere at once. A visibility change, not a domain change, so it
-    // snaps (renderAll) rather than animating like a range/scale change would.
+    // Zyklus markers (halving dates, and each cycle's own high/low - see cfg.vLines), on by default -
+    // shared across every chart (like rangeDays/panOffsetDays), so toggling it anywhere applies
+    // everywhere at once. A visibility change, not a domain change, so it snaps (renderAll) rather than
+    // animating like a range/scale change would.
     const halvingBtn = document.createElement("button");
     halvingBtn.type = "button";
     halvingBtn.className = "halving-toggle-btn" + (showHalvings ? " active" : "");
-    halvingBtn.title = "Halving-Linien ein-/ausblenden";
-    halvingBtn.textContent = "Halvings";
+    halvingBtn.title = "Zyklus-Markierungen (Halvings, Hochs/Tiefs je Zyklus) ein-/ausblenden";
+    halvingBtn.textContent = "Zyklen";
     halvingBtn.addEventListener("click", ()=>{
       showHalvings = !showHalvings;
       renderAll();
@@ -1818,6 +1922,55 @@
     const [y,m] = dateStr.split("-").map(Number);
     return `Q${Math.ceil(m/3)} ${y}`;
   }
+  // Small SVG sparkline of the full MVRV-Perzentil history, underlining the narrative's "pattern"
+  // claim visually: a filled dot at today's value, and (if a genuine prior match was found) an
+  // outlined dot at that historical date. matchIdx may be -1 (no prior occurrence).
+  function buildNarrativeSparkline(matchIdx){
+    const dates = FULL.dates, arr = FULL.mvrvPercentile;
+    const n = dates.length;
+    let last = -1;
+    for(let i=n-1;i>=0;i--){ if(arr[i]!=null && isFinite(arr[i])){ last=i; break; } }
+    if(last<0) return null;
+    const w = 100, h = 32, padY = 4;
+    const xOf = i => n<=1 ? w/2 : (i/(n-1))*w;
+    const yOf = v => padY + (1-(Math.max(0,Math.min(100,v))/100))*(h-padY*2);
+    let d = "";
+    for(let i=0;i<n;i++){
+      const v = arr[i];
+      if(v==null || !isFinite(v)) continue;
+      d += (d?"L":"M") + xOf(i).toFixed(2) + "," + yOf(v).toFixed(2) + " ";
+    }
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    const path = document.createElementNS(NS,"path");
+    path.setAttribute("d", d.trim());
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke","var(--accent)");
+    path.setAttribute("stroke-width","1.4");
+    path.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(path);
+
+    if(matchIdx!=null && matchIdx>=0 && arr[matchIdx]!=null && isFinite(arr[matchIdx])){
+      const dot = document.createElementNS(NS,"circle");
+      dot.setAttribute("cx", xOf(matchIdx).toFixed(2)); dot.setAttribute("cy", yOf(arr[matchIdx]).toFixed(2));
+      dot.setAttribute("r","2.4"); dot.setAttribute("fill","var(--card)");
+      dot.setAttribute("stroke","var(--accent)"); dot.setAttribute("stroke-width","1.2");
+      dot.setAttribute("vector-effect","non-scaling-stroke");
+      const title = document.createElementNS(NS,"title");
+      title.textContent = `Damals: ${toQuarterLabel(dates[matchIdx])}`;
+      dot.appendChild(title);
+      svg.appendChild(dot);
+    }
+    const todayDot = document.createElementNS(NS,"circle");
+    todayDot.setAttribute("cx", xOf(last).toFixed(2)); todayDot.setAttribute("cy", yOf(arr[last]).toFixed(2));
+    todayDot.setAttribute("r","2.6"); todayDot.setAttribute("fill","var(--accent)");
+    const title2 = document.createElementNS(NS,"title");
+    title2.textContent = "Aktuell";
+    todayDot.appendChild(title2);
+    svg.appendChild(todayDot);
+    return svg;
+  }
   // One plain-language sentence synthesizing where the two headline on-chain indicators (plus Fear &
   // Greed, if available) currently stand, plus - genuinely computed from the historical data, not
   // invented - the most recent earlier date where the same MVRV-Perzentil/NUPL zone combination
@@ -1831,15 +1984,21 @@
     if(mv==null || !nz || nz.label==="–"){ host.style.display = "none"; return; }
     host.style.display = "";
 
-    let matchDate = null;
     const dates = FULL.dates, mvrvArr = FULL.mvrvPercentile, nuplArr = FULL.nupl;
-    // Skip the most recent ~month - "this pattern also held a week ago" isn't an interesting claim,
-    // it's just yesterday not having changed yet.
-    for(let i=dates.length-31; i>=0; i--){
-      if(mvrvPercentileZoneLabel(mvrvArr[i])===mv && nuplZone(nuplArr[i]).label===nz.label){ matchDate = dates[i]; break; }
+    const matches = i => mvrvPercentileZoneLabel(mvrvArr[i])===mv && nuplZone(nuplArr[i]).label===nz.label;
+    // Walk back to the actual current data point (skipping any trailing nulls), then walk back through
+    // the ENTIRE current continuous streak of this zone combination - however long it's been running -
+    // before searching for a genuinely distinct prior occurrence. A fixed short skip window would wrongly
+    // "match" a date still inside the current streak once that streak runs longer than the window.
+    let i = dates.length-1;
+    while(i>=0 && !matches(i)) i--;
+    while(i>=0 && matches(i)) i--;
+    let matchIdx = -1;
+    for(; i>=0; i--){
+      if(matches(i)){ matchIdx = i; break; }
     }
-    const historyPart = matchDate
-      ? `ein Muster, das zuletzt in ${toQuarterLabel(matchDate)} auftrat`
+    const historyPart = matchIdx>=0
+      ? `ein Muster, das zuletzt in ${toQuarterLabel(dates[matchIdx])} auftrat`
       : `eine Kombination, die es in den erfassten Daten bislang so noch nicht gab`;
 
     let fgPart = "";
@@ -1850,6 +2009,11 @@
 
     document.getElementById("narrativeText").innerHTML =
       `MVRV-Perzentil steht aktuell auf <b>„${mv}“</b>, NUPL auf <b>„${nz.label}“</b>${fgPart} — ${historyPart}.`;
+
+    const chartHost = document.getElementById("narrativeChart");
+    chartHost.innerHTML = "";
+    const spark = buildNarrativeSparkline(matchIdx);
+    if(spark) chartHost.appendChild(spark);
   }
 
   // ---------- rendering ----------
@@ -1896,7 +2060,7 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx});
+    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -2165,7 +2329,7 @@
   // `transition:none !important` globally (see stylesheet), which silently turns a CSS-transition-
   // based change into an instant snap - the same reason morphLogLinear above drives its own loop
   // rather than touching a CSS transition.
-  function animateMatrix(group, from, to, myGen, onDone){
+  function animateMatrix(group, from, to, myGen, onDone, onFrame){
     group.style.transition = "none";
     const start = performance.now();
     function frame(now){
@@ -2177,6 +2341,7 @@
       const e = from.e + (to.e-from.e)*eased;
       const f = from.f + (to.f-from.f)*eased;
       group.style.transform = `matrix(${a},0,0,${d},${e},${f})`;
+      if(onFrame) onFrame(a,d,e,f);
       if(raw < 1) requestAnimationFrame(frame);
       else if(onDone) onDone();
     }
@@ -2207,34 +2372,71 @@
     requestAnimationFrame(frame);
   }
 
-  // Halving markers live outside zoomG (see buildLineChart's vLines loop) specifically so their text
-  // label is never visually stretched by the geometric zoom transform - but per explicit request they
-  // shouldn't just cut to their new position either, they should slide there in step with the data.
-  // Matches each new marker to its pre-rebuild counterpart by date (data-vline-date), then tweens just
-  // the x position - line and label together, label staying glued to the line - over the same
-  // timing/easing as everything else. A marker with no old counterpart (wasn't visible before this
-  // zoom) or whose x hasn't actually changed is left alone; it was already drawn at the right spot.
-  function animateVLines(wrap, oldSvg, myGen){
-    if(!oldSvg) return;
-    const oldX = {};
-    oldSvg.querySelectorAll("line[data-vline-date]").forEach(l=>{ oldX[l.dataset.vlineDate] = parseFloat(l.getAttribute("x1")); });
-    wrap.querySelectorAll("line[data-vline-date]").forEach(newLine=>{
-      const date = newLine.dataset.vlineDate;
-      if(!(date in oldX)) return;
-      const fromX = oldX[date], toX = parseFloat(newLine.getAttribute("x1"));
-      if(fromX === toX) return;
-      const newLabel = wrap.querySelector(`text[data-vline-date="${date}"]`);
-      const start = performance.now();
-      function frame(now){
-        if(myGen !== zoomGen) return;
-        const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
-        const eased = zoomEase(raw);
-        const x = fromX + (toX-fromX)*eased;
-        newLine.setAttribute("x1", x.toFixed(1)); newLine.setAttribute("x2", x.toFixed(1));
-        if(newLabel) newLabel.setAttribute("x", (x+4).toFixed(1));
-        if(raw < 1) requestAnimationFrame(frame);
-      }
-      requestAnimationFrame(frame);
+  // Halving/cycle markers live outside zoomG (see buildLineChart's vLines loop) specifically so their
+  // text label is never visually stretched by the geometric zoom transform - but their x position must
+  // still track the exact same transform the actual data content receives, every frame, not a
+  // separately-tweened approximation. An earlier version tried exactly that (tween fromX->toX matched
+  // by date), which silently left brand-new markers - ones only entering the visible window *because*
+  // of this zoom, so there's no "old position" to tween from - sitting completely still while
+  // everything else animated in around them; the same for the odd frame where two independent tweens
+  // (marker vs. geometry) drifted out of step. Fixed by feeding each marker's own raw x (computed once
+  // up front, under whichever domain the geometry transform's *input* coordinates actually live in -
+  // see the two call sites in renderAllZoom) through the exact same per-frame (a, e) the geometry
+  // itself is being driven by (animateMatrix's onFrame) - so a marker's screen position is *derived*
+  // from the live transform every frame, not a second animation merely trying to match it.
+  function domainXOf(domain, absIdx){
+    if(!domain || domain.n<=1) return domain ? domain.padL : 0;
+    const i = absIdx - domain.startIdx;
+    return domain.padL + (i/(domain.n-1))*(domain.w-domain.padL-domain.padR);
+  }
+  // Same idea as domainXOf but for a value's pixel row, mirroring buildLineChart's own internal yOf -
+  // needed for the cycle-high/low flags (see below), which mark a specific (date, value) point rather
+  // than spanning the chart's full height like the halving lines do.
+  function domainYOf(domain, value){
+    if(!domain || value==null || !isFinite(value)) return null;
+    const {h, padT, padB, min, max, log} = domain;
+    if(max<=min) return null;
+    if(log){
+      const lv = Math.log(Math.max(value,1e-9)), lmin = Math.log(Math.max(min,1e-9)), lmax = Math.log(Math.max(max,1e-9));
+      if(lmax<=lmin) return null;
+      return padT + (1-(lv-lmin)/(lmax-lmin))*(h-padT-padB);
+    }
+    return padT + (1-(value-min)/(max-min))*(h-padT-padB);
+  }
+  function collectVLineSyncTargets(wrap, rawDomain){
+    const targets = [];
+    wrap.querySelectorAll("line[data-vline-date]").forEach(line=>{
+      const absIdx = FULL.dates.indexOf(line.dataset.vlineDate);
+      if(absIdx < 0) return;
+      const label = wrap.querySelector(`text[data-vline-date="${line.dataset.vlineDate}"]`);
+      targets.push({line, label, rawX: domainXOf(rawDomain, absIdx)});
+    });
+    return targets;
+  }
+  function applyVLineSync(targets, a, e){
+    targets.forEach(t=>{
+      const x = t.rawX*a + e;
+      t.line.setAttribute("x1", x.toFixed(1)); t.line.setAttribute("x2", x.toFixed(1));
+      if(t.label) t.label.setAttribute("x", (x+9).toFixed(1));
+    });
+  }
+  // Cycle-high/low flags (see buildLineChart) mark a specific point, so unlike the halving lines they
+  // need their full (x,y) tracked through the transform, not just x.
+  function collectFlagSyncTargets(wrap, rawDomain){
+    const targets = [];
+    wrap.querySelectorAll("g[data-flag-date]").forEach(g=>{
+      const absIdx = FULL.dates.indexOf(g.dataset.flagDate);
+      if(absIdx < 0) return;
+      const rawY = domainYOf(rawDomain, parseFloat(g.dataset.flagValue));
+      if(rawY==null) return;
+      targets.push({g, rawX: domainXOf(rawDomain, absIdx), rawY});
+    });
+    return targets;
+  }
+  function applyFlagSync(targets, a, d, e, f){
+    targets.forEach(t=>{
+      const x = t.rawX*a + e, y = t.rawY*d + f;
+      t.g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
     });
   }
 
@@ -2311,7 +2513,7 @@
   // computeZoomMatrix(oldDomain, newDomain) to make new-built content look like old. Calling it as
   // computeZoomMatrix(newDomain, oldDomain) instead - same function, arguments swapped - makes
   // old-built content look like new: exactly the end state this animation needs.
-  function animateZoomInWithOldContent(oldSvgClone, newGroup, oldDomain, newDomain, myGen){
+  function animateZoomInWithOldContent(oldSvgClone, newGroup, oldDomain, newDomain, myGen, onFrame){
     const oldGroupSrc = oldSvgClone.querySelector(".zoom-content");
     if(!oldGroupSrc) return false;
     const newSvg = newGroup.closest("svg");
@@ -2347,7 +2549,7 @@
     animateMatrix(oldGroup, identity, endMatrix, myGen, ()=>{
       oldGroup.remove();
       newGroup.style.opacity = "";
-    });
+    }, onFrame);
     return true;
   }
 
@@ -2452,22 +2654,33 @@
       const isScaleOnlyChange = oldDomain.n === newDomain.n && !!oldDomain.log !== !!newDomain.log;
       if(isScaleOnlyChange && oldSvgClones[key] && morphLogLinear(oldSvgClones[key], group, myGen)){
         animateAxisLabelValues(wrap, oldDomain, newDomain);
-        animateVLines(wrap, oldSvgClones[key], myGen);
+        // Same date range/point count on both sides of a pure scale-type toggle, so every marker's x
+        // is already identical before and after - nothing to sync.
         return;
       }
 
-      if(newDomain.n < oldDomain.n && oldSvgClones[key] &&
-         animateZoomInWithOldContent(oldSvgClones[key], group, oldDomain, newDomain, myGen)){
-        animateAxisLabelValues(wrap, oldDomain, newDomain);
-        animateVLines(wrap, oldSvgClones[key], myGen);
-        return;
+      if(newDomain.n < oldDomain.n && oldSvgClones[key]){
+        // Zoom-in animates the OLD content (still in its own, old-domain raw coordinates) forward via
+        // endMatrix - so markers must be positioned in that SAME raw space for the per-frame (a,e) to
+        // apply to them correctly.
+        const vlineTargets = collectVLineSyncTargets(wrap, oldDomain);
+        const flagTargets = collectFlagSyncTargets(wrap, oldDomain);
+        if(animateZoomInWithOldContent(oldSvgClones[key], group, oldDomain, newDomain, myGen,
+             (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); })){
+          animateAxisLabelValues(wrap, oldDomain, newDomain);
+          return;
+        }
       }
 
+      // Generic fallback animates the NEW (freshly-built) content, in its own new-domain raw
+      // coordinates, backward from m to identity - so markers use new-domain raw space here instead.
       const m = computeZoomMatrix(oldDomain, newDomain);
       const identity = {a:1, d:1, e:0, f:0};
-      animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; });
+      const vlineTargets = collectVLineSyncTargets(wrap, newDomain);
+      const flagTargets = collectFlagSyncTargets(wrap, newDomain);
+      animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; },
+        (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); });
       animateAxisLabelValues(wrap, oldDomain, newDomain);
-      animateVLines(wrap, oldSvgClones[key], myGen);
     });
   }
 
@@ -2524,7 +2737,7 @@
     });
     attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
-    attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung.", {alignRight:true});
+    attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung. Der kleine Chart zeigt den MVRV-Perzentil-Verlauf mit dem aktuellen Stand sowie, falls vorhanden, dem historischen Vergleichszeitpunkt.", {alignRight:true});
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
     // pick up the mobile <-> desktop viewBox switch instead of leaving them at whatever size loaded
     // first. Uses the un-animated renderAllImmediate(), not renderAll(): fading content out and back
