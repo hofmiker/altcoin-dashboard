@@ -302,7 +302,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v47 · Deployed 15.08.2026 10:31 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v48 · Deployed 15.08.2026 14:33 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -396,10 +396,10 @@
   // Historical Bitcoin block-reward halvings (real dates, fixed - not derived from any API) - each one
   // starts a new ~4-year "Zyklus" (cycle), the label shown on the chart marker itself.
   const HALVING_DATES = [
-    {date:"2012-11-28", label:"Zyklus"},
-    {date:"2016-07-09", label:"Zyklus"},
-    {date:"2020-05-11", label:"Zyklus"},
-    {date:"2024-04-20", label:"Zyklus"}
+    {date:"2012-11-28", label:"Halving"},
+    {date:"2016-07-09", label:"Halving"},
+    {date:"2020-05-11", label:"Halving"},
+    {date:"2024-04-20", label:"Halving"}
   ];
 
   // The date ranges between consecutive halvings (plus the pre-first-halving and current-ongoing
@@ -439,23 +439,44 @@
     });
     return out;
   }
-  // A small flag on a short pole, drawn in coordinates local to its own data point (origin at the
-  // point itself) so positioning it - initially, or live during a zoom animation - is just setting the
-  // enclosing <g>'s transform. dir=1 (cycle high) points the pole up with the pennant near its tip,
-  // like a flag planted on a peak; dir=-1 (cycle low) mirrors the whole thing downward, like a flag
-  // marking the bottom of a valley.
+  // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
+  // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
+  // <g>'s transform. dir=1 (cycle high): a small flag on a pole planted on the peak, pole pointing up
+  // with the pennant near its tip. dir=-1 (cycle low): a downward "download"-style arrow into a tray
+  // instead, extending below the point - a flag doesn't read as a "low" the way it reads as a "high" on
+  // a peak, so the low gets its own distinct glyph rather than just a mirrored flag.
   function buildFlagMarker(dir, color){
     const g = document.createElementNS(NS,"g");
-    const poleLen = 13;
-    const poleEndY = -dir*poleLen;
-    const pole = document.createElementNS(NS,"line");
-    pole.setAttribute("x1","0"); pole.setAttribute("y1","0"); pole.setAttribute("x2","0"); pole.setAttribute("y2",poleEndY);
-    pole.setAttribute("stroke",color); pole.setAttribute("stroke-width","1.6"); pole.setAttribute("vector-effect","non-scaling-stroke");
-    g.appendChild(pole);
-    const pennant = document.createElementNS(NS,"path");
-    pennant.setAttribute("d", `M0,${poleEndY} L8,${poleEndY+dir*3} L0,${poleEndY+dir*6} Z`);
-    pennant.setAttribute("fill", color);
-    g.appendChild(pennant);
+    if(dir > 0){
+      const poleLen = 13;
+      const poleEndY = -poleLen;
+      const pole = document.createElementNS(NS,"line");
+      pole.setAttribute("x1","0"); pole.setAttribute("y1","0"); pole.setAttribute("x2","0"); pole.setAttribute("y2",poleEndY);
+      pole.setAttribute("stroke",color); pole.setAttribute("stroke-width","1.6"); pole.setAttribute("vector-effect","non-scaling-stroke");
+      g.appendChild(pole);
+      const pennant = document.createElementNS(NS,"path");
+      pennant.setAttribute("d", `M0,${poleEndY} L8,${poleEndY+3} L0,${poleEndY+6} Z`);
+      pennant.setAttribute("fill", color);
+      g.appendChild(pennant);
+    } else {
+      const stemLen = 9;
+      const stem = document.createElementNS(NS,"line");
+      stem.setAttribute("x1","0"); stem.setAttribute("y1","0"); stem.setAttribute("x2","0"); stem.setAttribute("y2",stemLen);
+      stem.setAttribute("stroke",color); stem.setAttribute("stroke-width","1.6"); stem.setAttribute("stroke-linecap","round");
+      stem.setAttribute("vector-effect","non-scaling-stroke");
+      g.appendChild(stem);
+      const chevron = document.createElementNS(NS,"path");
+      chevron.setAttribute("d", `M-4,${stemLen-5} L0,${stemLen} L4,${stemLen-5}`);
+      chevron.setAttribute("fill","none"); chevron.setAttribute("stroke",color); chevron.setAttribute("stroke-width","1.6");
+      chevron.setAttribute("stroke-linecap","round"); chevron.setAttribute("stroke-linejoin","round");
+      chevron.setAttribute("vector-effect","non-scaling-stroke");
+      g.appendChild(chevron);
+      const tray = document.createElementNS(NS,"line");
+      tray.setAttribute("x1","-5"); tray.setAttribute("y1",stemLen+4); tray.setAttribute("x2","5"); tray.setAttribute("y2",stemLen+4);
+      tray.setAttribute("stroke",color); tray.setAttribute("stroke-width","1.6"); tray.setAttribute("stroke-linecap","round");
+      tray.setAttribute("vector-effect","non-scaling-stroke");
+      g.appendChild(tray);
+    }
     return g;
   }
 
@@ -472,6 +493,10 @@
   // On by default, opt-out via the "Halvings" toggle rendered into every chart's toolbar (see
   // buildRangeSeg), shared across every chart at once like rangeDays itself.
   let showHalvings = true;
+  // Hero-only: hides the 5 MVRV Quantile Band series (and their fills), leaving just the BTC price
+  // line - which then gets an area/gradient fill of its own (see renderHero) so it doesn't look bare
+  // without the bands behind it.
+  let showQuantileBands = true;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
   // Persists WHERE each chart's crosshair/hover-dots are parked, across the full DOM rebuild every
@@ -1325,8 +1350,7 @@
         if(idx<0) return;
         const x = xOf(idx), y = yOf(pt.value);
         if(y==null) return;
-        const color = pt.dir>0 ? "var(--critical)" : "var(--good)";
-        const g = buildFlagMarker(pt.dir, color);
+        const g = buildFlagMarker(pt.dir, "var(--ink)");
         g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
         g.dataset.flagDate = pt.date; g.dataset.flagValue = pt.value;
         g.style.pointerEvents = "none";
@@ -1584,11 +1608,24 @@
       const maxPanOffsetDays = Math.max(0, totalDataDays - (typeof rangeDays === "number" ? rangeDays : 0));
       return Math.max(0, Math.min(maxPanOffsetDays, panOffsetDays + rawDelta)) - panOffsetDays;
     }
+    // The halving/cycle vLines and flag markers live outside zoomG (see the comment above their build
+    // code) so the zoom/range animation can position them independently via the onFrame callback - but
+    // that also means the raw CSS translateX the live 2-finger drag applies straight to zoomG never
+    // touches them at all: only the actual data curve moved with the fingers, while the vLine and flags
+    // sat frozen at their pre-drag position until release finally rebuilt and animated everything else
+    // into place, reading as those markers "jerking" to catch up a beat after the curve already had.
+    // Collecting sync targets once at drag start and re-applying them every touchmove, with the exact
+    // same pixel offset already being applied to zoomG (a pure translation - matrix a=1,d=1), keeps them
+    // moving in the same lockstep the zoom animation's onFrame already guarantees for range/scale changes.
     let panDragStartX = null, panDragLastDx = 0;
+    let panVlineTargets = [], panFlagTargets = [];
     hitRect.addEventListener("touchstart", e=>{
       if(e.touches.length === 2){
         panDragStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         panDragLastDx = 0;
+        const rawDomain = {n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, startIdx:cfg.startIdx||0};
+        panVlineTargets = collectVLineSyncTargets(wrap, rawDomain);
+        panFlagTargets = collectFlagSyncTargets(wrap, rawDomain);
       }
     }, {passive:true});
     hitRect.addEventListener("touchmove", e=>{
@@ -1603,27 +1640,34 @@
       panDragLastDx = (clampedDelta / daysPerViewboxUnit) * scaleX;
       zoomG.style.transition = "none";
       zoomG.style.transform = `translateX(${panDragLastDx.toFixed(1)}px)`;
+      applyVLineSync(panVlineTargets, 1, panDragLastDx);
+      applyFlagSync(panFlagTargets, 1, 1, panDragLastDx, 0);
       e.preventDefault();
     }, {passive:false});
+    function resetPanDragVisuals(){
+      zoomG.style.transition = ""; zoomG.style.transform = "";
+      applyVLineSync(panVlineTargets, 1, 0);
+      applyFlagSync(panFlagTargets, 1, 1, 0, 0);
+    }
     hitRect.addEventListener("touchend", e=>{
       if(panDragStartX == null || e.touches.length > 0) return; // wait for every finger to lift
       const dx = panDragLastDx;
       panDragStartX = null;
       if(rangeDays === "all" || dx === 0){
-        zoomG.style.transition = ""; zoomG.style.transform = "";
+        resetPanDragVisuals();
         return;
       }
       const rect = svg.getBoundingClientRect();
       const scaleX = rect.width>0 ? rect.width/w : 1;
       const daysPerViewboxUnit = (n-1) / (w-padL-padR);
       const daysDelta = Math.round(dx / scaleX * daysPerViewboxUnit);
-      if(daysDelta === 0){ zoomG.style.transition = ""; zoomG.style.transform = ""; return; }
+      if(daysDelta === 0){ resetPanDragVisuals(); return; }
       panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
       renderAllZoom();
     }, {passive:true});
     hitRect.addEventListener("touchcancel", ()=>{
       panDragStartX = null;
-      zoomG.style.transition = ""; zoomG.style.transform = "";
+      resetPanDragVisuals();
     }, {passive:true});
 
     // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
@@ -2077,7 +2121,10 @@
       {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.1, fmt:fmtUSD},
       {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.1, fmt:fmtUSD},
       {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.1, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD}
+      // The area/gradient fill only makes sense once the bands (which already visually fill this same
+      // space) are hidden - with them showing, an additional fill under the price line would just fight
+      // with the band fills for the same area.
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD, area:!showQuantileBands}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -2085,7 +2132,18 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
+    const visibleSeries = showQuantileBands ? series : series.filter(s=> s.key === "price");
+    const bandsBtn = document.createElement("button");
+    bandsBtn.type = "button";
+    bandsBtn.className = "halving-toggle-btn" + (showQuantileBands ? " active" : "");
+    bandsBtn.title = "MVRV Quantile Bands ein-/ausblenden";
+    bandsBtn.textContent = "Bänder";
+    bandsBtn.addEventListener("click", ()=>{
+      showQuantileBands = !showQuantileBands;
+      renderAll();
+    });
+    toolbarHost.appendChild(bandsBtn);
+    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: showQuantileBands ? bandFill : [], compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
