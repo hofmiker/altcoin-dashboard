@@ -2145,33 +2145,41 @@
   // computeZoomMatrix(oldDomain, newDomain) to make new-built content look like old. Calling it as
   // computeZoomMatrix(newDomain, oldDomain) instead - same function, arguments swapped - makes
   // old-built content look like new: exactly the end state this animation needs.
-  function animateZoomInWithOldContent(wrap, oldSvgClone, newGroup, oldDomain, newDomain, myGen){
-    const oldGroup = oldSvgClone.querySelector(".zoom-content");
-    if(!oldGroup) return false;
+  function animateZoomInWithOldContent(oldSvgClone, newGroup, oldDomain, newDomain, myGen){
+    const oldGroupSrc = oldSvgClone.querySelector(".zoom-content");
+    if(!oldGroupSrc) return false;
+    const newSvg = newGroup.closest("svg");
+    const newDefs = newSvg.querySelector("defs");
+    const newClipG = newGroup.parentNode;
+    if(!newSvg || !newDefs || !newClipG) return false;
 
-    // The freshly-built new svg (already in the live DOM at this point) already shows its own, correct
-    // "frame" - zone bands, gridlines, axis labels, ref/halving lines, x-axis dates - none of which
-    // move during a zoom anyway. Hide everything in the clone except its data (defs + the clip-path
-    // wrapper around .zoom-content), so the overlay contributes only the animating line/fill content
-    // instead of a second, slightly-different copy of the frame doubled up on top of the real one.
-    [...oldSvgClone.children].forEach(child=>{
-      if(child.tagName === "defs") return;
-      if(child.tagName === "g" && child.getAttribute("clip-path")) return;
-      child.style.display = "none";
+    // Used to overlay the ENTIRE cloned <svg> on top of the real one via CSS (position:absolute,
+    // width/height:100%), so the two were two independently-laid-out elements that merely happened to
+    // occupy the same rect - any sub-pixel rounding difference between how each sized itself (seen in
+    // practice on iPadOS/Safari, rare on desktop Chromium) showed up as a brief visible seam/overlap
+    // right as the swap happened. Inserting just the old .zoom-content group directly into the SAME
+    // live <clipG> the new group already lives in - same <svg>, same viewBox, same clip-path - removes
+    // the second independently-positioned element entirely, so there's nothing left that COULD be
+    // misaligned: old and new content share one and the same coordinate system throughout.
+    const oldGroup = oldGroupSrc.cloneNode(true);
+    // Path fills that reference a gradient (currently just the BTC-Kurs area fill) point at a <defs>
+    // id from the OLD svg, which isn't present in the new one - copy over just the referenced
+    // gradients so those fills keep resolving. Gradient ids are a page-lifetime running counter, never
+    // reused, so this can't collide with the new svg's own (different-numbered) gradient defs.
+    oldGroup.querySelectorAll("[fill^='url(#']").forEach(el=>{
+      const id = el.getAttribute("fill").slice(5, -1);
+      if(!newDefs.querySelector("#"+id)){
+        const gradSrc = oldSvgClone.querySelector("#"+id);
+        if(gradSrc) newDefs.appendChild(gradSrc.cloneNode(true));
+      }
     });
-
-    oldSvgClone.style.position = "absolute";
-    oldSvgClone.style.inset = "0";
-    oldSvgClone.style.width = "100%";
-    oldSvgClone.style.height = "100%";
-    oldSvgClone.style.pointerEvents = "none";
-    wrap.appendChild(oldSvgClone);
+    newClipG.insertBefore(oldGroup, newGroup);
     newGroup.style.opacity = "0";
 
     const endMatrix = computeZoomMatrix(newDomain, oldDomain);
     const identity = {a:1, d:1, e:0, f:0};
     animateMatrix(oldGroup, identity, endMatrix, myGen, ()=>{
-      oldSvgClone.remove();
+      oldGroup.remove();
       newGroup.style.opacity = "";
     });
     return true;
@@ -2282,7 +2290,7 @@
       }
 
       if(newDomain.n < oldDomain.n && oldSvgClones[key] &&
-         animateZoomInWithOldContent(wrap, oldSvgClones[key], group, oldDomain, newDomain, myGen)){
+         animateZoomInWithOldContent(oldSvgClones[key], group, oldDomain, newDomain, myGen)){
         animateAxisLabelValues(wrap, oldDomain, newDomain);
         return;
       }
