@@ -302,7 +302,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v47 · Deployed 15.08.2026 10:31 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -1219,14 +1219,14 @@
     // the chart, the same way the band-boundary series chart's own readout row already names each of
     // its bands.
     const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({label:z.label, color:z.dotColor||z.color}));
-    // Fades every band except the given one, both the background tint and (via cfg.onZoneHover) the
-    // caller's legend - re-run on every crosshair move (see renderAt below), not just once at build
-    // time, so which zone is highlighted tracks whichever point the reader is actually looking at
-    // instead of being frozen on today's value the moment they start exploring the history.
+    // Tracks which zone the reader is currently looking at (via cfg.onZoneHover, e.g. to bold the
+    // matching legend chip) - re-run on every crosshair move (see renderAt below), not just once at
+    // build time. The background tint itself always stays fully visible at every zone regardless of
+    // this - only the legend highlight follows the crosshair, since fading the chart's own zone bands
+    // in and out as the reader moves the mouse made the chart look like it was constantly changing.
     let currentZoneLabel = null;
     function setActiveZone(label){
       currentZoneLabel = label;
-      zoneRects.forEach(zr=> zr.rect.setAttribute("opacity", label ? (zr.label===label ? "1" : "0.3") : "1"));
       if(cfg.onZoneHover) cfg.onZoneHover(label);
     }
 
@@ -1569,6 +1569,21 @@
     // to trigger from buttons), which rebuilds every chart and animates the small remaining snap from
     // wherever the raw drag ended to the exact correct position. Clipped to the fixed plot rect for free
     // by the same clip-path zoomG already lives inside for the zoom/pan animations.
+    // panOffsetDays itself is clamped (can't pan past "today" on one end, past the start of the whole
+    // dataset on the other) - but that clamp used to only apply at release, letting the live drag show
+    // the content following the fingers arbitrarily far past either edge, then visibly snap back the
+    // moment the finger lifted once the out-of-range delta got discarded. Clamping the SAME way during
+    // the live drag too (so the raw finger distance converts to a days-delta, gets clamped against the
+    // exact bounds panOffsetDays itself will end up clamped to, and only THEN converts back to the
+    // on-screen pixel offset) means dragging past either edge just runs out of travel smoothly instead
+    // of rubber-banding back afterward - there's nothing left to discard at release.
+    function clampedPanDaysDelta(rawDx, scaleX){
+      const daysPerViewboxUnit = (n-1) / (w-padL-padR);
+      const rawDelta = (rawDx/scaleX) * daysPerViewboxUnit;
+      const totalDataDays = (FULL.t[FULL.t.length-1] - FULL.t[0]) / 86400000;
+      const maxPanOffsetDays = Math.max(0, totalDataDays - (typeof rangeDays === "number" ? rangeDays : 0));
+      return Math.max(0, Math.min(maxPanOffsetDays, panOffsetDays + rawDelta)) - panOffsetDays;
+    }
     let panDragStartX = null, panDragLastDx = 0;
     hitRect.addEventListener("touchstart", e=>{
       if(e.touches.length === 2){
@@ -1579,12 +1594,15 @@
     hitRect.addEventListener("touchmove", e=>{
       if(e.touches.length !== 2 || panDragStartX == null || rangeDays === "all") return;
       const avgX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      panDragLastDx = avgX - panDragStartX;
+      const rawDx = avgX - panDragStartX;
       const rect = svg.getBoundingClientRect();
       if(rect.width===0) return;
       const scaleX = rect.width / w;
+      const daysPerViewboxUnit = (n-1) / (w-padL-padR);
+      const clampedDelta = clampedPanDaysDelta(rawDx, scaleX);
+      panDragLastDx = (clampedDelta / daysPerViewboxUnit) * scaleX;
       zoomG.style.transition = "none";
-      zoomG.style.transform = `translateX(${(panDragLastDx/scaleX).toFixed(1)}px)`;
+      zoomG.style.transform = `translateX(${panDragLastDx.toFixed(1)}px)`;
       e.preventDefault();
     }, {passive:false});
     hitRect.addEventListener("touchend", e=>{
@@ -1598,7 +1616,7 @@
       const rect = svg.getBoundingClientRect();
       const scaleX = rect.width>0 ? rect.width/w : 1;
       const daysPerViewboxUnit = (n-1) / (w-padL-padR);
-      const daysDelta = Math.round((dx/scaleX) * daysPerViewboxUnit);
+      const daysDelta = Math.round(dx / scaleX * daysPerViewboxUnit);
       if(daysDelta === 0){ zoomG.style.transition = ""; zoomG.style.transform = ""; return; }
       panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
       renderAllZoom();
@@ -1624,7 +1642,7 @@
     {value:"365", label:"1J"},
     {value:"180", label:"6M"}
   ];
-  function buildRangeSeg(){
+  function buildRangeSeg(zoomKey){
     const group = document.createElement("div");
     group.style.display = "inline-flex"; group.style.alignItems = "center"; group.style.gap = "6px";
     const seg = document.createElement("div");
@@ -1644,17 +1662,24 @@
       seg.appendChild(btn);
     });
     group.appendChild(seg);
-    // Jumps back to "today" at the current zoom level after panning away from it - panOffsetDays is
-    // shared across every chart (like rangeDays itself), so this button appears, and works the same
-    // way, on every single chart's own toolbar rather than needing one global control.
+    // Jumps back to "today" at the current zoom level - resets both the shared pan offset (which
+    // window of the range is showing) and, when this toolbar belongs to a specific chart, that chart's
+    // own persisted crosshair position (see selectedFraction) - a reader who dragged the crosshair
+    // somewhere in the past expects this button to bring them all the way back to "Aktuell", not just
+    // to un-pan the window while leaving the crosshair wherever they left it.
     const jumpBtn = document.createElement("button");
     jumpBtn.type = "button";
     jumpBtn.className = "today-jump-btn";
     jumpBtn.title = "Zurück zu heute"; jumpBtn.setAttribute("aria-label","Zurück zu heute");
     jumpBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M2.5 2.2c0-.6.7-1 1.2-.6l7.6 5.8c.4.3.4 1 0 1.3L3.7 14.4c-.5.4-1.2 0-1.2-.6V2.2Z"/><rect x="12" y="1.5" width="2" height="13" rx=".5"/></svg>';
-    jumpBtn.disabled = panOffsetDays === 0 || rangeDays === "all";
+    // Never disabled: the crosshair can drift away from "today" purely via mousemove, without ever
+    // rebuilding this toolbar (see handleMove/selectedFraction in buildLineChart) - there's no cheap way
+    // to keep a `disabled` attribute reliably in sync with that live, per-chart state from out here, and
+    // a stale "disabled" would block the exact reset the reader is trying to reach. Clicking it while
+    // already at "today" is a harmless no-op re-render.
     jumpBtn.addEventListener("click", ()=>{
       panOffsetDays = 0;
+      if(zoomKey) delete selectedFraction[zoomKey];
       renderAllZoom();
     });
     group.appendChild(jumpBtn);
@@ -2045,7 +2070,7 @@
     const toolbarHost = document.getElementById("heroToolbar");
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
-    toolbarHost.appendChild(buildRangeSeg());
+    toolbarHost.appendChild(buildRangeSeg("hero"));
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
@@ -2157,7 +2182,7 @@
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
       if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg(tile.scaleToggle.get, tile.scaleToggle.set));
-      toolbar.appendChild(buildRangeSeg());
+      toolbar.appendChild(buildRangeSeg(tile.title));
       card.appendChild(toolbar);
 
       grid.appendChild(card);
@@ -2237,7 +2262,7 @@
     }
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
-    toolbar.appendChild(buildRangeSeg());
+    toolbar.appendChild(buildRangeSeg("overlay"));
     panel.appendChild(toolbar);
     host.appendChild(panel);
   }
