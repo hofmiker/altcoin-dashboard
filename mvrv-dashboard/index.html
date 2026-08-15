@@ -1796,6 +1796,67 @@
     return true;
   }
 
+  // A log<->linear scale toggle (same date range, same point count, only the y-mapping changes) used
+  // to go through the same single-affine-matrix transform as a range zoom. That's wrong for this case:
+  // log and linear are different, non-affine remappings of the same values, so no single matrix can
+  // correctly represent how every individual point actually needs to move between them - points near
+  // the bottom of a log chart shift by a very different amount than points in the middle do, which a
+  // uniform scale+translate can only crudely fake, producing visibly arbitrary-looking distortion.
+  //
+  // Fixed with a genuine per-point morph instead: parse the old (pre-rebuild) and new (freshly built)
+  // "d" attribute of each matching path into their individual (x,y) points - X is identical between
+  // the two (dates don't change), only Y differs - then, each animation frame, linearly interpolate
+  // every point's Y between its old and new position and write the blended "d" straight onto the live
+  // path, using the same eased timing as every other chart transition. No CSS transform involved.
+  function parsePathPoints(d){
+    const pts = [];
+    const re = /([ML])\s*(-?[\d.]+(?:e-?\d+)?),(-?[\d.]+(?:e-?\d+)?)/gi;
+    let m;
+    while((m = re.exec(d))) pts.push({cmd:m[1], x:parseFloat(m[2]), y:parseFloat(m[3])});
+    return {pts, hasZ: /Z\s*$/i.test(d.trim())};
+  }
+
+  function morphLogLinear(oldSvgClone, group, myGen){
+    if(!oldSvgClone) return false;
+    const oldGroup = oldSvgClone.querySelector(".zoom-content");
+    if(!oldGroup) return false;
+    const oldPaths = [...oldGroup.querySelectorAll("path")];
+    const newPaths = [...group.querySelectorAll("path")];
+    if(oldPaths.length === 0 || oldPaths.length !== newPaths.length) return false;
+
+    const pairs = [];
+    for(let i=0;i<newPaths.length;i++){
+      const a = parsePathPoints(oldPaths[i].getAttribute("d")||"");
+      const b = parsePathPoints(newPaths[i].getAttribute("d")||"");
+      // Structural mismatch (shouldn't happen for a pure scale toggle - same series, same gaps) -
+      // bail out of the morph entirely so the caller can fall back to the ordinary transform path
+      // rather than let a mismatched pairing draw something wrong on just this one path.
+      if(a.pts.length === 0 || a.pts.length !== b.pts.length) return false;
+      pairs.push({el:newPaths[i], a:a.pts, b:b.pts, hasZ:b.hasZ, finalD:newPaths[i].getAttribute("d")});
+    }
+
+    const start = performance.now();
+    function frame(now){
+      if(myGen !== zoomGen) return;
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      pairs.forEach(p=>{
+        let d = "";
+        for(let i=0;i<p.b.length;i++){
+          const x = p.a[i].x + (p.b[i].x-p.a[i].x)*eased;
+          const y = p.a[i].y + (p.b[i].y-p.a[i].y)*eased;
+          d += p.b[i].cmd + x.toFixed(1) + "," + y.toFixed(1) + " ";
+        }
+        if(p.hasZ) d += "Z";
+        p.el.setAttribute("d", d.trim());
+      });
+      if(raw < 1) requestAnimationFrame(frame);
+      else pairs.forEach(p=> p.el.setAttribute("d", p.finalD)); // exact final value, no fp drift
+    }
+    requestAnimationFrame(frame);
+    return true;
+  }
+
   // Used only by the range selector and the two log/linear scale toggles (renderAllZoom, below).
   // Rebuilds happen synchronously and immediately - never hidden, never mid-transition when a second
   // click lands - so there's no gap for a stale callback to clobber newer content in. Only the final
@@ -1813,7 +1874,8 @@
     // the same object and "the old state" would already have been overwritten with the new one.
     const prevDomains = {...chartDomains};
     // Snapshot each chart's current (about to be replaced) svg before renderAllImmediate() wipes it -
-    // only used for zoom-IN transitions, see animateZoomInWithOldContent() above.
+    // used for zoom-IN transitions (see animateZoomInWithOldContent() above) and for log/linear morphs
+    // (see morphLogLinear() above), both of which need the pre-rebuild content to animate from.
     const oldSvgClones = {};
     document.querySelectorAll("[data-zoom-key]").forEach(wrap=>{
       const svg = wrap.querySelector("svg");
@@ -1827,6 +1889,16 @@
       const newDomain = chartDomains[key];
       const group = wrap.querySelector(".zoom-content");
       if(!group || !oldDomain || !newDomain) return;
+
+      // Pure scale-type change (same date range/point count, only log<->linear differs) - morph every
+      // point individually instead of faking it with one affine matrix. Only engages when the point
+      // count truly matches; anything else (a genuine range change, even one that happens to also flip
+      // scale type) falls through to the transform-based paths below exactly as before.
+      const isScaleOnlyChange = oldDomain.n === newDomain.n && !!oldDomain.log !== !!newDomain.log;
+      if(isScaleOnlyChange && oldSvgClones[key] && morphLogLinear(oldSvgClones[key], group, myGen)){
+        animateAxisLabelValues(wrap, oldDomain, newDomain);
+        return;
+      }
 
       if(newDomain.n < oldDomain.n && oldSvgClones[key] &&
          animateZoomInWithOldContent(wrap, oldSvgClones[key], group, oldDomain, newDomain, myGen)){
