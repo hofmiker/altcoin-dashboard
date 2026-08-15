@@ -292,7 +292,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · {{VERSION}} · Deployed {{DEPLOY_DATE}}</p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -2552,9 +2552,42 @@
     }
   }
 
+  // The eyebrow's "{{VERSION}} · Deployed {{DEPLOY_DATE}}" text is stamped into the HTML once, at
+  // publish time (see deploy-pages.yml) - reliable at the moment of that build, but a *document* fetch
+  // can still land on a browser/CDN-cached copy of that HTML afterwards, quietly showing an
+  // increasingly stale timestamp with nothing on the page hinting that it might not be current
+  // anymore. Fixed by re-fetching a small, separately-cache-busted JSON sidecar (same workflow writes
+  // it right next to this page) on every load and overwriting the static text with it - a JSON fetch
+  // with cache:"no-store" and a timestamp query param bypasses HTML document caching entirely, so this
+  // reflects the real latest deploy even when the surrounding page itself came from a stale cache.
+  // Falls back honestly instead of just leaving a stale or (if the build never stamped this copy at
+  // all, e.g. a local/offline checkout) literally-unfilled "{{DEPLOY_DATE}}" placeholder on screen.
+  async function loadDeployInfo(){
+    const el = document.getElementById("deployInfo");
+    if(!el) return;
+    const staticText = el.textContent;
+    const neverStamped = staticText.indexOf("{{") >= 0;
+    try{
+      const res = await fetch("./deploy-info.json?t="+Date.now(), {cache:"no-store"});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const info = await res.json();
+      if(!info.deployDate || !info.version) throw new Error("unvollständige Antwort");
+      el.textContent = `${info.version} · Deployed ${info.deployDate}`;
+      el.title = "Live abgerufen (deploy-info.json, Cache umgangen) - dies ist der tatsächlich aktuellste Deploy-Stand.";
+    }catch(e){
+      if(neverStamped){
+        el.textContent = "Version/Deploy-Datum nicht verfügbar (lokale oder unveröffentlichte Kopie)";
+      } else {
+        el.textContent = staticText + " (nicht live bestätigt, evtl. veraltet)";
+      }
+      el.title = "Live-Abruf von deploy-info.json fehlgeschlagen: " + (e && e.message ? e.message : e);
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function(){
     wireControls();
     loadAndRender(false);
+    loadDeployInfo();
   });
 })();
 </script>
