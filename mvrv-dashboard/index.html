@@ -126,6 +126,13 @@
   .seg button:disabled{color:var(--border); cursor:default; pointer-events:none;}
   .seg-sm{background:var(--inset); box-shadow:none; padding:3px;}
   .seg-sm button{font-size:11px; padding:5px 10px; border-radius:7px;}
+  .today-jump-btn{
+    width:29px; height:29px; flex:none; display:inline-flex; align-items:center; justify-content:center;
+    font-size:13px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--ink-2);
+    cursor:pointer; transition:color .15s ease, border-color .15s ease;
+  }
+  .today-jump-btn:hover:not(:disabled){color:var(--ink); border-color:var(--ink-3);}
+  .today-jump-btn:disabled{opacity:.35; cursor:default;}
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
@@ -197,6 +204,10 @@
   .overlay-toggle-chip i{width:8px; height:8px; border-radius:50%; display:inline-block; background:var(--border); flex:none;}
   .overlay-toggle-chip.active{color:var(--ink); border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 12%, var(--card));}
   .overlay-toggle-chip.active i{background:var(--chip-color);}
+
+  .zone-legend{display:flex; flex-wrap:wrap; gap:5px 14px; font-size:11.5px; color:var(--ink-3); margin:2px 0 8px;}
+  .zone-legend-item{display:inline-flex; align-items:center; gap:5px;}
+  .zone-legend-dot{width:8px; height:8px; border-radius:50%; flex:none; display:inline-block;}
 
   footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
   footer a{color:var(--accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
@@ -897,6 +908,11 @@
       rect.setAttribute("fill", z.color);
       svg.appendChild(rect);
     });
+    // The tint alone (esp. the two/three adjacent similarly-pale bands) doesn't read as anything
+    // specific on its own - collected here so the caller can render a small dot+label legend next to
+    // the chart, the same way the band-boundary series chart's own readout row already names each of
+    // its bands.
+    const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({label:z.label, color:z.dotColor||z.color}));
 
     // gridlines + y labels - deliberately appended directly to the svg, NOT into zoomG: their
     // positions (padL / w-padR / the 5 evenly-spaced heights) never depend on n, min or max, only on
@@ -1059,14 +1075,26 @@
     // Appended directly to svg, not zoomG, for the same reason as the y-axis above - the axis shows
     // whatever dates the new view covers immediately, it doesn't slide there.
     const mobileTicks = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-    const xTicks = Math.min(mobileTicks ? 4 : 6, n);
+    const xTicks = Math.min(mobileTicks ? 3 : 6, n);
     for(let k=0;k<xTicks;k++){
-      const i = Math.round(k*(n-1)/((xTicks-1)||1));
+      const frac = xTicks<=1 ? 0 : k/(xTicks-1);
+      // On narrow cards the labels are angled instead of laid out side by side (see below), so the
+      // outermost ticks are nudged in from the true edges - a rotated label anchored flush at x=padL
+      // would swing its far end left past x=0, off the SVG's own viewBox, since svg{overflow:visible}
+      // means nothing clips that away, it would just visually bleed past the card edge.
+      const insetFrac = mobileTicks ? 0.14 + frac*0.72 : frac;
+      const i = Math.round(insetFrac*(n-1));
       const x = xOf(i);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label");
-      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6);
-      lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
+      lbl.setAttribute("class","axis-label axis-label-x");
+      lbl.setAttribute("y",h-6);
+      if(mobileTicks){
+        lbl.setAttribute("x",x); lbl.setAttribute("text-anchor","end");
+        lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+      } else {
+        lbl.setAttribute("x",x);
+        lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
+      }
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = cfg.dates[i].slice(0,7);
       svg.appendChild(lbl);
@@ -1195,7 +1223,7 @@
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
     // and, via axisFmt, to smoothly count the y-axis tick labels from their old value to their new one
     // (the labels' fixed screen position never moves; only the number they display does).
-    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
+    return {wrap, readoutEl: readout.el, zoneLegend, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -1208,6 +1236,8 @@
     {value:"180", label:"6M"}
   ];
   function buildRangeSeg(){
+    const group = document.createElement("div");
+    group.style.display = "inline-flex"; group.style.alignItems = "center"; group.style.gap = "6px";
     const seg = document.createElement("div");
     seg.className = "seg seg-sm";
     seg.setAttribute("role","group"); seg.setAttribute("aria-label","Zeitraum");
@@ -1224,7 +1254,22 @@
       });
       seg.appendChild(btn);
     });
-    return seg;
+    group.appendChild(seg);
+    // Jumps back to "today" at the current zoom level after panning away from it - panOffsetDays is
+    // shared across every chart (like rangeDays itself), so this button appears, and works the same
+    // way, on every single chart's own toolbar rather than needing one global control.
+    const jumpBtn = document.createElement("button");
+    jumpBtn.type = "button";
+    jumpBtn.className = "today-jump-btn";
+    jumpBtn.title = "Zurück zu heute"; jumpBtn.setAttribute("aria-label","Zurück zu heute");
+    jumpBtn.textContent = "⏭";
+    jumpBtn.disabled = panOffsetDays === 0 || rangeDays === "all";
+    jumpBtn.addEventListener("click", ()=>{
+      panOffsetDays = 0;
+      renderAllZoom();
+    });
+    group.appendChild(jumpBtn);
+    return group;
   }
 
 
@@ -1282,11 +1327,11 @@
           axisFmt:v=>v.toFixed(0)+"%",
           yMin:0, yMax:100,
           zoneBands:[
-            {from:95, to:100, color:"var(--critical-bg)"},
-            {from:75, to:95, color:"var(--caution-bg)"},
-            {from:25, to:75, color:"var(--neutral-bg)"},
-            {from:5, to:25, color:"var(--good-bg)"},
-            {from:0, to:5, color:"var(--accent-bg)"}
+            {from:95, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Euphorie"},
+            {from:75, to:95, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Teuer"},
+            {from:25, to:75, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Fair Value"},
+            {from:5, to:25, color:"var(--good-bg)", dotColor:"var(--good)", label:"Günstig"},
+            {from:0, to:5, color:"var(--accent-bg)", dotColor:"var(--accent)", label:"Fire Sale"}
           ]
         });
       }
@@ -1311,9 +1356,12 @@
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
-          refLines:[
-            {value:0, label:"Kapitulation", color:"var(--critical)"},
-            {value:0.75, label:"Euphorie", color:"var(--good)"}
+          zoneBands:[
+            {from:-Infinity, to:0, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Kapitulation"},
+            {from:0, to:0.25, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Hoffnung/Angst"},
+            {from:0.25, to:0.5, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Optimismus"},
+            {from:0.5, to:0.75, color:"var(--good-bg)", dotColor:"var(--good)", label:"Glaube"},
+            {from:0.75, to:Infinity, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Euphorie/Gier"}
           ]
         });
       }
@@ -1550,6 +1598,17 @@
       head.appendChild(built.readoutEl);
       card.appendChild(head);
 
+      // Background zone bands (see MVRV-Perzentil/NUPL) are just a tint, meaningless on their own -
+      // spell out what each color means the same way the band-boundary chart's own readout row does.
+      if(built.zoneLegend && built.zoneLegend.length){
+        const legend = document.createElement("div");
+        legend.className = "zone-legend";
+        legend.innerHTML = built.zoneLegend.map(z=>
+          `<span class="zone-legend-item"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`
+        ).join("");
+        card.appendChild(legend);
+      }
+
       // Multi-series tiles get the same show/hide toggle chips as the "Kennzahlen überlagern" panel,
       // but scoped to just this one tile's own chart via tileSeriesVisible - a single-series tile has
       // nothing meaningful to toggle, so built.toggleableSeries is only ever set (in TILES' build())
@@ -1673,7 +1732,11 @@
       const rect = svg.getBoundingClientRect();
       if(!rect.width) return;
       const scaleX = rect.width / 1000;
-      svg.querySelectorAll(".axis-label").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
+      // Date labels get their own, slightly smaller constant size than the y-axis value labels - a
+      // "YYYY-MM" string is much longer than a typical value tick, so the same 12.5px would need more
+      // horizontal room than narrow cards have to spare even angled (see the x-axis label loop above).
+      svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
+      svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
     });
   }
