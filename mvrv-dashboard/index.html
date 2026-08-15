@@ -403,11 +403,17 @@
   let showHalvings = true;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
-  // Persists which date each chart's crosshair/hover-dots are parked on, across the full DOM rebuild
-  // every range/scale/mode change does - keyed by the same zoomKey used for chartDomains, so a chart
-  // that's never been touched still starts at its latest date, and one the reader has already moved
-  // stays exactly where they left it instead of snapping back to "Aktuell" on every rebuild.
-  const selectedDate = {};
+  // Persists WHERE each chart's crosshair/hover-dots are parked, across the full DOM rebuild every
+  // range/scale/pan change does - keyed by the same zoomKey used for chartDomains. Deliberately stored
+  // as a FRACTION of the visible index range (0=left edge, 1=right edge), not the underlying date:
+  // a chart that's never been touched still starts at its latest point (see the "no entry" case
+  // below), but once the reader has manually parked it somewhere, both zooming (range change - keep
+  // it at the same relative spot across the *new*, differently-sized window) and panning (same-size
+  // window, just shifted - the same fraction against the same size leaves the screen position exactly
+  // unchanged) are then just "reapply this same fraction to whatever dates/index range this rebuild
+  // produced" - one mechanism serving both, rather than a per-date lookup that would otherwise let a
+  // pan visibly drag the crosshair along with it, or let a zoom fling it to an unrelated position.
+  const selectedFraction = {};
   // Per-tile series visibility, mirroring overlaySel below but scoped to one tile's own chart instead
   // of the shared overlay - tileSeriesVisible[tileTitle][seriesKey] === false hides that one series
   // from that one tile. Absent entries default to visible, so tiles/series never need pre-seeding here.
@@ -1369,8 +1375,8 @@
     }
 
     // crosshair - visible by default (not just on hover), parked at the latest date unless the reader
-    // has already moved it on this specific chart (see selectedDate below), in which case it re-appears
-    // wherever they last left it instead of resetting.
+    // has already moved it on this specific chart (see selectedFraction below), in which case it
+    // re-appears wherever they last left it instead of resetting.
     const cross = document.createElementNS(NS,"line");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
     cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1");
@@ -1428,13 +1434,11 @@
         setActiveZone(z ? z.label : null);
       }
     }
-    // Restore the last date the reader picked on this chart (by key, across rebuilds) if it's still
-    // within the current view; otherwise (never touched, or that date fell out of the current range)
-    // default to the latest point.
+    // Restore the last relative position the reader picked on this chart (by key, across rebuilds);
+    // never having been touched leaves no entry here at all, so it defaults to the latest point.
     let initialIndex = n-1;
-    if(cfg.zoomKey && selectedDate[cfg.zoomKey]){
-      const found = cfg.dates.indexOf(selectedDate[cfg.zoomKey]);
-      if(found >= 0) initialIndex = found;
+    if(cfg.zoomKey && selectedFraction[cfg.zoomKey] != null){
+      initialIndex = Math.max(0, Math.min(n-1, Math.round(selectedFraction[cfg.zoomKey]*(n-1))));
     }
     // "Aktuell" should only ever label real, present-day data - a panned-back view's own last point is
     // still just the latest point *of that window*, not actually today, so it gets its real date instead.
@@ -1449,7 +1453,7 @@
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
       renderAt(i, i === n-1 && trulyAtToday);
-      if(cfg.zoomKey) selectedDate[cfg.zoomKey] = cfg.dates[i];
+      if(cfg.zoomKey) selectedFraction[cfg.zoomKey] = n>1 ? i/(n-1) : 0;
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
