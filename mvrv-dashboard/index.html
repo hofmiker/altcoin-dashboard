@@ -126,7 +126,6 @@
   .seg button:disabled{color:var(--border); cursor:default; pointer-events:none;}
   .seg-sm{background:var(--inset); box-shadow:none; padding:3px;}
   .seg-sm button{font-size:11px; padding:5px 10px; border-radius:7px;}
-  .pan-seg button{font-family:var(--font-body); font-size:14px; padding:5px 11px;}
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
@@ -1143,7 +1142,54 @@
       if(cfg.zoomKey) selectedDate[cfg.zoomKey] = cfg.dates[i];
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
-    hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+
+    // Two-finger swipe pans the whole dashboard's date window (one finger stays reserved for the
+    // crosshair above). The content follows the fingers 1:1 while dragging - a raw CSS translateX in
+    // real screen pixels converted into this chart's own SVG viewBox units, same conversion handleMove()
+    // already does for crosshair positioning - then on release, the total drag distance converts into a
+    // whole-day pan offset and hands off to the normal renderAllZoom() pan path (same one the pan used
+    // to trigger from buttons), which rebuilds every chart and animates the small remaining snap from
+    // wherever the raw drag ended to the exact correct position. Clipped to the fixed plot rect for free
+    // by the same clip-path zoomG already lives inside for the zoom/pan animations.
+    let panDragStartX = null, panDragLastDx = 0;
+    hitRect.addEventListener("touchstart", e=>{
+      if(e.touches.length === 2){
+        panDragStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        panDragLastDx = 0;
+      }
+    }, {passive:true});
+    hitRect.addEventListener("touchmove", e=>{
+      if(e.touches.length !== 2 || panDragStartX == null || rangeDays === "all") return;
+      const avgX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      panDragLastDx = avgX - panDragStartX;
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width / w;
+      zoomG.style.transition = "none";
+      zoomG.style.transform = `translateX(${(panDragLastDx/scaleX).toFixed(1)}px)`;
+      e.preventDefault();
+    }, {passive:false});
+    hitRect.addEventListener("touchend", e=>{
+      if(panDragStartX == null || e.touches.length > 0) return; // wait for every finger to lift
+      const dx = panDragLastDx;
+      panDragStartX = null;
+      if(rangeDays === "all" || dx === 0){
+        zoomG.style.transition = ""; zoomG.style.transform = "";
+        return;
+      }
+      const rect = svg.getBoundingClientRect();
+      const scaleX = rect.width>0 ? rect.width/w : 1;
+      const daysPerViewboxUnit = (n-1) / (w-padL-padR);
+      const daysDelta = Math.round((dx/scaleX) * daysPerViewboxUnit);
+      if(daysDelta === 0){ zoomG.style.transition = ""; zoomG.style.transform = ""; return; }
+      panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
+      renderAllZoom();
+    }, {passive:true});
+    hitRect.addEventListener("touchcancel", ()=>{
+      panDragStartX = null;
+      zoomG.style.transition = ""; zoomG.style.transform = "";
+    }, {passive:true});
 
     // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
@@ -1181,42 +1227,6 @@
     return seg;
   }
 
-  // ---------- pan controls - move the current range's window earlier/later in time without changing
-  // its width. Disabled entirely for "Alles" (already shows the complete history) and at whichever end
-  // panOffsetDays has reached: "‹" once the window's start already sits at the very first available
-  // data point, "›" once the window is already back at offset 0 (ending "today"). ----------
-  function buildPanSeg(){
-    const seg = document.createElement("div");
-    seg.className = "seg seg-sm pan-seg";
-    seg.setAttribute("role","group"); seg.setAttribute("aria-label","Zeitraum verschieben");
-
-    const prevBtn = document.createElement("button");
-    prevBtn.type = "button"; prevBtn.textContent = "‹"; prevBtn.setAttribute("aria-label","Früherer Zeitraum");
-    const nextBtn = document.createElement("button");
-    nextBtn.type = "button"; nextBtn.textContent = "›"; nextBtn.setAttribute("aria-label","Späterer Zeitraum");
-
-    if(rangeDays === "all"){
-      prevBtn.disabled = true;
-      nextBtn.disabled = true;
-    } else {
-      const currentView = sliceRange(FULL, rangeDays, panOffsetDays);
-      prevBtn.disabled = currentView.startIdx === 0;
-      nextBtn.disabled = panOffsetDays <= 0;
-    }
-
-    prevBtn.addEventListener("click", ()=>{
-      panOffsetDays += rangeDays;
-      renderAllZoom();
-    });
-    nextBtn.addEventListener("click", ()=>{
-      panOffsetDays = Math.max(0, panOffsetDays - rangeDays);
-      renderAllZoom();
-    });
-
-    seg.appendChild(prevBtn);
-    seg.appendChild(nextBtn);
-    return seg;
-  }
 
   // ---------- log/linear scale selector - each chart family (USD price/cap vs. the MVRV ratio) gets
   // its own independent toggle state (get/set pair), synced globally within that family like the
@@ -1462,7 +1472,6 @@
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg());
-    toolbarHost.appendChild(buildPanSeg());
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
@@ -1570,7 +1579,6 @@
       toolbar.className = "card-toolbar";
       if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg(tile.scaleToggle.get, tile.scaleToggle.set));
       toolbar.appendChild(buildRangeSeg());
-      toolbar.appendChild(buildPanSeg());
       card.appendChild(toolbar);
 
       grid.appendChild(card);
@@ -1651,7 +1659,6 @@
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
     toolbar.appendChild(buildRangeSeg());
-    toolbar.appendChild(buildPanSeg());
     panel.appendChild(toolbar);
     host.appendChild(panel);
   }
