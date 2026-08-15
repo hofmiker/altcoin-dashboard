@@ -16,6 +16,7 @@
     --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --critical-bg-strong:#c73f394d;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
@@ -29,6 +30,7 @@
       --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
       --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
       --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+      --critical-bg-strong:#e0655f52;
       --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
       --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
@@ -40,6 +42,7 @@
     --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
     --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
     --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+    --critical-bg-strong:#e0655f52;
     --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
@@ -50,6 +53,7 @@
     --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --critical-bg-strong:#c73f394d;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
@@ -368,9 +372,9 @@
   let panOffsetDays = 0;
   let logScale = true;
   let mvrvScale = true;
-  // Off by default - opt-in via the "Halvings" toggle rendered into every chart's toolbar (see
+  // On by default, opt-out via the "Halvings" toggle rendered into every chart's toolbar (see
   // buildRangeSeg), shared across every chart at once like rangeDays itself.
-  let showHalvings = false;
+  let showHalvings = true;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
   // Persists which date each chart's crosshair/hover-dots are parked on, across the full DOM rebuild
@@ -1069,6 +1073,7 @@
     // background zone bands - the chart's fixed "frame", appended to svg directly (not zoomG) for the
     // same reason as the axis: these mark fixed value thresholds across the chart's full fixed width,
     // not a data curve, so they must never visibly scale/shift during a zoom.
+    const zoneRects = [];
     (cfg.zoneBands||[]).forEach(z=>{
       const top = z.to===Infinity ? max : z.to;
       const bot = z.from===-Infinity ? min : z.from;
@@ -1078,20 +1083,24 @@
       rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
       rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
       rect.setAttribute("fill", z.color);
-      // When the caller names the currently active zone (see cfg.activeZoneLabel below), fade every
-      // OTHER band out instead - the reader's eye should land on where "now" actually is, not have to
-      // cross-reference a separate badge against five similarly-pale tints.
-      if(cfg.activeZoneLabel) rect.setAttribute("opacity", z.label===cfg.activeZoneLabel ? "1" : "0.3");
       svg.appendChild(rect);
+      zoneRects.push({label:z.label, rect});
     });
     // The tint alone (esp. the two/three adjacent similarly-pale bands) doesn't read as anything
     // specific on its own - collected here so the caller can render a small dot+label legend next to
     // the chart, the same way the band-boundary series chart's own readout row already names each of
     // its bands.
-    const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({
-      label:z.label, color:z.dotColor||z.color,
-      active: cfg.activeZoneLabel ? (z.label===cfg.activeZoneLabel) : null
-    }));
+    const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({label:z.label, color:z.dotColor||z.color}));
+    // Fades every band except the given one, both the background tint and (via cfg.onZoneHover) the
+    // caller's legend - re-run on every crosshair move (see renderAt below), not just once at build
+    // time, so which zone is highlighted tracks whichever point the reader is actually looking at
+    // instead of being frozen on today's value the moment they start exploring the history.
+    let currentZoneLabel = null;
+    function setActiveZone(label){
+      currentZoneLabel = label;
+      zoneRects.forEach(zr=> zr.rect.setAttribute("opacity", label ? (zr.label===label ? "1" : "0.3") : "1"));
+      if(cfg.onZoneHover) cfg.onZoneHover(label);
+    }
 
     // gridlines + y labels - deliberately appended directly to the svg, NOT into zoomG: their
     // positions (padL / w-padR / the 5 evenly-spaced heights) never depend on n, min or max, only on
@@ -1159,6 +1168,10 @@
       line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke", v.color||"var(--ink-3)"); line.setAttribute("stroke-width","1.2");
       line.setAttribute("stroke-dasharray","3 3"); line.setAttribute("vector-effect","non-scaling-stroke");
+      // Identifies this marker across a rebuild (see renderAllZoom's animateVLines) so its line/label
+      // can slide from where it sat before the zoom to its new position instead of jump-cutting there,
+      // the same way the plotted data content itself animates.
+      line.dataset.vlineDate = v.date;
       svg.appendChild(line);
       if(v.label){
         const lbl = document.createElementNS(NS,"text");
@@ -1166,6 +1179,7 @@
         lbl.setAttribute("x",x+4); lbl.setAttribute("y",padT+10); lbl.setAttribute("text-anchor","start");
         lbl.setAttribute("font-size","9"); lbl.setAttribute("fill", v.color||"var(--ink-3)"); lbl.setAttribute("font-weight","700");
         lbl.textContent = v.label;
+        lbl.dataset.vlineDate = v.date;
         svg.appendChild(lbl);
       }
     });
@@ -1338,6 +1352,12 @@
     hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
     hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
     hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair";
+    // Without this, the two-finger pan gesture's own e.preventDefault() (below) can still lose the
+    // race to the browser's native gesture recognizer on iOS Safari, which may already have committed
+    // to scrolling/panning the page by the time the first touchmove fires - CSS touch-action is
+    // evaluated before any JS handler runs, so it reliably rules out native touch handling on this
+    // element altogether rather than JS trying to cancel it after the fact.
+    hitRect.style.touchAction = "none";
     svg.appendChild(hitRect);
 
     wrap.appendChild(svg);
@@ -1355,6 +1375,14 @@
         dot.setAttribute("cx", x);
         dot.setAttribute("cy", yOf(v));
       });
+      // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
+      // currently looking at, not just today's value - crosshair moves are the whole point of exploring
+      // the history, so the zone highlight should follow along instead of staying frozen on "now".
+      if(zoneRects.length){
+        const v = cfg.series[0] && cfg.series[0].values[i];
+        const z = (v!=null && isFinite(v)) ? (cfg.zoneBands||[]).find(zb=> v>=zb.from && v<=zb.to) : null;
+        setActiveZone(z ? z.label : null);
+      }
     }
     // Restore the last date the reader picked on this chart (by key, across rebuilds) if it's still
     // within the current view; otherwise (never touched, or that date fell out of the current range)
@@ -1433,7 +1461,7 @@
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
     // and, via axisFmt, to smoothly count the y-axis tick labels from their old value to their new one
     // (the labels' fixed screen position never moves; only the number they display does).
-    return {wrap, readoutEl: readout.el, zoneLegend, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
+    return {wrap, readoutEl: readout.el, zoneLegend, zoneCfg: cfg, currentZoneLabel, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -1472,14 +1500,14 @@
     jumpBtn.type = "button";
     jumpBtn.className = "today-jump-btn";
     jumpBtn.title = "Zurück zu heute"; jumpBtn.setAttribute("aria-label","Zurück zu heute");
-    jumpBtn.textContent = "⏭";
+    jumpBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M2.5 2.2c0-.6.7-1 1.2-.6l7.6 5.8c.4.3.4 1 0 1.3L3.7 14.4c-.5.4-1.2 0-1.2-.6V2.2Z"/><rect x="12" y="1.5" width="2" height="13" rx=".5"/></svg>';
     jumpBtn.disabled = panOffsetDays === 0 || rangeDays === "all";
     jumpBtn.addEventListener("click", ()=>{
       panOffsetDays = 0;
       renderAllZoom();
     });
     group.appendChild(jumpBtn);
-    // Halving markers, off by default - shared across every chart (like rangeDays/panOffsetDays), so
+    // Halving markers, on by default - shared across every chart (like rangeDays/panOffsetDays), so
     // toggling it anywhere applies everywhere at once. A visibility change, not a domain change, so it
     // snaps (renderAll) rather than animating like a range/scale change would.
     const halvingBtn = document.createElement("button");
@@ -1541,17 +1569,15 @@
       }
     },
     {
-      title:"MVRV-Perzentil", desc:"Wo die aktuelle MVRV-Ratio im Vergleich zu ihrer gesamten bisherigen Historie steht, als Perzentilrang von 0–100 %: 0 % = die günstigste je gemessene Bewertung, 100 % = die teuerste. Die Hintergrundfarben entsprechen den Zonen der MVRV Quantile Bands oben (rot = Euphorie, orange = Teuer, neutral = Fair Value, grün = Günstig, türkis = Fire Sale) und machen dieselbe Einordnung unabhängig von der absoluten MVRV-Skala direkt ablesbar. Die aktuelle Zone ist unten in der Legende hervorgehoben.",
+      title:"MVRV-Perzentil", desc:"Wo die aktuelle MVRV-Ratio im Vergleich zu ihrer gesamten bisherigen Historie steht, als Perzentilrang von 0–100 %: 0 % = die günstigste je gemessene Bewertung, 100 % = die teuerste. Die Hintergrundfarben entsprechen den Zonen der MVRV Quantile Bands oben (rot = Euphorie, orange = Teuer, neutral = Fair Value, grün = Günstig, türkis = Fire Sale) und machen dieselbe Einordnung unabhängig von der absoluten MVRV-Skala direkt ablesbar. Die aktuelle Zone ist unten in der Legende hervorgehoben - beim Bewegen des Fingers/der Maus über das Chart folgt sie dem jeweils angezeigten Wert.",
       build(view){
-        const cz = mvrvZoneForCurrent();
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"mvrvPercentile", label:"MVRV-Perzentil", color:"var(--c-mvrv)", values:view.mvrvPercentile, width:1.6, fmt:v=>v.toFixed(0)+"%"}],
           axisFmt:v=>v.toFixed(0)+"%",
           yMin:0, yMax:100,
-          activeZoneLabel: cz ? cz.label : null,
           zoneBands:[
-            {from:95, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Euphorie"},
+            {from:95, to:100, color:"var(--critical-bg-strong)", dotColor:"var(--critical)", label:"Euphorie"},
             {from:75, to:95, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Teuer"},
             {from:25, to:75, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Fair Value"},
             {from:5, to:25, color:"var(--good-bg)", dotColor:"var(--good)", label:"Günstig"},
@@ -1574,19 +1600,14 @@
       }
     },
     {
-      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn (= 1 − 1/MVRV). Negative/niedrige Werte zeigen kollektive Verlustphasen (Kapitulation), sehr hohe Werte kollektive Gewinneuphorie — historisch die Extremzonen an Markttiefs und -hochs. Die aktuelle Zone ist unten in der Legende hervorgehoben.",
+      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn (= 1 − 1/MVRV). Negative/niedrige Werte zeigen kollektive Verlustphasen (Kapitulation, grün hinterlegt) — historisch eher eine Boden- als eine Topregion. Sehr hohe Werte zeigen kollektive Gewinneuphorie (Euphorie, rot hinterlegt) — historisch eher eine Top- als eine Bodenregion. Die aktuelle Zone ist unten in der Legende hervorgehoben - beim Bewegen des Fingers/der Maus über das Chart folgt sie dem jeweils angezeigten Wert.",
       build(view){
-        const cz = nuplZone(lastVal(FULL.nupl));
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
-          activeZoneLabel: cz && cz.label!=="–" ? cz.label : null,
           zoneBands:[
-            {from:-Infinity, to:0, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Kapitulation"},
-            {from:0, to:0.25, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Hoffnung/Angst"},
-            {from:0.25, to:0.5, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Optimismus"},
-            {from:0.5, to:0.75, color:"var(--good-bg)", dotColor:"var(--good)", label:"Glaube"},
-            {from:0.75, to:Infinity, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Euphorie/Gier"}
+            {from:-Infinity, to:0, color:"var(--good-bg)", dotColor:"var(--good)", label:"Kapitulation"},
+            {from:0.75, to:Infinity, color:"var(--critical-bg-strong)", dotColor:"var(--critical)", label:"Euphorie"}
           ]
         });
       }
@@ -1824,11 +1845,22 @@
       if(built.zoneLegend && built.zoneLegend.length){
         const legend = document.createElement("div");
         legend.className = "zone-legend";
+        const activeLabel = built.currentZoneLabel;
         legend.innerHTML = built.zoneLegend.map(z=>{
-          const cls = z.active===true ? " active" : z.active===false ? " inactive" : "";
-          return `<span class="zone-legend-item${cls}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`;
+          const cls = !activeLabel ? "" : (z.label===activeLabel ? " active" : " inactive");
+          return `<span class="zone-legend-item${cls}" data-zone-label="${z.label}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`;
         }).join("");
         card.appendChild(legend);
+        // Keeps the legend in sync as the reader drags the crosshair across the chart (see
+        // buildLineChart's setActiveZone/cfg.onZoneHover) - built.zoneCfg is the very same cfg object
+        // buildLineChart itself reads onZoneHover from, so assigning it here after the legend DOM
+        // exists is enough to wire the two together live.
+        if(built.zoneCfg) built.zoneCfg.onZoneHover = label=>{
+          legend.querySelectorAll(".zone-legend-item").forEach(el=>{
+            el.classList.toggle("active", label!=null && el.dataset.zoneLabel === label);
+            el.classList.toggle("inactive", label!=null && el.dataset.zoneLabel !== label);
+          });
+        };
       }
 
       // Multi-series tiles get the same show/hide toggle chips as the "Kennzahlen überlagern" panel,
@@ -2072,6 +2104,37 @@
     requestAnimationFrame(frame);
   }
 
+  // Halving markers live outside zoomG (see buildLineChart's vLines loop) specifically so their text
+  // label is never visually stretched by the geometric zoom transform - but per explicit request they
+  // shouldn't just cut to their new position either, they should slide there in step with the data.
+  // Matches each new marker to its pre-rebuild counterpart by date (data-vline-date), then tweens just
+  // the x position - line and label together, label staying glued to the line - over the same
+  // timing/easing as everything else. A marker with no old counterpart (wasn't visible before this
+  // zoom) or whose x hasn't actually changed is left alone; it was already drawn at the right spot.
+  function animateVLines(wrap, oldSvg, myGen){
+    if(!oldSvg) return;
+    const oldX = {};
+    oldSvg.querySelectorAll("line[data-vline-date]").forEach(l=>{ oldX[l.dataset.vlineDate] = parseFloat(l.getAttribute("x1")); });
+    wrap.querySelectorAll("line[data-vline-date]").forEach(newLine=>{
+      const date = newLine.dataset.vlineDate;
+      if(!(date in oldX)) return;
+      const fromX = oldX[date], toX = parseFloat(newLine.getAttribute("x1"));
+      if(fromX === toX) return;
+      const newLabel = wrap.querySelector(`text[data-vline-date="${date}"]`);
+      const start = performance.now();
+      function frame(now){
+        if(myGen !== zoomGen) return;
+        const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+        const eased = zoomEase(raw);
+        const x = fromX + (toX-fromX)*eased;
+        newLine.setAttribute("x1", x.toFixed(1)); newLine.setAttribute("x2", x.toFixed(1));
+        if(newLabel) newLabel.setAttribute("x", (x+4).toFixed(1));
+        if(raw < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
   // Solves for the 2D affine transform (scaleX/translateX for the date window, scaleY/translateY for
   // the value domain) that makes newDomain's zoom-content group visually match how oldDomain looked,
   // given both share the same viewBox width/height and padding. Applied as the group's *starting*
@@ -2286,12 +2349,14 @@
       const isScaleOnlyChange = oldDomain.n === newDomain.n && !!oldDomain.log !== !!newDomain.log;
       if(isScaleOnlyChange && oldSvgClones[key] && morphLogLinear(oldSvgClones[key], group, myGen)){
         animateAxisLabelValues(wrap, oldDomain, newDomain);
+        animateVLines(wrap, oldSvgClones[key], myGen);
         return;
       }
 
       if(newDomain.n < oldDomain.n && oldSvgClones[key] &&
          animateZoomInWithOldContent(oldSvgClones[key], group, oldDomain, newDomain, myGen)){
         animateAxisLabelValues(wrap, oldDomain, newDomain);
+        animateVLines(wrap, oldSvgClones[key], myGen);
         return;
       }
 
@@ -2299,6 +2364,7 @@
       const identity = {a:1, d:1, e:0, f:0};
       animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; });
       animateAxisLabelValues(wrap, oldDomain, newDomain);
+      animateVLines(wrap, oldSvgClones[key], myGen);
     });
   }
 
