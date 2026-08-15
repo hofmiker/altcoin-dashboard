@@ -18,7 +18,7 @@
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
-    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b;
+    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
     --font-body:"Inter", -apple-system, "Segoe UI", sans-serif;
   }
@@ -30,7 +30,7 @@
       --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
       --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
-      --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596;
+      --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
     }
   }
   :root[data-theme="dark"]{
@@ -40,7 +40,7 @@
     --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
-    --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596;
+    --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
   }
   :root[data-theme="light"]{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -49,7 +49,7 @@
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
-    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b;
+    --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
   }
 
   *{box-sizing:border-box}
@@ -277,11 +277,12 @@
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
+        <p><b>Fear &amp; Greed Index</b> (Kachel "Fear &amp; Greed Index vs. BTC-Kurs") stammt separat von der <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>, ebenfalls kostenlos und nach demselben Live-dann-Snapshot-Muster (<span class="mono" style="font-size:12px;">data/feargreed/latest.json</span>, täglich per GitHub Action aktualisiert). Die Historie beginnt erst am 01.02.2018 — davor zeigt die Linie entsprechend keine Werte. Scheitern Live-Abruf und Snapshot beide, wird die Kachel als "nicht verfügbar" markiert statt den Rest der Seite zu blockieren.</p>
       </div>
     </details>
 
     <footer>
-      Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung).
+      Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung), Fear &amp; Greed Index: alternative.me.
     </footer>
 
   </div>
@@ -323,7 +324,7 @@
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
-    nvt:false, activeAddr:false, roi30d:false, roi1yr:false, activeSupply1yr:false
+    nvt:false, activeAddr:false, roi30d:false, roi1yr:false, activeSupply1yr:false, feargreed:false
   };
 
   const METRICS = {
@@ -339,7 +340,8 @@
     activeAddr:     {label:"Aktive Adressen",         color:"var(--c-addr)",     fmt:fmtCount},
     roi30d:         {label:"ROI 30 Tage",             color:"var(--c-roi30)",    fmt:fmtPctRaw},
     roi1yr:         {label:"ROI 1 Jahr",              color:"var(--c-roi1y)",    fmt:fmtPctRaw},
-    activeSupply1yr:{label:"Aktive Supply (1J)",      color:"var(--c-actsup)",   fmt:fmtBTC}
+    activeSupply1yr:{label:"Aktive Supply (1J)",      color:"var(--c-actsup)",   fmt:fmtBTC},
+    feargreed:      {label:"Fear & Greed",            color:"var(--c-feargreed)",fmt:v=>v.toFixed(0)}
   };
 
   // ---------- theme ----------
@@ -455,6 +457,57 @@
     }
   }
 
+  // Crypto Fear & Greed Index (alternative.me), same live-then-snapshot pattern as loadData() above,
+  // but non-fatal: unlike price/MVRV, the whole dashboard doesn't depend on this, so any failure here
+  // just leaves the Fear & Greed tile showing "nicht verfügbar" via the same requires/unavailableNote
+  // mechanism as every other optional metric, instead of breaking the page.
+  const FNG_LIVE_URL = "https://api.alternative.me/fng/?limit=0&format=json";
+  const FNG_SNAPSHOT_URL = "https://raw.githubusercontent.com/hofmiker/altcoin-dashboard/main/data/feargreed/latest.json";
+  const FNG_CACHE_KEY = "mvrvDashboard_fng_cache_v1";
+
+  async function loadFearGreedData(force){
+    if(!force){
+      try{
+        const cached = JSON.parse(localStorage.getItem(FNG_CACHE_KEY));
+        if(cached && Date.now() - cached.ts < CACHE_TTL && Array.isArray(cached.rows)) return {rows:cached.rows};
+      }catch(e){ /* ignore corrupt cache */ }
+    }
+    try{
+      const res = await fetch(FNG_LIVE_URL);
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+      const rows = json.data || [];
+      try{ localStorage.setItem(FNG_CACHE_KEY, JSON.stringify({ts:Date.now(), rows})); }catch(e){ /* storage full/unavailable */ }
+      return {rows};
+    }catch(liveErr){
+      try{
+        const res2 = await fetch(FNG_SNAPSHOT_URL);
+        if(!res2.ok) throw new Error("HTTP " + res2.status);
+        const json2 = await res2.json();
+        const rows = json2.data || [];
+        try{ localStorage.setItem(FNG_CACHE_KEY, JSON.stringify({ts:Date.now(), rows})); }catch(e){ /* storage full/unavailable */ }
+        return {rows};
+      }catch(snapshotErr){
+        return {rows:[]};
+      }
+    }
+  }
+
+  // alternative.me returns {timestamp:"<unix seconds>", value:"<0-100 string>", ...} per day, oldest
+  // first since 2018-02-01. Keyed into a date->value map so computeDerived() can align it against the
+  // price/MVRV date axis, which goes back to 2010 and therefore has no Fear & Greed reading for most
+  // of its range - those days simply stay null, same as any other not-yet-existing metric.
+  function parseFearGreedRows(rows){
+    const map = new Map();
+    rows.forEach(d=>{
+      if(d.timestamp==null || d.value==null) return;
+      const date = new Date(parseInt(d.timestamp,10)*1000).toISOString().slice(0,10);
+      const v = parseFloat(d.value);
+      if(isFinite(v)) map.set(date, v);
+    });
+    return map;
+  }
+
   // Coin Metrics' keyless community tier turned out to only reliably serve PriceUSD and CapMVRVCur —
   // CapRealUSD/SplyCur/CapMrktCurUSD come back as HTTP 403 "not available with supplied credentials"
   // (confirmed via a real fetch). So only price+mvrv are required; the rest stay null when the API
@@ -536,7 +589,7 @@
     return out;
   }
 
-  function computeDerived(rows){
+  function computeDerived(rows, fngMap){
     const dates = rows.map(r=>r.date);
     const t = rows.map(r=>r.t);
     const price = rows.map(r=>r.price);
@@ -551,11 +604,17 @@
     const roi30d = rows.map(r=>r.roi30d);
     const roi1yr = rows.map(r=>r.roi1yr);
     const activeSupply1yr = rows.map(r=>r.activeSupply1yr);
+    // Sourced separately (alternative.me, not Coin Metrics) and only exists from 2018-02-01 onward,
+    // so most of the pre-2018 history stays null here - not an availability failure like the metrics
+    // above, just a data start date, and buildLineChart's per-series gap handling draws that as the
+    // line simply beginning partway through instead of at the chart's left edge.
+    const feargreed = fngMap ? dates.map(d=> fngMap.has(d) ? fngMap.get(d) : null) : dates.map(()=> null);
     const hasNvt = nvt.some(v=> v!=null);
     const hasActiveAddr = activeAddr.some(v=> v!=null);
     const hasRoi30d = roi30d.some(v=> v!=null);
     const hasRoi1yr = roi1yr.some(v=> v!=null);
     const hasActiveSupply1yr = activeSupply1yr.some(v=> v!=null);
+    const hasFearGreed = feargreed.some(v=> v!=null);
 
     const hasRealizedCap = realizedCap.some(v=> v!=null);
     const hasSupply = supply.some(v=> v!=null);
@@ -598,9 +657,9 @@
       : supply.map(()=> null);
 
     return {dates,t,price,mvrv,realizedCap,marketCap,supply,realizedPrice,nupl,zscore,bands,mvrvQuantiles,mvrvPercentile,athDrawdown,supplyGrowth,
-      nvt,activeAddr,roi30d,roi1yr,activeSupply1yr,
+      nvt,activeAddr,roi30d,roi1yr,activeSupply1yr,feargreed,
       hasRealizedCap,hasSupply,hasMarketCap,hasZScore,
-      hasNvt,hasActiveAddr,hasRoi30d,hasRoi1yr,hasActiveSupply1yr};
+      hasNvt,hasActiveAddr,hasRoi30d,hasRoi1yr,hasActiveSupply1yr,hasFearGreed};
   }
 
   function sliceRange(d, days){
@@ -612,13 +671,13 @@
     return {
       dates:s("dates"), t:s("t"), price:s("price"), mvrv:s("mvrv"), realizedCap:s("realizedCap"),
       marketCap:s("marketCap"), supply:s("supply"), realizedPrice:s("realizedPrice"), nupl:s("nupl"), zscore:s("zscore"),
-      nvt:s("nvt"), activeAddr:s("activeAddr"), roi30d:s("roi30d"), roi1yr:s("roi1yr"), activeSupply1yr:s("activeSupply1yr"),
+      nvt:s("nvt"), activeAddr:s("activeAddr"), roi30d:s("roi30d"), roi1yr:s("roi1yr"), activeSupply1yr:s("activeSupply1yr"), feargreed:s("feargreed"),
       mvrvPercentile:s("mvrvPercentile"),
       bands:{p05:d.bands.p05.slice(idx), p25:d.bands.p25.slice(idx), p50:d.bands.p50.slice(idx), p75:d.bands.p75.slice(idx), p95:d.bands.p95.slice(idx)},
       mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx), p25:d.mvrvQuantiles.p25.slice(idx), p50:d.mvrvQuantiles.p50.slice(idx), p75:d.mvrvQuantiles.p75.slice(idx), p95:d.mvrvQuantiles.p95.slice(idx)},
       athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth"),
       hasRealizedCap:d.hasRealizedCap, hasSupply:d.hasSupply, hasMarketCap:d.hasMarketCap, hasZScore:d.hasZScore,
-      hasNvt:d.hasNvt, hasActiveAddr:d.hasActiveAddr, hasRoi30d:d.hasRoi30d, hasRoi1yr:d.hasRoi1yr, hasActiveSupply1yr:d.hasActiveSupply1yr
+      hasNvt:d.hasNvt, hasActiveAddr:d.hasActiveAddr, hasRoi30d:d.hasRoi30d, hasRoi1yr:d.hasRoi1yr, hasActiveSupply1yr:d.hasActiveSupply1yr, hasFearGreed:d.hasFearGreed
     };
   }
 
@@ -1252,6 +1311,18 @@
         ];
         return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
       }
+    },
+    {
+      title:"Fear & Greed Index vs. BTC-Kurs", desc:"Der Crypto Fear & Greed Index (alternative.me) fasst Marktstimmung aus Volatilität, Momentum, Social-Media-Aktivität, Umfragen, Marktdominanz und Suchtrends zu einem Wert von 0 (Extreme Angst) bis 100 (Extreme Gier) zusammen. Historisch fielen extreme Angst-Phasen eher mit Markttiefs zusammen, extreme Gier-Phasen eher mit überhitzten Hochs — ein Kontraindikator, kein eigenständiges Timing-Signal. Daten verfügbar seit Februar 2018, entsprechend beginnt die Linie in der Gesamt-Historie erst dort. Beide Linien normalisiert (0–100 %).",
+      requires:"hasFearGreed",
+      unavailableNote:"Braucht den Crypto Fear & Greed Index von alternative.me — Live-Abruf und Snapshot sind derzeit beide nicht erreichbar.",
+      build(view){
+        const series = [
+          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
+          {key:"feargreed", label:"Fear & Greed", color:"var(--c-feargreed)", values:normalize(view.feargreed), tooltipValues:view.feargreed, width:1.4, fmt:v=>v.toFixed(0)}
+        ];
+        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+      }
     }
   ];
 
@@ -1311,6 +1382,7 @@
     if(tile.requires === "hasActiveAddr") return FULL.hasActiveAddr;
     if(tile.requires === "hasRoi") return FULL.hasRoi30d || FULL.hasRoi1yr;
     if(tile.requires === "hasActiveSupply1yr") return FULL.hasActiveSupply1yr;
+    if(tile.requires === "hasFearGreed") return FULL.hasFearGreed;
     return true;
   }
 
@@ -1391,6 +1463,7 @@
       if(key === "roi30d") return FULL.hasRoi30d;
       if(key === "roi1yr") return FULL.hasRoi1yr;
       if(key === "activeSupply1yr") return FULL.hasActiveSupply1yr;
+      if(key === "feargreed") return FULL.hasFearGreed;
       return true;
     };
 
@@ -1701,10 +1774,14 @@
   async function loadAndRender(force){
     setStatus("loading");
     try{
-      const {rows, fromCache, source, fetchedAt} = await loadData(force);
+      const [{rows, fromCache, source, fetchedAt}, fngResult] = await Promise.all([
+        loadData(force),
+        loadFearGreedData(force).catch(()=> ({rows:[]}))
+      ]);
       const parsed = parseRows(rows);
       if(parsed.length < 30) throw new Error("zu wenige gültige Datenpunkte");
-      FULL = computeDerived(parsed);
+      const fngMap = parseFearGreedRows(fngResult.rows);
+      FULL = computeDerived(parsed, fngMap);
       setStatus("ok", {count:parsed.length, fromCache, source, fetchedAt, browserFetchedAt:new Date().toISOString()});
       renderAll();
     }catch(err){
