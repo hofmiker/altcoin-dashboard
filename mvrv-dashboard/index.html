@@ -116,6 +116,17 @@
   .stat .value{font-family:var(--font-display); font-size:26px; font-weight:700; margin-top:7px; font-variant-numeric:tabular-nums;}
   .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.4;}
 
+  .narrative-card{
+    background:color-mix(in srgb, var(--accent) 6%, var(--card)); border:1px solid var(--accent-bg); border-left:3px solid var(--accent);
+    border-radius:14px; padding:14px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .narrative-badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--accent); align-self:flex-start;
+  }
+  .narrative-text{font-size:15px; line-height:1.55; color:var(--ink); margin:0;}
+  .narrative-text b{font-family:var(--font-display);}
+
   .strip.gauges{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
   .gauge-card{
     background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px 14px;
@@ -138,6 +149,16 @@
   .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
   .chip.fg-neutral{color:var(--fg-neutral); background:var(--fg-neutral-bg); border-color:var(--fg-neutral-bg);} .chip.fg-neutral i{background:var(--fg-neutral);}
   .chip.fg-greed{color:var(--fg-greed); background:var(--fg-greed-bg); border-color:var(--fg-greed-bg);} .chip.fg-greed i{background:var(--fg-greed);}
+  /* Brief highlight when a zone chip's classification just changed since this browser's last visit
+     (see zoneChangedSinceLastVisit) - a colored ring that blooms outward from the chip and fades,
+     using the chip's own currentColor so it always matches whichever zone color is active. */
+  @keyframes zonePulse{
+    0%{ box-shadow:0 0 0 0 color-mix(in srgb, currentColor 60%, transparent); }
+    70%{ box-shadow:0 0 0 9px color-mix(in srgb, currentColor 0%, transparent); }
+    100%{ box-shadow:0 0 0 0 color-mix(in srgb, currentColor 0%, transparent); }
+  }
+  .chip.zone-pulse{ animation:zonePulse 1.8s ease-out 1; }
+  @media (prefers-reduced-motion: reduce){ .chip.zone-pulse{ animation:none; } }
 
   .controls-row{display:flex; justify-content:flex-end; align-items:center; gap:14px; flex-wrap:wrap;}
   .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:5px; box-shadow:var(--shadow);}
@@ -289,6 +310,11 @@
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
 
     <section class="strip" id="statStrip"></section>
+
+    <section class="narrative-card" id="narrativeCard" style="display:none;">
+      <div class="narrative-badge">✨ KI-generierte Einschätzung<span id="narrativeInfo"></span></div>
+      <p class="narrative-text" id="narrativeText"></p>
+    </section>
 
     <section class="strip gauges" id="gaugeStrip"></section>
 
@@ -815,6 +841,23 @@
     return FEARGREED_ZONES[4];
   }
 
+  // Brief pulse on a zone chip when its classification differs from what this same browser last saw
+  // it as (persisted per key in localStorage) - a static "Günstig" badge reads the same whether it's
+  // been that way for a week or just flipped an hour ago, so repeat visitors have no way to notice a
+  // regime change without rereading the whole page. Called once per chip per render; only the first
+  // render of a session actually differs from storage (that render's own write makes every later
+  // render in the same session compare equal), so a chip pulses once when the change is first shown,
+  // not on every unrelated re-render (range clicks, resizes, ...).
+  function zoneChangedSinceLastVisit(key, label){
+    if(!label) return false;
+    try{
+      const storageKey = "mvrvZoneSeen:"+key;
+      const prev = localStorage.getItem(storageKey);
+      localStorage.setItem(storageKey, label);
+      return prev!==null && prev!==label;
+    }catch(e){ return false; }
+  }
+
   // Composite "Marktstimmung" gauge zones - the exact same 5-stop palette and boundaries as
   // FEARGREED_ZONES (same widget, same visual language), but mirrored left-to-right: unlike the Fear &
   // Greed Index's own colloquial "red=bad mood/fear, green=good mood/greed" convention, every other
@@ -911,10 +954,11 @@
     card.appendChild(svg);
 
     const zone = cfg.zones.find(z=> v>=z.from && (v<z.to || z.to===100));
+    const pulse = zone && cfg.pulseKey && zoneChangedSinceLastVisit(cfg.pulseKey, zone.label) ? " zone-pulse" : "";
     const valueRow = document.createElement("div");
     valueRow.className = "gauge-value-row";
     valueRow.innerHTML = `<span class="gauge-value mono">${Math.round(v)}</span>`+
-      (zone ? `<span class="chip ${zone.cls}"><i></i>${zone.label}</span>` : "");
+      (zone ? `<span class="chip ${zone.cls}${pulse}"><i></i>${zone.label}</span>` : "");
     card.appendChild(valueRow);
     return card;
   }
@@ -922,12 +966,12 @@
     const host = document.getElementById("gaugeStrip");
     host.innerHTML = "";
     host.appendChild(buildGauge({
-      title:"Marktstimmung", value: computeMarketMoodScore(), zones: MOOD_ZONES,
+      title:"Marktstimmung", value: computeMarketMoodScore(), zones: MOOD_ZONES, pulseKey:"mood",
       infoText:"Durchschnitt aus MVRV-Perzentil, NUPL und (falls verfügbar) Z-Score, jeweils auf einen vergleichbaren 0-100-Bereich skaliert. Ein eigener, transparenter Näherungswert dieses Dashboards, keine etablierte Kennzahl.",
       unavailableNote:"Braucht mindestens MVRV-Perzentil oder NUPL."
     }));
     host.appendChild(buildGauge({
-      title:"Fear & Greed", value: FULL.hasFearGreed ? lastVal(FULL.feargreed) : null, zones: FEARGREED_ZONES,
+      title:"Fear & Greed", value: FULL.hasFearGreed ? lastVal(FULL.feargreed) : null, zones: FEARGREED_ZONES, pulseKey:"feargreed",
       infoText:"Der Crypto Fear & Greed Index von alternative.me, siehe Kachel unten für den Verlauf.",
       unavailableNote:"Braucht den Crypto Fear & Greed Index von alternative.me — Live-Abruf und Snapshot sind derzeit beide nicht erreichbar."
     }));
@@ -1753,6 +1797,57 @@
     }
   ];
 
+  // ---------- narrative synthesis ----------
+  // Matches MVRV-Perzentil's own chart zoneBands boundaries (see the MVRV-Perzentil tile) - kept as
+  // its own small function since that tile builds its zoneBands from literal numbers, not a shared
+  // table like FEARGREED_ZONES/MOOD_ZONES, and the narrative needs the same classification applied to
+  // arbitrary past values, not just today's.
+  function mvrvPercentileZoneLabel(v){
+    if(v==null || !isFinite(v)) return null;
+    if(v>=95) return "Euphorie";
+    if(v>=75) return "Teuer";
+    if(v>=25) return "Fair Value";
+    if(v>=5) return "Günstig";
+    return "Fire Sale";
+  }
+  function toQuarterLabel(dateStr){
+    const [y,m] = dateStr.split("-").map(Number);
+    return `Q${Math.ceil(m/3)} ${y}`;
+  }
+  // One plain-language sentence synthesizing where the two headline on-chain indicators (plus Fear &
+  // Greed, if available) currently stand, plus - genuinely computed from the historical data, not
+  // invented - the most recent earlier date where the same MVRV-Perzentil/NUPL zone combination
+  // occurred, or a note that it hasn't occurred before. Explicitly labeled "KI-generierte Einschätzung"
+  // in the markup itself (see index.html) since this is an interpretation of the data, not a plotted
+  // value - it should never be mistaken for something as directly verifiable as the charts around it.
+  function renderNarrative(){
+    const host = document.getElementById("narrativeCard");
+    const mv = mvrvPercentileZoneLabel(lastVal(FULL.mvrvPercentile));
+    const nz = nuplZone(lastVal(FULL.nupl));
+    if(mv==null || !nz || nz.label==="–"){ host.style.display = "none"; return; }
+    host.style.display = "";
+
+    let matchDate = null;
+    const dates = FULL.dates, mvrvArr = FULL.mvrvPercentile, nuplArr = FULL.nupl;
+    // Skip the most recent ~month - "this pattern also held a week ago" isn't an interesting claim,
+    // it's just yesterday not having changed yet.
+    for(let i=dates.length-31; i>=0; i--){
+      if(mvrvPercentileZoneLabel(mvrvArr[i])===mv && nuplZone(nuplArr[i]).label===nz.label){ matchDate = dates[i]; break; }
+    }
+    const historyPart = matchDate
+      ? `ein Muster, das zuletzt in ${toQuarterLabel(matchDate)} auftrat`
+      : `eine Kombination, die es in den erfassten Daten bislang so noch nicht gab`;
+
+    let fgPart = "";
+    if(FULL.hasFearGreed){
+      const fz = fearGreedZone(lastVal(FULL.feargreed));
+      if(fz) fgPart = `, während der Fear &amp; Greed Index „${fz.label}“ zeigt`;
+    }
+
+    document.getElementById("narrativeText").innerHTML =
+      `MVRV-Perzentil steht aktuell auf <b>„${mv}“</b>, NUPL auf <b>„${nz.label}“</b>${fgPart} — ${historyPart}.`;
+  }
+
   // ---------- rendering ----------
   function renderStatStrip(){
     const el = document.getElementById("statStrip");
@@ -1761,11 +1856,14 @@
     const ath = lastVal(FULL.athDrawdown), sg = lastVal(FULL.supplyGrowth), sup = lastVal(FULL.supply);
     const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
     const na = `<span class="chip neutral"><i></i>nicht verfügbar</span>`;
+    const mzPulse = mz && zoneChangedSinceLastVisit("mvrv", mz.label) ? " zone-pulse" : "";
+    const nzPulse = zoneChangedSinceLastVisit("nupl", nz.label) ? " zone-pulse" : "";
+    const zzPulse = FULL.hasZScore && zoneChangedSinceLastVisit("zscore", zz.label) ? " zone-pulse" : "";
     el.innerHTML = `
       <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Letzter Tages-Schlusskurs</div></div>
-      <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}"><i></i>${mz.label}</span>`:"–"}</div></div>
-      <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}"><i></i>${nz.label}</span></div></div>
-      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}"><i></i>${zz.label}</span>` : na}</div></div>
+      <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>`:"–"}</div></div>
+      <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span></div></div>
+      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>` : na}</div></div>
       <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>
       <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? (fmtUSD(mc) + " / " + fmtUSD(rc)) : "–"}</div><div class="ctx">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? "Verhältnis = MVRV" : na}</div></div>
       <div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>
@@ -1998,6 +2096,7 @@
   function renderAllImmediate(){
     const view = sliceRange(FULL, rangeDays, panOffsetDays);
     renderStatStrip();
+    renderNarrative();
     renderGauges();
     renderHero(view);
     if(mode === "tiles") renderTiles(view); else renderOverlay(view);
@@ -2421,6 +2520,7 @@
     });
     attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
+    attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung.", {alignRight:true});
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
     // pick up the mobile <-> desktop viewBox switch instead of leaving them at whatever size loaded
     // first. Uses the un-animated renderAllImmediate(), not renderAll(): fading content out and back
