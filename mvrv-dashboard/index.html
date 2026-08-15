@@ -16,6 +16,7 @@
     --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
@@ -28,6 +29,7 @@
       --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
       --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
       --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+      --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
       --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
       --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
@@ -38,6 +40,7 @@
     --ink:#eef1f5; --ink-2:#b7bec9; --ink-3:#7c8494;
     --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
     --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
+    --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
     --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
@@ -47,6 +50,7 @@
     --ink:#1a1e27; --ink-2:#4b5262; --ink-3:#7c8494;
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
+    --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
@@ -114,6 +118,8 @@
   .chip.caution{color:var(--caution); background:var(--caution-bg); border-color:var(--caution-bg);} .chip.caution i{background:var(--caution);}
   .chip.critical{color:var(--critical); background:var(--critical-bg); border-color:var(--critical-bg);} .chip.critical i{background:var(--critical);}
   .chip.neutral{color:var(--neutral); background:var(--neutral-bg); border-color:var(--neutral-bg);} .chip.neutral i{background:var(--neutral);}
+  .chip.fg-neutral{color:var(--fg-neutral); background:var(--fg-neutral-bg); border-color:var(--fg-neutral-bg);} .chip.fg-neutral i{background:var(--fg-neutral);}
+  .chip.fg-greed{color:var(--fg-greed); background:var(--fg-greed-bg); border-color:var(--fg-greed-bg);} .chip.fg-greed i{background:var(--fg-greed);}
 
   .controls-row{display:flex; justify-content:flex-end; align-items:center; gap:14px; flex-wrap:wrap;}
   .seg{display:inline-flex; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:5px; box-shadow:var(--shadow);}
@@ -289,7 +295,7 @@
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
-        <p><b>Fear &amp; Greed Index</b> (Kachel "Fear &amp; Greed Index vs. BTC-Kurs") stammt separat von der <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>, ebenfalls kostenlos und nach demselben Live-dann-Snapshot-Muster (<span class="mono" style="font-size:12px;">data/feargreed/latest.json</span>, täglich per GitHub Action aktualisiert). Die Historie beginnt erst am 01.02.2018 — davor zeigt die Linie entsprechend keine Werte. Scheitern Live-Abruf und Snapshot beide, wird die Kachel als "nicht verfügbar" markiert statt den Rest der Seite zu blockieren.</p>
+        <p><b>Fear &amp; Greed Index</b> (Kacheln "Fear &amp; Greed Index" und "BTC-Kurs (Fear &amp; Greed-Zonen)") stammt separat von der <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>, ebenfalls kostenlos und nach demselben Live-dann-Snapshot-Muster (<span class="mono" style="font-size:12px;">data/feargreed/latest.json</span>, täglich per GitHub Action aktualisiert). Die Historie beginnt erst am 01.02.2018 — davor zeigt die Linie entsprechend keine Werte. Scheitern Live-Abruf und Snapshot beide, wird die Kachel als "nicht verfügbar" markiert statt den Rest der Seite zu blockieren.</p>
       </div>
     </details>
 
@@ -756,6 +762,25 @@
     if(v<7) return {label:"Überhitzt", cls:"caution"};
     return {label:"Extrem-Euphorie", cls:"critical"};
   }
+  // Same 5-way bucketing (and boundaries) alternative.me's own site uses for the index - shared as one
+  // source of truth by both the Fear & Greed Index chart's zone bands and the BTC-Kurs chart's
+  // per-segment line coloring below, so the two charts' colors are guaranteed to actually match rather
+  // than needing to be kept in sync by hand.
+  const FEARGREED_ZONES = [
+    {from:0, to:25, label:"Extreme Angst", cls:"critical", color:"var(--critical)", bg:"var(--critical-bg)"},
+    {from:25, to:46, label:"Angst", cls:"caution", color:"var(--caution)", bg:"var(--caution-bg)"},
+    {from:46, to:54, label:"Neutral", cls:"fg-neutral", color:"var(--fg-neutral)", bg:"var(--fg-neutral-bg)"},
+    {from:54, to:75, label:"Gier", cls:"fg-greed", color:"var(--fg-greed)", bg:"var(--fg-greed-bg)"},
+    {from:75, to:100, label:"Extreme Gier", cls:"good", color:"var(--good)", bg:"var(--good-bg)"}
+  ];
+  function fearGreedZone(v){
+    if(v==null || !isFinite(v)) return null;
+    if(v<25) return FEARGREED_ZONES[0];
+    if(v<46) return FEARGREED_ZONES[1];
+    if(v<54) return FEARGREED_ZONES[2];
+    if(v<75) return FEARGREED_ZONES[3];
+    return FEARGREED_ZONES[4];
+  }
 
   // ---------- live value readout (replaces the old floating chart tooltip) ----------
   // Lives in the card header, outside the chart canvas, so it can never overlap the plotted lines.
@@ -1053,6 +1078,41 @@
 
     // series lines
     cfg.series.forEach(s=>{
+      function makePath(d, color){
+        const path = document.createElementNS(NS,"path");
+        path.setAttribute("d", d.trim()); path.setAttribute("fill","none");
+        path.setAttribute("stroke", color); path.setAttribute("stroke-width", s.width||1.8);
+        if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
+        path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
+        path.setAttribute("vector-effect","non-scaling-stroke");
+        zoomG.appendChild(path);
+      }
+      if(s.colorAt){
+        // Multi-color line (e.g. BTC-Kurs colored by the Fear & Greed zone at each date): one <path>
+        // per contiguous same-color run instead of one path for the whole series, so the stroke's
+        // color can change along its length - each new run starts from the previous run's own last
+        // point (shared vertex, drawn twice) so the color handoff has no visual gap between segments.
+        let segStart = -1, segColor = null;
+        const flushTo = end=>{
+          if(segStart<0 || end<segStart || segColor==null) return;
+          let d = "";
+          for(let k=segStart;k<=end;k++){
+            const v = s.values[k];
+            if(v==null || !isFinite(v)) continue;
+            d += (d===""?"M":"L") + xOf(k).toFixed(1) + "," + yOf(v).toFixed(1) + " ";
+          }
+          if(d) makePath(d, segColor);
+        };
+        for(let i=0;i<n;i++){
+          const v = s.values[i];
+          if(v==null || !isFinite(v)){ flushTo(i-1); segStart=-1; segColor=null; continue; }
+          const c = s.colorAt(i) || s.color;
+          if(segStart<0){ segStart=i; segColor=c; }
+          else if(c !== segColor){ flushTo(i); segStart=i; segColor=c; }
+        }
+        flushTo(n-1);
+        return;
+      }
       let d = "", started = false;
       for(let i=0;i<n;i++){
         const v = s.values[i];
@@ -1061,13 +1121,7 @@
         d += (started?"L":"M") + x.toFixed(1) + "," + y.toFixed(1) + " ";
         started = true;
       }
-      const path = document.createElementNS(NS,"path");
-      path.setAttribute("d", d.trim()); path.setAttribute("fill","none");
-      path.setAttribute("stroke", s.color); path.setAttribute("stroke-width", s.width||1.8);
-      if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
-      path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
-      path.setAttribute("vector-effect","non-scaling-stroke");
-      zoomG.appendChild(path);
+      makePath(d, s.color);
     });
 
     // x-axis date labels (fewer ticks on narrow screens - the larger legible font size from
@@ -1478,16 +1532,31 @@
       }
     },
     {
-      title:"Fear & Greed Index vs. BTC-Kurs", desc:"Der Crypto Fear & Greed Index (alternative.me) fasst Marktstimmung aus Volatilität, Momentum, Social-Media-Aktivität, Umfragen, Marktdominanz und Suchtrends zu einem Wert von 0 (Extreme Angst) bis 100 (Extreme Gier) zusammen. Historisch fielen extreme Angst-Phasen eher mit Markttiefs zusammen, extreme Gier-Phasen eher mit überhitzten Hochs — ein Kontraindikator, kein eigenständiges Timing-Signal. Daten verfügbar seit Februar 2018, entsprechend beginnt die Linie in der Gesamt-Historie erst dort. Beide Linien normalisiert (0–100 %).",
+      title:"Fear & Greed Index", desc:"Der Crypto Fear & Greed Index (alternative.me) fasst Marktstimmung aus Volatilität, Momentum, Social-Media-Aktivität, Umfragen, Marktdominanz und Suchtrends zu einem Wert von 0 (Extreme Angst) bis 100 (Extreme Gier) zusammen. Historisch fielen extreme Angst-Phasen eher mit Markttiefs zusammen, extreme Gier-Phasen eher mit überhitzten Hochs — ein Kontraindikator, kein eigenständiges Timing-Signal. Daten verfügbar seit Februar 2018, entsprechend beginnt die Linie in der Gesamt-Historie erst dort.",
       requires:"hasFearGreed",
       unavailableNote:"Braucht den Crypto Fear & Greed Index von alternative.me — Live-Abruf und Snapshot sind derzeit beide nicht erreichbar.",
+      zone(){ return fearGreedZone(lastVal(FULL.feargreed)); },
       build(view){
-        const series = [
-          {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
-          {key:"feargreed", label:"Fear & Greed", color:"var(--c-feargreed)", values:normalize(view.feargreed), tooltipValues:view.feargreed, width:1.4, fmt:v=>v.toFixed(0)}
-        ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
-        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return buildLineChart({
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
+          series:[{key:"feargreed", label:"Fear & Greed", color:"var(--c-feargreed)", values:view.feargreed, width:1.6, fmt:v=>v.toFixed(0)}],
+          axisFmt:v=>v.toFixed(0), yMin:0, yMax:100,
+          zoneBands: FEARGREED_ZONES.map(z=>({from:z.from, to:z.to, color:z.bg, dotColor:z.color, label:z.label}))
+        });
+      }
+    },
+    {
+      title:"BTC-Kurs (Fear & Greed-Zonen)", desc:"Der BTC-Kurs, eingefärbt nach der jeweils an diesem Tag herrschenden Fear & Greed-Zone (siehe Chart oben) — macht auf einen Blick sichtbar, in welchen Marktphasen historisch Angst bzw. Gier vorherrschte. Vor Februar 2018 (Start der Fear & Greed-Daten) bleibt die Linie in der neutralen BTC-Kurs-Farbe. Standardmäßig log-skaliert, da der Kurs seit 2010 um mehrere Größenordnungen gewachsen ist.",
+      requires:"hasFearGreed",
+      unavailableNote:"Braucht den Crypto Fear & Greed Index von alternative.me — Live-Abruf und Snapshot sind derzeit beide nicht erreichbar.",
+      scaleToggle:{get:()=>logScale, set:v=>{logScale=v;}},
+      build(view){
+        const built = buildLineChart({
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale,
+          series:[{key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.6, fmt:fmtUSD,
+            colorAt:i=>{ const z = fearGreedZone(view.feargreed[i]); return z ? z.color : null; }}]
+        });
+        built.zoneLegend = FEARGREED_ZONES.map(z=>({label:z.label, color:z.color}));
         return built;
       }
     }
