@@ -1738,6 +1738,30 @@
   const ZOOM_DURATION_MS = 570;
   const zoomEase = cubicBezier(0.22, 0.61, 0.36, 1);
 
+  // Animates a group's transform between two matrices via its own rAF loop, writing `transform`
+  // directly every frame instead of setting a target value and relying on the CSS class's
+  // `transition` to animate the change. Needed because `prefers-reduced-motion: reduce` forces
+  // `transition:none !important` globally (see stylesheet), which silently turns a CSS-transition-
+  // based change into an instant snap - the same reason morphLogLinear above drives its own loop
+  // rather than touching a CSS transition.
+  function animateMatrix(group, from, to, myGen, onDone){
+    group.style.transition = "none";
+    const start = performance.now();
+    function frame(now){
+      if(myGen !== zoomGen){ if(onDone) onDone(); return; }
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      const a = from.a + (to.a-from.a)*eased;
+      const d = from.d + (to.d-from.d)*eased;
+      const e = from.e + (to.e-from.e)*eased;
+      const f = from.f + (to.f-from.f)*eased;
+      group.style.transform = `matrix(${a},0,0,${d},${e},${f})`;
+      if(raw < 1) requestAnimationFrame(frame);
+      else if(onDone) onDone();
+    }
+    requestAnimationFrame(frame);
+  }
+
   // The axis's screen position never moves (see buildLineChart's comments on the gridline loop), but
   // per explicit request the VALUE each fixed-position y-axis label shows should still count smoothly
   // from its old reading to its new one rather than snapping - a CSS transition can't animate text
@@ -1859,19 +1883,11 @@
     newGroup.style.opacity = "0";
 
     const endMatrix = computeZoomMatrix(newDomain, oldDomain);
-    oldGroup.style.transition = "none";
-    oldGroup.style.transform = "matrix(1,0,0,1,0,0)";
-    oldGroup.getBoundingClientRect();
-    requestAnimationFrame(()=> requestAnimationFrame(()=>{
-      if(myGen !== zoomGen){ oldSvgClone.remove(); newGroup.style.opacity = ""; return; }
-      oldGroup.style.transition = "";
-      oldGroup.style.transform = `matrix(${endMatrix.a},0,0,${endMatrix.d},${endMatrix.e},${endMatrix.f})`;
-    }));
-    setTimeout(()=>{
-      if(myGen !== zoomGen) return; // a newer transition already handled its own cleanup
+    const identity = {a:1, d:1, e:0, f:0};
+    animateMatrix(oldGroup, identity, endMatrix, myGen, ()=>{
       oldSvgClone.remove();
       newGroup.style.opacity = "";
-    }, ZOOM_DURATION_MS + 40);
+    });
     return true;
   }
 
@@ -1986,14 +2002,8 @@
       }
 
       const m = computeZoomMatrix(oldDomain, newDomain);
-      group.style.transition = "none";
-      group.style.transform = `matrix(${m.a},0,0,${m.d},${m.e},${m.f})`;
-      group.getBoundingClientRect();
-      requestAnimationFrame(()=> requestAnimationFrame(()=>{
-        if(myGen !== zoomGen) return;
-        group.style.transition = "";
-        group.style.transform = "";
-      }));
+      const identity = {a:1, d:1, e:0, f:0};
+      animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; });
       animateAxisLabelValues(wrap, oldDomain, newDomain);
     });
   }
