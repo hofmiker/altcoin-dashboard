@@ -112,6 +112,20 @@
   .stat .value{font-family:var(--font-display); font-size:26px; font-weight:700; margin-top:7px; font-variant-numeric:tabular-nums;}
   .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.4;}
 
+  .strip.gauges{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+  .gauge-card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px 14px;
+    box-shadow:var(--shadow); min-width:0; display:flex; flex-direction:column; align-items:center; text-align:center;
+  }
+  .gauge-card-head{
+    display:flex; align-items:center; gap:5px; align-self:flex-start; font-size:11px; font-weight:700;
+    color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em;
+  }
+  .gauge-svg{width:100%; max-width:210px; height:auto; margin:4px 0 0;}
+  .gauge-value-row{display:flex; align-items:center; gap:8px; margin-top:2px;}
+  .gauge-value{font-family:var(--font-display); font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .gauge-unavailable{color:var(--ink-3); font-size:12.5px; padding:24px 4px 6px; line-height:1.4;}
+
   .chip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:5px 10px 5px 8px; border-radius:100px; border:1px solid transparent;}
   .chip i{width:7px; height:7px; border-radius:50%; display:inline-block;}
   .chip.good{color:var(--good); background:var(--good-bg); border-color:var(--good-bg);} .chip.good i{background:var(--good);}
@@ -139,6 +153,13 @@
   }
   .today-jump-btn:hover:not(:disabled){color:var(--ink); border-color:var(--ink-3);}
   .today-jump-btn:disabled{opacity:.35; cursor:default;}
+  .halving-toggle-btn{
+    font:inherit; font-family:var(--font-display); font-size:11px; font-weight:600; padding:8px 11px;
+    border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--ink-2); cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease; flex:none; white-space:nowrap;
+  }
+  .halving-toggle-btn:hover{color:var(--ink); border-color:var(--ink-3);}
+  .halving-toggle-btn.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
@@ -212,8 +233,11 @@
   .overlay-toggle-chip.active i{background:var(--chip-color);}
 
   .zone-legend{display:flex; flex-wrap:wrap; gap:5px 14px; font-size:11.5px; color:var(--ink-3); margin:2px 0 8px;}
-  .zone-legend-item{display:inline-flex; align-items:center; gap:5px;}
+  .zone-legend-item{display:inline-flex; align-items:center; gap:5px; transition:opacity .15s ease;}
   .zone-legend-dot{width:8px; height:8px; border-radius:50%; flex:none; display:inline-block;}
+  .zone-legend-item.active{color:var(--ink); font-weight:700;}
+  .zone-legend-item.active .zone-legend-dot{width:9px; height:9px;}
+  .zone-legend-item.inactive{opacity:.4;}
 
   footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
   footer a{color:var(--accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
@@ -261,6 +285,8 @@
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
 
     <section class="strip" id="statStrip"></section>
+
+    <section class="strip gauges" id="gaugeStrip"></section>
 
     <section class="panel hero-panel" id="heroPanel">
       <div class="hero-head">
@@ -342,6 +368,9 @@
   let panOffsetDays = 0;
   let logScale = true;
   let mvrvScale = true;
+  // Off by default - opt-in via the "Halvings" toggle rendered into every chart's toolbar (see
+  // buildRangeSeg), shared across every chart at once like rangeDays itself.
+  let showHalvings = false;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
   // Persists which date each chart's crosshair/hover-dots are parked on, across the full DOM rebuild
@@ -782,6 +811,124 @@
     return FEARGREED_ZONES[4];
   }
 
+  // Composite "Marktstimmung" gauge zones - the exact same 5-stop palette and boundaries as
+  // FEARGREED_ZONES (same widget, same visual language), but mirrored left-to-right: unlike the Fear &
+  // Greed Index's own colloquial "red=bad mood/fear, green=good mood/greed" convention, every other
+  // on-chain zone in this app (MVRV, NUPL, Z-Score) already colors LOW/cheap green and HIGH/euphoric
+  // red - since this gauge's value is built from exactly those metrics, it follows their convention
+  // instead of the Fear & Greed Index's.
+  const MOOD_ZONES = [
+    {from:0, to:25, label:"Extrem günstig", cls:"good", color:"var(--good)"},
+    {from:25, to:46, label:"Günstig", cls:"fg-greed", color:"var(--fg-greed)"},
+    {from:46, to:54, label:"Neutral", cls:"fg-neutral", color:"var(--fg-neutral)"},
+    {from:54, to:75, label:"Teuer", cls:"caution", color:"var(--caution)"},
+    {from:75, to:100, label:"Euphorie", cls:"critical", color:"var(--critical)"}
+  ];
+  function moodZone(v){
+    if(v==null || !isFinite(v)) return null;
+    if(v<25) return MOOD_ZONES[0];
+    if(v<46) return MOOD_ZONES[1];
+    if(v<54) return MOOD_ZONES[2];
+    if(v<75) return MOOD_ZONES[3];
+    return MOOD_ZONES[4];
+  }
+  // Averages whichever of {MVRV-Perzentil, NUPL, Z-Score} are actually available, each rescaled to its
+  // own typical historical range so all three land on a comparable 0-100 footing before averaging -
+  // rather than fail the whole gauge whenever one input (currently Z-Score, gated behind Coin Metrics
+  // fields this API key doesn't unlock) happens to be missing.
+  function computeMarketMoodScore(){
+    const parts = [];
+    const mp = lastVal(FULL.mvrvPercentile);
+    if(mp!=null && isFinite(mp)) parts.push(mp);
+    const nupl = lastVal(FULL.nupl);
+    if(nupl!=null && isFinite(nupl)) parts.push(Math.max(0, Math.min(100, (nupl+0.5)/1.5*100)));
+    if(FULL.hasZScore){
+      const z = lastVal(FULL.zscore);
+      if(z!=null && isFinite(z)) parts.push(Math.max(0, Math.min(100, (z+2)/11*100)));
+    }
+    if(!parts.length) return null;
+    return parts.reduce((a,b)=>a+b, 0) / parts.length;
+  }
+
+  // ---------- gauges (semicircular needle dial, shared by Marktstimmung + Fear & Greed) ----------
+  function polarPoint(cx, cy, r, thetaDeg){
+    const t = thetaDeg * Math.PI/180;
+    return {x: cx + r*Math.cos(t), y: cy - r*Math.sin(t)};
+  }
+  // A single colored ring slice spanning [valFrom,valTo] (both 0-100) of the gauge's semicircle -
+  // value 0 is the leftmost point, 100 the rightmost, mirroring how the needle itself is angled below.
+  function gaugeRingSegment(cx, cy, rOuter, rInner, valFrom, valTo){
+    const thetaStart = 180*(1-valFrom/100), thetaEnd = 180*(1-valTo/100);
+    const oStart = polarPoint(cx,cy,rOuter,thetaStart), oEnd = polarPoint(cx,cy,rOuter,thetaEnd);
+    const iEnd = polarPoint(cx,cy,rInner,thetaEnd), iStart = polarPoint(cx,cy,rInner,thetaStart);
+    return `M ${oStart.x.toFixed(2)},${oStart.y.toFixed(2)} A ${rOuter},${rOuter} 0 0 1 ${oEnd.x.toFixed(2)},${oEnd.y.toFixed(2)} `+
+           `L ${iEnd.x.toFixed(2)},${iEnd.y.toFixed(2)} A ${rInner},${rInner} 0 0 0 ${iStart.x.toFixed(2)},${iStart.y.toFixed(2)} Z`;
+  }
+  function buildGauge(cfg){
+    const card = document.createElement("div");
+    card.className = "gauge-card";
+    const head = document.createElement("div");
+    head.className = "gauge-card-head";
+    head.innerHTML = `<span>${cfg.title}</span>`;
+    card.appendChild(head);
+    if(cfg.infoText) attachInfo(head, cfg.infoText);
+
+    if(cfg.value==null){
+      const na = document.createElement("div");
+      na.className = "gauge-unavailable";
+      na.textContent = cfg.unavailableNote || "Nicht verfügbar";
+      card.appendChild(na);
+      return card;
+    }
+
+    const v = Math.max(0, Math.min(100, cfg.value));
+    const cx=100, cy=98, rOuter=90, rInner=60, needleLen=54;
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox","0 0 200 110");
+    svg.setAttribute("class","gauge-svg");
+    cfg.zones.forEach(z=>{
+      const path = document.createElementNS(NS,"path");
+      path.setAttribute("d", gaugeRingSegment(cx,cy,rOuter,rInner,z.from,z.to));
+      path.setAttribute("fill", z.color);
+      svg.appendChild(path);
+    });
+    const theta = 180*(1-v/100);
+    const tip = polarPoint(cx,cy,needleLen,theta);
+    const needle = document.createElementNS(NS,"line");
+    needle.setAttribute("x1",cx); needle.setAttribute("y1",cy);
+    needle.setAttribute("x2",tip.x.toFixed(2)); needle.setAttribute("y2",tip.y.toFixed(2));
+    needle.setAttribute("stroke","var(--ink)"); needle.setAttribute("stroke-width","3.5");
+    needle.setAttribute("stroke-linecap","round");
+    svg.appendChild(needle);
+    const hub = document.createElementNS(NS,"circle");
+    hub.setAttribute("cx",cx); hub.setAttribute("cy",cy); hub.setAttribute("r","6");
+    hub.setAttribute("fill","var(--ink)");
+    svg.appendChild(hub);
+    card.appendChild(svg);
+
+    const zone = cfg.zones.find(z=> v>=z.from && (v<z.to || z.to===100));
+    const valueRow = document.createElement("div");
+    valueRow.className = "gauge-value-row";
+    valueRow.innerHTML = `<span class="gauge-value mono">${Math.round(v)}</span>`+
+      (zone ? `<span class="chip ${zone.cls}"><i></i>${zone.label}</span>` : "");
+    card.appendChild(valueRow);
+    return card;
+  }
+  function renderGauges(){
+    const host = document.getElementById("gaugeStrip");
+    host.innerHTML = "";
+    host.appendChild(buildGauge({
+      title:"Marktstimmung", value: computeMarketMoodScore(), zones: MOOD_ZONES,
+      infoText:"Durchschnitt aus MVRV-Perzentil, NUPL und (falls verfügbar) Z-Score, jeweils auf einen vergleichbaren 0-100-Bereich skaliert. Ein eigener, transparenter Näherungswert dieses Dashboards, keine etablierte Kennzahl.",
+      unavailableNote:"Braucht mindestens MVRV-Perzentil oder NUPL."
+    }));
+    host.appendChild(buildGauge({
+      title:"Fear & Greed", value: FULL.hasFearGreed ? lastVal(FULL.feargreed) : null, zones: FEARGREED_ZONES,
+      infoText:"Der Crypto Fear & Greed Index von alternative.me, siehe Kachel unten für den Verlauf.",
+      unavailableNote:"Braucht den Crypto Fear & Greed Index von alternative.me — Live-Abruf und Snapshot sind derzeit beide nicht erreichbar."
+    }));
+  }
+
   // ---------- live value readout (replaces the old floating chart tooltip) ----------
   // Lives in the card header, outside the chart canvas, so it can never overlap the plotted lines.
   // Defaults to the latest value; while hovering the chart it live-updates to the hovered date.
@@ -931,13 +1078,20 @@
       rect.setAttribute("x",padL); rect.setAttribute("y", Math.min(yTop,yBot));
       rect.setAttribute("width", w-padL-padR); rect.setAttribute("height", Math.abs(yBot-yTop));
       rect.setAttribute("fill", z.color);
+      // When the caller names the currently active zone (see cfg.activeZoneLabel below), fade every
+      // OTHER band out instead - the reader's eye should land on where "now" actually is, not have to
+      // cross-reference a separate badge against five similarly-pale tints.
+      if(cfg.activeZoneLabel) rect.setAttribute("opacity", z.label===cfg.activeZoneLabel ? "1" : "0.3");
       svg.appendChild(rect);
     });
     // The tint alone (esp. the two/three adjacent similarly-pale bands) doesn't read as anything
     // specific on its own - collected here so the caller can render a small dot+label legend next to
     // the chart, the same way the band-boundary series chart's own readout row already names each of
     // its bands.
-    const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({label:z.label, color:z.dotColor||z.color}));
+    const zoneLegend = (cfg.zoneBands||[]).filter(z=>z.label).map(z=>({
+      label:z.label, color:z.dotColor||z.color,
+      active: cfg.activeZoneLabel ? (z.label===cfg.activeZoneLabel) : null
+    }));
 
     // gridlines + y labels - deliberately appended directly to the svg, NOT into zoomG: their
     // positions (padL / w-padR / the 5 evenly-spaced heights) never depend on n, min or max, only on
@@ -994,7 +1148,9 @@
     // Appended to svg, not zoomG: text must never be visually scaled/stretched by the zoom transform
     // (only the plotted line/band content should stretch), so both the line and its label render at
     // their final position immediately rather than participating in the animation.
-    (cfg.vLines||[]).forEach(v=>{
+    // Halving markers are opt-in globally (see showHalvings/buildRangeSeg) and apply the same way to
+    // every chart; any vLines a chart config passes explicitly still render regardless of that toggle.
+    (showHalvings ? HALVING_DATES.concat(cfg.vLines||[]) : (cfg.vLines||[])).forEach(v=>{
       if(v.date < cfg.dates[0] || v.date > cfg.dates[n-1]) return;
       const idx = cfg.dates.findIndex(d=> d >= v.date);
       if(idx<0) return;
@@ -1323,6 +1479,19 @@
       renderAllZoom();
     });
     group.appendChild(jumpBtn);
+    // Halving markers, off by default - shared across every chart (like rangeDays/panOffsetDays), so
+    // toggling it anywhere applies everywhere at once. A visibility change, not a domain change, so it
+    // snaps (renderAll) rather than animating like a range/scale change would.
+    const halvingBtn = document.createElement("button");
+    halvingBtn.type = "button";
+    halvingBtn.className = "halving-toggle-btn" + (showHalvings ? " active" : "");
+    halvingBtn.title = "Halving-Linien ein-/ausblenden";
+    halvingBtn.textContent = "Halvings";
+    halvingBtn.addEventListener("click", ()=>{
+      showHalvings = !showHalvings;
+      renderAll();
+    });
+    group.appendChild(halvingBtn);
     return group;
   }
 
@@ -1372,14 +1541,15 @@
       }
     },
     {
-      title:"MVRV-Perzentil", desc:"Wo die aktuelle MVRV-Ratio im Vergleich zu ihrer gesamten bisherigen Historie steht, als Perzentilrang von 0–100 %: 0 % = die günstigste je gemessene Bewertung, 100 % = die teuerste. Die Hintergrundfarben entsprechen den Zonen der MVRV Quantile Bands oben (rot = Euphorie, orange = Teuer, neutral = Fair Value, grün = Günstig, türkis = Fire Sale) und machen dieselbe Einordnung unabhängig von der absoluten MVRV-Skala direkt ablesbar.",
-      zone(){ return mvrvZoneForCurrent(); },
+      title:"MVRV-Perzentil", desc:"Wo die aktuelle MVRV-Ratio im Vergleich zu ihrer gesamten bisherigen Historie steht, als Perzentilrang von 0–100 %: 0 % = die günstigste je gemessene Bewertung, 100 % = die teuerste. Die Hintergrundfarben entsprechen den Zonen der MVRV Quantile Bands oben (rot = Euphorie, orange = Teuer, neutral = Fair Value, grün = Günstig, türkis = Fire Sale) und machen dieselbe Einordnung unabhängig von der absoluten MVRV-Skala direkt ablesbar. Die aktuelle Zone ist unten in der Legende hervorgehoben.",
       build(view){
+        const cz = mvrvZoneForCurrent();
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"mvrvPercentile", label:"MVRV-Perzentil", color:"var(--c-mvrv)", values:view.mvrvPercentile, width:1.6, fmt:v=>v.toFixed(0)+"%"}],
           axisFmt:v=>v.toFixed(0)+"%",
           yMin:0, yMax:100,
+          activeZoneLabel: cz ? cz.label : null,
           zoneBands:[
             {from:95, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Euphorie"},
             {from:75, to:95, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Teuer"},
@@ -1404,12 +1574,13 @@
       }
     },
     {
-      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn (= 1 − 1/MVRV). Negative/niedrige Werte zeigen kollektive Verlustphasen (Kapitulation), sehr hohe Werte kollektive Gewinneuphorie — historisch die Extremzonen an Markttiefs und -hochs.",
-      zone(){ return nuplZone(lastVal(FULL.nupl)); },
+      title:"NUPL — Net Unrealized Profit/Loss", desc:"Anteil des Netzwerks im nicht realisierten Gewinn (= 1 − 1/MVRV). Negative/niedrige Werte zeigen kollektive Verlustphasen (Kapitulation), sehr hohe Werte kollektive Gewinneuphorie — historisch die Extremzonen an Markttiefs und -hochs. Die aktuelle Zone ist unten in der Legende hervorgehoben.",
       build(view){
+        const cz = nuplZone(lastVal(FULL.nupl));
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
+          activeZoneLabel: cz && cz.label!=="–" ? cz.label : null,
           zoneBands:[
             {from:-Infinity, to:0, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Kapitulation"},
             {from:0, to:0.25, color:"var(--caution-bg)", dotColor:"var(--caution)", label:"Hoffnung/Angst"},
@@ -1452,15 +1623,14 @@
       }
     },
     {
-      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (gestrichelte vertikale Linien) und nähert sich langfristig 0 %.",
+      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (per Toolbar-Button als gestrichelte vertikale Linien einblendbar) und nähert sich langfristig 0 %.",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
-          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}],
-          vLines: HALVING_DATES
+          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
         });
       }
     },
@@ -1627,30 +1797,12 @@
     host.innerHTML = "";
     const grid = document.createElement("div");
     grid.className = "grid";
-    // Available tiles first, unavailable ones pushed to the bottom (stable sort keeps each
-    // group's original relative order intact).
-    const orderedTiles = TILES.slice().sort((a,b)=>{
-      const av = tileIsAvailable(a), bv = tileIsAvailable(b);
-      return av===bv ? 0 : av ? -1 : 1;
-    });
-    orderedTiles.forEach(tile=>{
+    // Tiles whose underlying data isn't available at all (e.g. metrics the current API credentials
+    // don't unlock) are dropped from the grid entirely rather than shown as an inert "nicht verfügbar"
+    // placeholder card - if it can never show anything, it's just clutter, not information.
+    TILES.filter(tileIsAvailable).forEach(tile=>{
       const card = document.createElement("div");
       card.className = "card";
-
-      if(!tileIsAvailable(tile)){
-        const head = document.createElement("div");
-        head.className = "card-head";
-        head.innerHTML = `
-          <div class="card-title-block">
-            <div class="ticker-row"><span class="ticker">${tile.title}</span></div>
-          </div>
-          <span class="chip neutral"><i></i>Nicht verfügbar</span>
-        `;
-        card.appendChild(head);
-        attachInfo(head.querySelector(".ticker-row"), tile.unavailableNote || "Die dafür nötigen Rohdaten sind mit den aktuellen API-Zugangsdaten nicht verfügbar.");
-        grid.appendChild(card);
-        return;
-      }
 
       const zone = tile.zone ? tile.zone() : null;
       const head = document.createElement("div");
@@ -1672,9 +1824,10 @@
       if(built.zoneLegend && built.zoneLegend.length){
         const legend = document.createElement("div");
         legend.className = "zone-legend";
-        legend.innerHTML = built.zoneLegend.map(z=>
-          `<span class="zone-legend-item"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`
-        ).join("");
+        legend.innerHTML = built.zoneLegend.map(z=>{
+          const cls = z.active===true ? " active" : z.active===false ? " inactive" : "";
+          return `<span class="zone-legend-item${cls}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`;
+        }).join("");
         card.appendChild(legend);
       }
 
@@ -1813,6 +1966,7 @@
   function renderAllImmediate(){
     const view = sliceRange(FULL, rangeDays, panOffsetDays);
     renderStatStrip();
+    renderGauges();
     renderHero(view);
     if(mode === "tiles") renderTiles(view); else renderOverlay(view);
     fitChartTypography();
