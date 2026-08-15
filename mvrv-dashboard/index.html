@@ -1676,6 +1676,64 @@
     return {a, d, e, f};
   }
 
+  // Zooming IN (newDomain covers fewer points than oldDomain) can't be animated the same way as
+  // zooming out. Every range is a trailing suffix of the same series, so a wider new range's data is a
+  // strict superset of the old one's - compressing that freshly-built (already-complete) content down
+  // to its starting position naturally fills the whole frame, then grows outward. A narrower new range
+  // is the opposite: its data is a strict subset, missing everything outside the new window entirely -
+  // there is nothing to paint there, so starting from the freshly-built narrow content alone leaves a
+  // hard-edged blank gap where the wider context used to be, instead of a smooth zoom.
+  //
+  // Fixed by animating the OLD content instead for that case: it's already fully drawn (every pixel
+  // that was on screen a moment ago), so scaling *it* to bring the target sub-region up to fill the
+  // frame has no missing-data problem - the excess just slides/scales past the fixed clip-path edges,
+  // exactly like a real camera zoom. The freshly-built final (narrow) content is built and kept ready
+  // but hidden, then swapped in the instant that illusion finishes, so the swap itself is invisible.
+  //
+  // computeZoomMatrix(lookLike, builtUnder) already generalizes to this: normally called as
+  // computeZoomMatrix(oldDomain, newDomain) to make new-built content look like old. Calling it as
+  // computeZoomMatrix(newDomain, oldDomain) instead - same function, arguments swapped - makes
+  // old-built content look like new: exactly the end state this animation needs.
+  function animateZoomInWithOldContent(wrap, oldSvgClone, newGroup, oldDomain, newDomain, myGen){
+    const oldGroup = oldSvgClone.querySelector(".zoom-content");
+    if(!oldGroup) return false;
+
+    // The freshly-built new svg (already in the live DOM at this point) already shows its own, correct
+    // "frame" - zone bands, gridlines, axis labels, ref/halving lines, x-axis dates - none of which
+    // move during a zoom anyway. Hide everything in the clone except its data (defs + the clip-path
+    // wrapper around .zoom-content), so the overlay contributes only the animating line/fill content
+    // instead of a second, slightly-different copy of the frame doubled up on top of the real one.
+    [...oldSvgClone.children].forEach(child=>{
+      if(child.tagName === "defs") return;
+      if(child.tagName === "g" && child.getAttribute("clip-path")) return;
+      child.style.display = "none";
+    });
+
+    oldSvgClone.style.position = "absolute";
+    oldSvgClone.style.inset = "0";
+    oldSvgClone.style.width = "100%";
+    oldSvgClone.style.height = "100%";
+    oldSvgClone.style.pointerEvents = "none";
+    wrap.appendChild(oldSvgClone);
+    newGroup.style.opacity = "0";
+
+    const endMatrix = computeZoomMatrix(newDomain, oldDomain);
+    oldGroup.style.transition = "none";
+    oldGroup.style.transform = "matrix(1,0,0,1,0,0)";
+    oldGroup.getBoundingClientRect();
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{
+      if(myGen !== zoomGen){ oldSvgClone.remove(); newGroup.style.opacity = ""; return; }
+      oldGroup.style.transition = "";
+      oldGroup.style.transform = `matrix(${endMatrix.a},0,0,${endMatrix.d},${endMatrix.e},${endMatrix.f})`;
+    }));
+    setTimeout(()=>{
+      if(myGen !== zoomGen) return; // a newer transition already handled its own cleanup
+      oldSvgClone.remove();
+      newGroup.style.opacity = "";
+    }, ZOOM_DURATION_MS + 40);
+    return true;
+  }
+
   // Used only by the range selector and the two log/linear scale toggles (renderAllZoom, below).
   // Rebuilds happen synchronously and immediately - never hidden, never mid-transition when a second
   // click lands - so there's no gap for a stale callback to clobber newer content in. Only the final
@@ -1692,6 +1750,13 @@
     // renderAllImmediate() call right below, so without copying, prevDomains would end up pointing at
     // the same object and "the old state" would already have been overwritten with the new one.
     const prevDomains = {...chartDomains};
+    // Snapshot each chart's current (about to be replaced) svg before renderAllImmediate() wipes it -
+    // only used for zoom-IN transitions, see animateZoomInWithOldContent() above.
+    const oldSvgClones = {};
+    document.querySelectorAll("[data-zoom-key]").forEach(wrap=>{
+      const svg = wrap.querySelector("svg");
+      if(svg) oldSvgClones[wrap.dataset.zoomKey] = svg.cloneNode(true);
+    });
     renderAllImmediate();
 
     document.querySelectorAll("[data-zoom-key]").forEach(wrap=>{
@@ -1700,6 +1765,13 @@
       const newDomain = chartDomains[key];
       const group = wrap.querySelector(".zoom-content");
       if(!group || !oldDomain || !newDomain) return;
+
+      if(newDomain.n < oldDomain.n && oldSvgClones[key] &&
+         animateZoomInWithOldContent(wrap, oldSvgClones[key], group, oldDomain, newDomain, myGen)){
+        animateAxisLabelValues(wrap, oldDomain, newDomain);
+        return;
+      }
+
       const m = computeZoomMatrix(oldDomain, newDomain);
       group.style.transition = "none";
       group.style.transform = `matrix(${m.a},0,0,${m.d},${m.e},${m.f})`;
