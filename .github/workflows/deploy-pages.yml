@@ -40,6 +40,12 @@ jobs:
             [ -f "$page" ] || continue
             COUNT=$(git log --follow --oneline -- "$page" 2>/dev/null | wc -l)
             sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/g; s/{{VERSION}}/v$COUNT/g" "$page"
+            # Sidecar JSON next to the page itself, for pages whose own JS re-fetches it at runtime
+            # (cache:"no-store" + a query-string timestamp) to show the deploy date reliably even when
+            # the surrounding HTML document was served from a stale browser/CDN cache - see
+            # mvrv-dashboard/index.html's loadDeployInfo() for the reference implementation. Harmless
+            # for pages that don't fetch it.
+            echo "{\"deployDate\":\"$DEPLOY_DATE\",\"version\":\"v$COUNT\"}" > "$(dirname "$page")/deploy-info.json"
           done
 
           # Landing page also aggregates each other project's own last-updated date and commit count
