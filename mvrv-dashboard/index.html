@@ -123,8 +123,10 @@
   }
   .seg button:hover{color:var(--ink);}
   .seg button.active{background:var(--ink); color:var(--bg);}
+  .seg button:disabled{color:var(--border); cursor:default; pointer-events:none;}
   .seg-sm{background:var(--inset); box-shadow:none; padding:3px;}
   .seg-sm button{font-size:11px; padding:5px 10px; border-radius:7px;}
+  .pan-seg button{font-family:var(--font-body); font-size:14px; padding:5px 11px;}
 
   .card-toolbar{display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;}
 
@@ -317,6 +319,11 @@
   let FULL = null;
   let mode = "tiles";
   let rangeDays = 1825;
+  // How many days back from "today" the current window's right edge is shifted - 0 means the window
+  // ends on the most recent available date (the only state that existed before panning). Reset to 0
+  // whenever rangeDays itself changes, so switching zoom level always starts fresh at "today". Doesn't
+  // apply to rangeDays==="all", which always shows the complete history regardless of this value.
+  let panOffsetDays = 0;
   let logScale = true;
   let mvrvScale = true;
   let areaGradCounter = 0;
@@ -676,22 +683,38 @@
       hasNvt,hasActiveAddr,hasRoi30d,hasRoi1yr,hasActiveSupply1yr,hasFearGreed};
   }
 
-  function sliceRange(d, days){
-    if(days==="all") return d;
-    const cutoff = d.t[d.t.length-1] - days*86400000;
+  // offsetDays shifts the whole window back in time by that many days from "today" - 0 (the default)
+  // keeps the window ending on the most recent available date, same as before panning existed. Panning
+  // only applies within a bounded range; "all" always shows the complete history regardless of offset.
+  // startIdx (the absolute index into FULL.dates/FULL.t this view's first point corresponds to) rides
+  // along on the returned object because computeZoomMatrix() needs it to align two views that don't
+  // necessarily share a "both end today" relationship anymore - see its comment for why.
+  function sliceRange(d, days, offsetDays){
+    offsetDays = offsetDays || 0;
+    if(days==="all") return {...d, startIdx:0};
+    const lastT = d.t[d.t.length-1];
+    const endT = lastT - offsetDays*86400000;
+    let endIdx = d.t.length;
+    if(offsetDays > 0){
+      endIdx = d.t.findIndex(t=> t > endT);
+      if(endIdx < 0) endIdx = d.t.length;
+    }
+    const cutoff = endT - days*86400000;
     let idx = d.t.findIndex(t=> t>=cutoff);
     if(idx<0) idx=0;
-    const s = k=> d[k].slice(idx);
+    if(idx>=endIdx) idx = Math.max(0, endIdx-1); // degenerate window (shouldn't happen given the pan clamp, but stay safe)
+    const s = k=> d[k].slice(idx, endIdx);
     return {
       dates:s("dates"), t:s("t"), price:s("price"), mvrv:s("mvrv"), realizedCap:s("realizedCap"),
       marketCap:s("marketCap"), supply:s("supply"), realizedPrice:s("realizedPrice"), nupl:s("nupl"), zscore:s("zscore"),
       nvt:s("nvt"), activeAddr:s("activeAddr"), roi30d:s("roi30d"), roi1yr:s("roi1yr"), activeSupply1yr:s("activeSupply1yr"), feargreed:s("feargreed"),
       mvrvPercentile:s("mvrvPercentile"),
-      bands:{p05:d.bands.p05.slice(idx), p25:d.bands.p25.slice(idx), p50:d.bands.p50.slice(idx), p75:d.bands.p75.slice(idx), p95:d.bands.p95.slice(idx)},
-      mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx), p25:d.mvrvQuantiles.p25.slice(idx), p50:d.mvrvQuantiles.p50.slice(idx), p75:d.mvrvQuantiles.p75.slice(idx), p95:d.mvrvQuantiles.p95.slice(idx)},
+      bands:{p05:d.bands.p05.slice(idx,endIdx), p25:d.bands.p25.slice(idx,endIdx), p50:d.bands.p50.slice(idx,endIdx), p75:d.bands.p75.slice(idx,endIdx), p95:d.bands.p95.slice(idx,endIdx)},
+      mvrvQuantiles:{p05:d.mvrvQuantiles.p05.slice(idx,endIdx), p25:d.mvrvQuantiles.p25.slice(idx,endIdx), p50:d.mvrvQuantiles.p50.slice(idx,endIdx), p75:d.mvrvQuantiles.p75.slice(idx,endIdx), p95:d.mvrvQuantiles.p95.slice(idx,endIdx)},
       athDrawdown:s("athDrawdown"), supplyGrowth:s("supplyGrowth"),
       hasRealizedCap:d.hasRealizedCap, hasSupply:d.hasSupply, hasMarketCap:d.hasMarketCap, hasZScore:d.hasZScore,
-      hasNvt:d.hasNvt, hasActiveAddr:d.hasActiveAddr, hasRoi30d:d.hasRoi30d, hasRoi1yr:d.hasRoi1yr, hasActiveSupply1yr:d.hasActiveSupply1yr, hasFearGreed:d.hasFearGreed
+      hasNvt:d.hasNvt, hasActiveAddr:d.hasActiveAddr, hasRoi30d:d.hasRoi30d, hasRoi1yr:d.hasRoi1yr, hasActiveSupply1yr:d.hasActiveSupply1yr, hasFearGreed:d.hasFearGreed,
+      startIdx: idx
     };
   }
 
@@ -1104,7 +1127,10 @@
       const found = cfg.dates.indexOf(selectedDate[cfg.zoomKey]);
       if(found >= 0) initialIndex = found;
     }
-    renderAt(initialIndex, initialIndex === n-1);
+    // "Aktuell" should only ever label real, present-day data - a panned-back view's own last point is
+    // still just the latest point *of that window*, not actually today, so it gets its real date instead.
+    const trulyAtToday = cfg.dates[n-1] === FULL.dates[FULL.dates.length-1];
+    renderAt(initialIndex, initialIndex === n-1 && trulyAtToday);
 
     function handleMove(clientX){
       const rect = svg.getBoundingClientRect();
@@ -1113,7 +1139,7 @@
       const svgX = (clientX - rect.left) / scaleX;
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
-      renderAt(i, i === n-1);
+      renderAt(i, i === n-1 && trulyAtToday);
       if(cfg.zoomKey) selectedDate[cfg.zoomKey] = cfg.dates[i];
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
@@ -1123,7 +1149,7 @@
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
     // and, via axisFmt, to smoothly count the y-axis tick labels from their old value to their new one
     // (the labels' fixed screen position never moves; only the number they display does).
-    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt}};
+    return {wrap, readoutEl: readout.el, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -1147,10 +1173,48 @@
       if(opt.value === currentVal) btn.classList.add("active");
       btn.addEventListener("click", ()=>{
         rangeDays = opt.value === "all" ? "all" : parseInt(opt.value, 10);
+        panOffsetDays = 0; // switching zoom level always starts fresh, ending on "today"
         renderAllZoom();
       });
       seg.appendChild(btn);
     });
+    return seg;
+  }
+
+  // ---------- pan controls - move the current range's window earlier/later in time without changing
+  // its width. Disabled entirely for "Alles" (already shows the complete history) and at whichever end
+  // panOffsetDays has reached: "‹" once the window's start already sits at the very first available
+  // data point, "›" once the window is already back at offset 0 (ending "today"). ----------
+  function buildPanSeg(){
+    const seg = document.createElement("div");
+    seg.className = "seg seg-sm pan-seg";
+    seg.setAttribute("role","group"); seg.setAttribute("aria-label","Zeitraum verschieben");
+
+    const prevBtn = document.createElement("button");
+    prevBtn.type = "button"; prevBtn.textContent = "‹"; prevBtn.setAttribute("aria-label","Früherer Zeitraum");
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button"; nextBtn.textContent = "›"; nextBtn.setAttribute("aria-label","Späterer Zeitraum");
+
+    if(rangeDays === "all"){
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+    } else {
+      const currentView = sliceRange(FULL, rangeDays, panOffsetDays);
+      prevBtn.disabled = currentView.startIdx === 0;
+      nextBtn.disabled = panOffsetDays <= 0;
+    }
+
+    prevBtn.addEventListener("click", ()=>{
+      panOffsetDays += rangeDays;
+      renderAllZoom();
+    });
+    nextBtn.addEventListener("click", ()=>{
+      panOffsetDays = Math.max(0, panOffsetDays - rangeDays);
+      renderAllZoom();
+    });
+
+    seg.appendChild(prevBtn);
+    seg.appendChild(nextBtn);
     return seg;
   }
 
@@ -1192,7 +1256,7 @@
       scaleToggle:{get:()=>mvrvScale, set:v=>{mvrvScale=v;}},
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:mvrvScale,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:mvrvScale,
           series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:1.4, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
         });
@@ -1203,7 +1267,7 @@
       zone(){ return mvrvZoneForCurrent(); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"mvrvPercentile", label:"MVRV-Perzentil", color:"var(--c-mvrv)", values:view.mvrvPercentile, width:1.6, fmt:v=>v.toFixed(0)+"%"}],
           axisFmt:v=>v.toFixed(0)+"%",
           yMin:0, yMax:100,
@@ -1225,7 +1289,7 @@
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD, area:true}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:logScale, series:filterVisibleSeries(this.title, series)});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale, series:filterVisibleSeries(this.title, series)});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1235,7 +1299,7 @@
       zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
           refLines:[
             {value:0, label:"Kapitulation", color:"var(--critical)"},
@@ -1251,7 +1315,7 @@
       zone(){ return zscoreZone(lastVal(FULL.zscore)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:1.4, fmt:fmtRatio}],
           refLines:[
             {value:0, label:"neutral", color:"var(--ink-3)"},
@@ -1270,7 +1334,7 @@
           {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:1.4, fmt:fmtUSD},
           {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:1.4, dashed:true, fmt:fmtUSD}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:logScale, series:filterVisibleSeries(this.title, series)});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale, series:filterVisibleSeries(this.title, series)});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1281,7 +1345,7 @@
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"0%", color:"var(--ink-3)"}],
           vLines: HALVING_DATES
@@ -1292,7 +1356,7 @@
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %). Tiefe, lang anhaltende Drawdowns markierten historisch eher Akkumulationsphasen als das Ende eines Aufwärtstrends.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
           series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"ATH", color:"var(--good)"}]
         });
@@ -1307,7 +1371,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"nvt", label:"NVT (Adj.)", color:"var(--c-nvt)", values:normalize(view.nvt), tooltipValues:view.nvt, width:1.4, fmt:fmtRatio}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1321,7 +1385,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeAddr", label:"Aktive Adressen", color:"var(--c-addr)", values:normalize(view.activeAddr), tooltipValues:view.activeAddr, width:1.4, fmt:fmtCount}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1336,7 +1400,7 @@
         ];
         if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctRaw});
         if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctRaw});
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1350,7 +1414,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeSupply1yr", label:"Aktive Supply (1J)", color:"var(--c-actsup)", values:normalize(view.activeSupply1yr), tooltipValues:view.activeSupply1yr, width:1.4, fmt:fmtBTC}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1364,7 +1428,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"feargreed", label:"Fear & Greed", color:"var(--c-feargreed)", values:normalize(view.feargreed), tooltipValues:view.feargreed, width:1.4, fmt:v=>v.toFixed(0)}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1398,6 +1462,7 @@
     chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg());
+    toolbarHost.appendChild(buildPanSeg());
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
@@ -1412,7 +1477,7 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero"});
+    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -1505,6 +1570,7 @@
       toolbar.className = "card-toolbar";
       if(tile.scaleToggle) toolbar.appendChild(buildScaleSeg(tile.scaleToggle.get, tile.scaleToggle.set));
       toolbar.appendChild(buildRangeSeg());
+      toolbar.appendChild(buildPanSeg());
       card.appendChild(toolbar);
 
       grid.appendChild(card);
@@ -1572,7 +1638,7 @@
         dates:view.dates, series, log:false, height:chartHeight(),
         axisFmt: v=> (v*100).toFixed(0)+"%",
         compactReadout: series.length > 3,
-        zoomKey:"overlay"
+        zoomKey:"overlay", startIdx:view.startIdx
       });
       registerZoomChart("overlay", built);
       const readoutRow = document.createElement("div");
@@ -1585,6 +1651,7 @@
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
     toolbar.appendChild(buildRangeSeg());
+    toolbar.appendChild(buildPanSeg());
     panel.appendChild(toolbar);
     host.appendChild(panel);
   }
@@ -1605,7 +1672,7 @@
   }
 
   function renderAllImmediate(){
-    const view = sliceRange(FULL, rangeDays);
+    const view = sliceRange(FULL, rangeDays, panOffsetDays);
     renderStatStrip();
     renderHero(view);
     if(mode === "tiles") renderTiles(view); else renderOverlay(view);
@@ -1694,12 +1761,16 @@
   // transform right after a rebuild, then animated to identity - the chart appears to zoom smoothly
   // from the old view into the new one instead of cutting.
   //
-  // X: every range is a suffix of the same date-ordered series ending "today", so new-index j is the
-  // same real date as old-index (j + oldDomain.n - newDomain.n). That shift is linear in xOf(), so the
-  // formula below holds whether the new window is narrower (zooming in - the shift lands inside the
-  // old view) or wider (zooming out - it extrapolates to a point off-screen past the old view's left
-  // edge, which is exactly the "reveal more history" effect wanted there). Log/linear changes don't
-  // touch n at all, so this naturally resolves to scaleX=1/translateX=0 (no horizontal movement).
+  // X: every view is a contiguous slice of the same underlying date-ordered series, so old-index i and
+  // new-index j land on the same real date exactly when i + oldDomain.startIdx === j + newDomain.startIdx
+  // - i.e. old-index = new-index + shift, where shift = newDomain.startIdx - oldDomain.startIdx. That's
+  // linear in xOf(), so evaluating oldDomain's own mapping at the two ends of newDomain's index range
+  // (0 and newDomain.n-1) gives the two screen positions the new window's own edges would have appeared
+  // at under the old view - which fully determines the affine transform via a 2-point solve, matching
+  // whichever combination of zooming in/out and/or panning is actually happening. Before panning
+  // existed, every view's startIdx implicitly equalled fullLength-n (every window ended "today"), which
+  // collapses this to exactly the simpler one-point version this replaced - so nothing about a plain
+  // zoom in/out changes.
   //
   // Y: yOf() maps a value to a pixel row for a given domain/log setting. Feeding newDomain's own
   // min/max through oldDomain's yOf() gives the two pixel rows the new chart's top/bottom edge would
@@ -1715,10 +1786,11 @@
     if(oldDomain.n > 1 && newDomain.n > 1){
       const PW = w - padL - padR;
       const xOldAt = i => padL + (i/(oldDomain.n-1)) * PW;
-      const shift = oldDomain.n - newDomain.n;
+      const shift = (newDomain.startIdx||0) - (oldDomain.startIdx||0);
       const targetLeftX = xOldAt(shift);
-      a = ((w-padR) - targetLeftX) / ((w-padR) - padL);
-      e = (w-padR) - a*(w-padR);
+      const targetRightX = xOldAt(shift + newDomain.n - 1);
+      a = (targetRightX - targetLeftX) / ((w-padR) - padL);
+      e = targetLeftX - a*padL;
     }
 
     let d = 1, f = 0;
