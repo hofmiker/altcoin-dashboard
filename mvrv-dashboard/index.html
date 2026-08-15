@@ -790,9 +790,6 @@
     clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
     clipPath.appendChild(clipRect);
     defs.appendChild(clipPath);
-    const clipG = document.createElementNS(NS,"g");
-    clipG.setAttribute("clip-path", `url(#${clipId})`);
-    svg.appendChild(clipG);
 
     // Only the genuine data curves - series paths and the band fills between them - live in this one
     // group, so a range or log/linear change can be animated as a single matrix transform on the group
@@ -803,6 +800,12 @@
     // axis label's position never actually depends on the date window or value domain, and text must
     // never be visually stretched by a scale transform, only the plotted line/fill content should be.
     // The crosshair and hit-rect also stay outside it, positioned by JS in the final coordinate system.
+    // clipG/zoomG are deliberately NOT inserted into svg yet - see below, right after the gridlines,
+    // for why: SVG paints children in document order, so appending them here (right after defs, as
+    // this used to do) put every later-appended element - zone bands and, worse, the opaque gridlines -
+    // on top of the data lines instead of behind them, visibly cutting the lines at each gridline.
+    const clipG = document.createElementNS(NS,"g");
+    clipG.setAttribute("clip-path", `url(#${clipId})`);
     const zoomG = document.createElementNS(NS,"g");
     zoomG.setAttribute("class","zoom-content");
     clipG.appendChild(zoomG);
@@ -878,6 +881,11 @@
       lbl.textContent = axisFmt(val);
       svg.appendChild(lbl);
     }
+
+    // Now that the zone bands and gridlines are in place, insert the data-content wrapper - everything
+    // appended to svg from here on (vLines/refLines, x-axis date labels, crosshair, hover markers)
+    // stacks on top of it same as before, but the bands/gridlines above it no longer do.
+    svg.appendChild(clipG);
 
     // band fills (between two named series)
     (cfg.bandFill||[]).forEach(bf=>{
