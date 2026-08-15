@@ -321,6 +321,20 @@
   let mvrvScale = true;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
+  // Persists which date each chart's crosshair/hover-dots are parked on, across the full DOM rebuild
+  // every range/scale/mode change does - keyed by the same zoomKey used for chartDomains, so a chart
+  // that's never been touched still starts at its latest date, and one the reader has already moved
+  // stays exactly where they left it instead of snapping back to "Aktuell" on every rebuild.
+  const selectedDate = {};
+  // Per-tile series visibility, mirroring overlaySel below but scoped to one tile's own chart instead
+  // of the shared overlay - tileSeriesVisible[tileTitle][seriesKey] === false hides that one series
+  // from that one tile. Absent entries default to visible, so tiles/series never need pre-seeding here.
+  const tileSeriesVisible = {};
+  function filterVisibleSeries(tileTitle, series){
+    const vis = tileSeriesVisible[tileTitle];
+    if(!vis) return series;
+    return series.filter(s=> vis[s.key] !== false);
+  }
   const overlaySel = {
     price:true, mvrv:true, nupl:true, zscore:true,
     realizedPrice:false, marketCap:false, realizedCap:false, supplyGrowth:false,
@@ -762,6 +776,10 @@
       wrap.innerHTML = '<div class="chart-empty">Keine Daten im gewählten Zeitraum</div>';
       return {wrap, readoutEl: readout.el, domain:null};
     }
+    if(cfg.series.length === 0){
+      wrap.innerHTML = '<div class="chart-empty">Keine Kennzahl ausgewählt</div>';
+      return {wrap, readoutEl: readout.el, domain:null};
+    }
 
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -1032,12 +1050,13 @@
       svg.appendChild(lbl);
     }
 
-    // crosshair
+    // crosshair - visible by default (not just on hover), parked at the latest date unless the reader
+    // has already moved it on this specific chart (see selectedDate below), in which case it re-appears
+    // wherever they last left it instead of resetting.
     const cross = document.createElementNS(NS,"line");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
     cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1");
     cross.setAttribute("vector-effect","non-scaling-stroke");
-    cross.style.opacity = "0";
     svg.appendChild(cross);
 
     // hover markers - one dot per series, placed at the point where the crosshair meets that
@@ -1050,7 +1069,6 @@
       dot.setAttribute("stroke","var(--card)");
       dot.setAttribute("stroke-width","1.5");
       dot.setAttribute("vector-effect","non-scaling-stroke");
-      dot.style.opacity = "0";
       dot.style.pointerEvents = "none";
       svg.appendChild(dot);
       return dot;
@@ -1078,7 +1096,15 @@
         dot.setAttribute("cy", yOf(v));
       });
     }
-    renderAt(n-1, true);
+    // Restore the last date the reader picked on this chart (by key, across rebuilds) if it's still
+    // within the current view; otherwise (never touched, or that date fell out of the current range)
+    // default to the latest point.
+    let initialIndex = n-1;
+    if(cfg.zoomKey && selectedDate[cfg.zoomKey]){
+      const found = cfg.dates.indexOf(selectedDate[cfg.zoomKey]);
+      if(found >= 0) initialIndex = found;
+    }
+    renderAt(initialIndex, initialIndex === n-1);
 
     function handleMove(clientX){
       const rect = svg.getBoundingClientRect();
@@ -1087,14 +1113,11 @@
       const svgX = (clientX - rect.left) / scaleX;
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
-      cross.style.opacity = "1";
-      markers.forEach(d=> d.style.opacity="1");
-      renderAt(i, false);
+      renderAt(i, i === n-1);
+      if(cfg.zoomKey) selectedDate[cfg.zoomKey] = cfg.dates[i];
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
-    hitRect.addEventListener("mouseleave", ()=>{ cross.style.opacity="0"; markers.forEach(d=> d.style.opacity="0"); renderAt(n-1, true); });
     hitRect.addEventListener("touchmove", e=>{ if(e.touches[0]){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-    hitRect.addEventListener("touchend", ()=>{ cross.style.opacity="0"; markers.forEach(d=> d.style.opacity="0"); renderAt(n-1, true); });
 
     // Domain snapshot used by renderAllZoom() to compute the transform that makes a freshly-rebuilt
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
@@ -1169,7 +1192,7 @@
       scaleToggle:{get:()=>mvrvScale, set:v=>{mvrvScale=v;}},
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:mvrvScale,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:mvrvScale,
           series:[{key:"mvrv", label:"MVRV", color:"var(--c-mvrv)", values:view.mvrv, width:1.4, fmt:fmtRatio}],
           refLines:[{value:1, label:"MVRV = 1", color:"var(--ink-3)"}]
         });
@@ -1180,7 +1203,7 @@
       zone(){ return mvrvZoneForCurrent(); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
           series:[{key:"mvrvPercentile", label:"MVRV-Perzentil", color:"var(--c-mvrv)", values:view.mvrvPercentile, width:1.6, fmt:v=>v.toFixed(0)+"%"}],
           axisFmt:v=>v.toFixed(0)+"%",
           yMin:0, yMax:100,
@@ -1202,7 +1225,9 @@
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD, area:true}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:logScale, series});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:logScale, series:filterVisibleSeries(this.title, series)});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1210,7 +1235,7 @@
       zone(){ return nuplZone(lastVal(FULL.nupl)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
           series:[{key:"nupl", label:"NUPL", color:"var(--c-nupl)", values:view.nupl, width:1.4, fmt:fmtPctFrac}],
           refLines:[
             {value:0, label:"Kapitulation", color:"var(--critical)"},
@@ -1226,7 +1251,7 @@
       zone(){ return zscoreZone(lastVal(FULL.zscore)); },
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
           series:[{key:"zscore", label:"Z-Score", color:"var(--c-zscore)", values:view.zscore, width:1.4, fmt:fmtRatio}],
           refLines:[
             {value:0, label:"neutral", color:"var(--ink-3)"},
@@ -1245,7 +1270,9 @@
           {key:"marketCap", label:"Market Cap", color:"var(--c-mcap)", values:view.marketCap, width:1.4, fmt:fmtUSD},
           {key:"realizedCap", label:"Realized Cap", color:"var(--c-rcap)", values:view.realizedCap, width:1.4, dashed:true, fmt:fmtUSD}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:logScale, series});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:logScale, series:filterVisibleSeries(this.title, series)});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1254,7 +1281,7 @@
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
           series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"0%", color:"var(--ink-3)"}],
           vLines: HALVING_DATES
@@ -1265,7 +1292,7 @@
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %). Tiefe, lang anhaltende Drawdowns markierten historisch eher Akkumulationsphasen als das Ende eines Aufwärtstrends.",
       build(view){
         return buildLineChart({
-          dates:view.dates, height:chartHeight(), log:false,
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false,
           series:[{key:"athDrawdown", label:"Abstand zum ATH", color:"var(--critical)", values:view.athDrawdown, width:1.4, fmt:fmtPctRaw}],
           refLines:[{value:0, label:"ATH", color:"var(--good)"}]
         });
@@ -1280,7 +1307,9 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"nvt", label:"NVT (Adj.)", color:"var(--c-nvt)", values:normalize(view.nvt), tooltipValues:view.nvt, width:1.4, fmt:fmtRatio}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1292,7 +1321,9 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeAddr", label:"Aktive Adressen", color:"var(--c-addr)", values:normalize(view.activeAddr), tooltipValues:view.activeAddr, width:1.4, fmt:fmtCount}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1305,7 +1336,9 @@
         ];
         if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctRaw});
         if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctRaw});
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1317,7 +1350,9 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeSupply1yr", label:"Aktive Supply (1J)", color:"var(--c-actsup)", values:normalize(view.activeSupply1yr), tooltipValues:view.activeSupply1yr, width:1.4, fmt:fmtBTC}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     },
     {
@@ -1329,7 +1364,9 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"feargreed", label:"Fear & Greed", color:"var(--c-feargreed)", values:normalize(view.feargreed), tooltipValues:view.feargreed, width:1.4, fmt:v=>v.toFixed(0)}
         ];
-        return buildLineChart({dates:view.dates, height:chartHeight(), log:false, series, axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
       }
     }
   ];
@@ -1375,7 +1412,7 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true});
+    const built = buildLineChart({dates:view.dates, series, log:logScale, height:chartHeight(), bandFill, compactReadout:true, zoomKey:"hero"});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -1438,6 +1475,30 @@
       registerZoomChart(tile.title, built);
       head.appendChild(built.readoutEl);
       card.appendChild(head);
+
+      // Multi-series tiles get the same show/hide toggle chips as the "Kennzahlen überlagern" panel,
+      // but scoped to just this one tile's own chart via tileSeriesVisible - a single-series tile has
+      // nothing meaningful to toggle, so built.toggleableSeries is only ever set (in TILES' build())
+      // for tiles with more than one series to begin with.
+      if(built.toggleableSeries && built.toggleableSeries.length > 1){
+        const toggleWrap = document.createElement("div");
+        toggleWrap.className = "overlay-toggles tile-toggles";
+        built.toggleableSeries.forEach(s=>{
+          const visible = tileSeriesVisible[tile.title] ? tileSeriesVisible[tile.title][s.key] !== false : true;
+          const lab = document.createElement("label");
+          lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+          lab.style.setProperty("--chip-color", s.color);
+          lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${s.label}`;
+          lab.querySelector("input").addEventListener("change", e=>{
+            if(!tileSeriesVisible[tile.title]) tileSeriesVisible[tile.title] = {};
+            tileSeriesVisible[tile.title][s.key] = e.target.checked;
+            renderAll();
+          });
+          toggleWrap.appendChild(lab);
+        });
+        card.appendChild(toggleWrap);
+      }
+
       card.appendChild(built.wrap);
 
       const toolbar = document.createElement("div");
@@ -1510,7 +1571,8 @@
       const built = buildLineChart({
         dates:view.dates, series, log:false, height:chartHeight(),
         axisFmt: v=> (v*100).toFixed(0)+"%",
-        compactReadout: series.length > 3
+        compactReadout: series.length > 3,
+        zoomKey:"overlay"
       });
       registerZoomChart("overlay", built);
       const readoutRow = document.createElement("div");
