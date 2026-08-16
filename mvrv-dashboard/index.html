@@ -304,7 +304,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v50 · Deployed 16.08.2026 07:51 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v51 · Deployed 16.08.2026 08:10 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -608,6 +608,13 @@
     if(!arr) return null;
     for(let i=arr.length-1;i>=0;i--){ if(arr[i]!=null && isFinite(arr[i])) return arr[i]; }
     return null;
+  }
+
+  // navigator.vibrate is Android-Chrome-only (iOS Safari has no Vibration API at all, and desktop
+  // browsers simply have no hardware to act on it) - a silent no-op everywhere else, so callers never
+  // need their own feature check.
+  function vibrateTick(){
+    if(navigator.vibrate) navigator.vibrate(1);
   }
 
   // ---------- data loading ----------
@@ -1351,23 +1358,30 @@
 
     // Zyklus-Hoch/-Tief flags: for each cycle (the period between one halving and the next, plus the
     // pre-first-halving and current-ongoing cycles), a small flag at that cycle's own high and low
-    // point of whichever metric cfg.cycleFlagsKey names - computed once against the FULL history (not
-    // just the current view) so the same real high/low is found regardless of zoom level, then simply
-    // not drawn if its date falls outside what's currently visible. Tied to the same showHalvings
-    // toggle as the halving lines themselves - both are "Zyklus" markers.
-    if(showHalvings && cfg.cycleFlagsKey && FULL && FULL[cfg.cycleFlagsKey]){
+    // point of whichever metric cfg.cycleFlagsKey names - the DATE of that high/low is always found
+    // against the FULL, un-normalized history (so the same real high/low is found regardless of zoom
+    // level), but its Y position is read from the matching series' own (possibly normalized, for an
+    // overlay-style tile comparing price against a differently-scaled metric) values at that date,
+    // not from the raw FULL value directly - so it lands correctly on whichever y-scale this chart
+    // actually plots that series in. Silently skipped if that series isn't part of the current chart at
+    // all (cycleFlagsKey set but no matching series) or has been toggled off. Tied to the same
+    // showHalvings toggle as the halving lines themselves - both are "Zyklus" markers.
+    const flagSeries = cfg.cycleFlagsKey ? cfg.series.find(s=>s.key===cfg.cycleFlagsKey) : null;
+    if(showHalvings && flagSeries && FULL && FULL[cfg.cycleFlagsKey]){
       cycleExtremes(FULL[cfg.cycleFlagsKey]).forEach(pt=>{
         if(pt.date < cfg.dates[0] || pt.date > cfg.dates[n-1]) return;
         const idx = cfg.dates.indexOf(pt.date);
         if(idx<0) return;
-        const x = xOf(idx), y = yOf(pt.value);
+        const v = flagSeries.values[idx];
+        if(v==null || !isFinite(v)) return;
+        const x = xOf(idx), y = yOf(v);
         if(y==null) return;
         const g = buildFlagMarker(pt.dir, "var(--ink)");
         g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
-        g.dataset.flagDate = pt.date; g.dataset.flagValue = pt.value;
+        g.dataset.flagDate = pt.date; g.dataset.flagValue = v;
         g.style.pointerEvents = "none";
         const title = document.createElementNS(NS,"title");
-        title.textContent = `${pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief"}: ${(cfg.series[0]&&cfg.series[0].fmt||fmtCompact)(pt.value)} am ${pt.date}`;
+        title.textContent = `${pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief"}: ${(flagSeries.fmt||fmtCompact)(pt.value)} am ${pt.date}`;
         g.appendChild(title);
         svg.appendChild(g);
       });
@@ -1532,33 +1546,33 @@
     crossLabel.style.pointerEvents = "none";
     svg.appendChild(crossLabel);
 
-    // "After crosshair" grayed-out overlay - one path per series, redrawn (not just repositioned) on
-    // every renderAt call to retrace only the segment from the crosshair's index to the window's last
-    // point in a muted color, visually marking that portion as "history relative to where you're
-    // looking" the same way the reference design grays out everything past the selected date. Lives
-    // outside zoomG, in the same always-at-rest final coordinates as the crosshair line/dots themselves
-    // (see the note on those above) rather than trying to also animate through a zoom/pan transition.
-    const grayOverlays = cfg.series.map(s=>{
-      const path = document.createElementNS(NS,"path");
-      path.setAttribute("fill","none"); path.setAttribute("stroke","var(--ink-3)");
-      path.setAttribute("stroke-width", s.width||1.8);
-      if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
-      path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
-      path.setAttribute("vector-effect","non-scaling-stroke");
-      path.style.pointerEvents = "none";
-      svg.appendChild(path);
-      return path;
-    });
+    // "After crosshair" veil - a single translucent card-colored rect over the segment from the
+    // crosshair's x to the window's right edge, fading everything underneath it (every series' line,
+    // any area/gradient fill, band fills - all of it at once) toward the background instead of
+    // recoloring any of it, marking that portion as "history relative to where you're looking" the same
+    // way the reference design does but as a genuine opacity reduction rather than a flat gray
+    // recolor. One rect covering the whole plot height is simpler and cheaper than retracing every
+    // series' own path on each move, and naturally already matches the current theme since it just
+    // reuses the card's own background color. Lives outside zoomG, in the same always-at-rest final
+    // coordinates as the crosshair line/dots themselves, rather than trying to also animate through a
+    // zoom/pan transition.
+    const afterVeil = document.createElementNS(NS,"rect");
+    afterVeil.setAttribute("y",padT); afterVeil.setAttribute("height", h-padT-padB);
+    afterVeil.setAttribute("fill","var(--card)"); afterVeil.setAttribute("opacity","0.55");
+    afterVeil.style.pointerEvents = "none";
+    svg.appendChild(afterVeil);
 
     // hover markers - one dot per series, placed at the point where the crosshair meets that
     // series' line. Live outside zoomG (like the crosshair) so they always track the current,
-    // non-animating domain rather than a mid-zoom transform.
+    // non-animating domain rather than a mid-zoom transform. Filled solidly in the series' own color,
+    // with only a thin card-colored ring (not enough to visually compete with the fill) so the dot
+    // still reads clearly against a same-colored line right behind it.
     const markers = cfg.series.map(s=>{
       const dot = document.createElementNS(NS,"circle");
-      dot.setAttribute("r","5.5");
+      dot.setAttribute("r","6.5");
       dot.setAttribute("fill", s.color);
       dot.setAttribute("stroke","var(--card)");
-      dot.setAttribute("stroke-width","2");
+      dot.setAttribute("stroke-width","1.5");
       dot.setAttribute("vector-effect","non-scaling-stroke");
       dot.style.pointerEvents = "none";
       svg.appendChild(dot);
@@ -1601,6 +1615,7 @@
       crossLabel.textContent = isDefault ? "Aktuell" : fmtDateOnly(cfg.dates[i]);
       const values = cfg.series.map(s=> s.tooltipValues ? s.tooltipValues[i] : s.values[i]);
       readout.update(isDefault ? "Aktuell" : cfg.dates[i], values, baseValues);
+      afterVeil.setAttribute("x", x); afterVeil.setAttribute("width", Math.max(0, w-padR-x));
       cfg.series.forEach((s,si)=>{
         const v = s.values[i];
         const dot = markers[si];
@@ -1610,15 +1625,6 @@
           dot.setAttribute("cx", x);
           dot.setAttribute("cy", yOf(v));
         }
-        let d = "", started = false;
-        for(let k=i;k<n;k++){
-          const vv = s.values[k];
-          if(vv==null || !isFinite(vv)){ started=false; continue; }
-          const xx=xOf(k), yy=yOf(vv);
-          d += (started?"L":"M") + xx.toFixed(1) + "," + yy.toFixed(1) + " ";
-          started = true;
-        }
-        grayOverlays[si].setAttribute("d", d.trim());
       });
       // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
       // currently looking at, not just today's value - crosshair moves are the whole point of exploring
@@ -1640,6 +1646,10 @@
     const trulyAtToday = cfg.dates[n-1] === FULL.dates[FULL.dates.length-1];
     renderAt(initialIndex, initialIndex === n-1 && trulyAtToday);
 
+    // A brief haptic "tick" each time the crosshair actually lands on a new data point, like a scroll
+    // wheel's detents - only fires on a genuine index change, not on every touchmove event (several of
+    // which can resolve to the same still-current point).
+    let lastCrosshairIndex = initialIndex;
     function handleMove(clientX){
       const rect = svg.getBoundingClientRect();
       if(rect.width===0) return;
@@ -1647,6 +1657,7 @@
       const svgX = (clientX - rect.left) / scaleX;
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
+      if(i !== lastCrosshairIndex){ lastCrosshairIndex = i; vibrateTick(); }
       renderAt(i, i === n-1 && trulyAtToday);
       if(cfg.zoomKey) selectedFraction[cfg.zoomKey] = n>1 ? i/(n-1) : 0;
     }
@@ -1883,7 +1894,7 @@
           {key:"realizedPrice", label:"Realized Price", color:"var(--c-realized)", values:view.realizedPrice, width:1.4, dashed:true, fmt:fmtUSD},
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.4, fmt:fmtUSD, area:true}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale, series:filterVisibleSeries(this.title, series)});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale, series:filterVisibleSeries(this.title, series), cycleFlagsKey:"price"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1963,7 +1974,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"nvt", label:"NVT (Adj.)", color:"var(--c-nvt)", values:normalize(view.nvt), tooltipValues:view.nvt, width:1.4, fmt:fmtRatio}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%", cycleFlagsKey:"price"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1977,7 +1988,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeAddr", label:"Aktive Adressen", color:"var(--c-addr)", values:normalize(view.activeAddr), tooltipValues:view.activeAddr, width:1.4, fmt:fmtCount}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%", cycleFlagsKey:"price"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -1992,7 +2003,7 @@
         ];
         if(FULL.hasRoi30d) series.push({key:"roi30d", label:"ROI 30 Tage", color:"var(--c-roi30)", values:normalize(view.roi30d), tooltipValues:view.roi30d, width:1.4, fmt:fmtPctRaw});
         if(FULL.hasRoi1yr) series.push({key:"roi1yr", label:"ROI 1 Jahr", color:"var(--c-roi1y)", values:normalize(view.roi1yr), tooltipValues:view.roi1yr, width:1.4, fmt:fmtPctRaw});
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%", cycleFlagsKey:"price"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -2006,7 +2017,7 @@
           {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:normalize(view.price), tooltipValues:view.price, width:1.4, fmt:fmtUSD, area:true},
           {key:"activeSupply1yr", label:"Aktive Supply (1J)", color:"var(--c-actsup)", values:normalize(view.activeSupply1yr), tooltipValues:view.activeSupply1yr, width:1.4, fmt:fmtBTC}
         ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%"});
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), axisFmt:v=>(v*100).toFixed(0)+"%", cycleFlagsKey:"price"});
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
@@ -2034,7 +2045,8 @@
         const built = buildLineChart({
           dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:logScale,
           series:[{key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:2.6, fmt:fmtUSD,
-            colorAt:i=>{ const z = fearGreedZone(view.feargreed[i]); return z ? z.color : null; }}]
+            colorAt:i=>{ const z = fearGreedZone(view.feargreed[i]); return z ? z.color : null; }}],
+          cycleFlagsKey:"price"
         });
         built.zoneLegend = FEARGREED_ZONES.map(z=>({label:z.label, color:z.color}));
         return built;
