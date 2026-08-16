@@ -244,7 +244,9 @@
   .readout-dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex:none;}
   .readout-label{font-size:11px; color:var(--ink-3); font-weight:600; white-space:nowrap;}
   .readout-value{font-family:var(--font-display); font-size:27px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap;}
+  .readout-change{font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;}
   .readout.compact .readout-value{font-size:16px;}
+  .readout.compact .readout-change{font-size:11px;}
   .readout.compact .readout-date{margin-bottom:1px;}
 
   .hero-panel{gap:16px;}
@@ -302,7 +304,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v48 · Deployed 15.08.2026 14:33 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v49 · Deployed 16.08.2026 07:41 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -1096,15 +1098,28 @@
     const valueEls = series.map(s=>{
       const item = document.createElement("div");
       item.className = "readout-item";
-      item.innerHTML = `<i class="readout-dot" style="background:${s.color}"></i><span class="readout-label">${s.label}</span><b class="readout-value mono"></b>`;
+      item.innerHTML = `<i class="readout-dot" style="background:${s.color}"></i><span class="readout-label">${s.label}</span><b class="readout-value mono"></b><span class="readout-change mono"></span>`;
       row.appendChild(item);
       return item.querySelector(".readout-value");
     });
-    function update(dateLabel, values){
+    const changeEls = [...row.querySelectorAll(".readout-change")];
+    // baseValues is each series' value at the first point currently in view - the % change readout
+    // measures however far the crosshair's current point (or, at rest, today) has moved from there.
+    function update(dateLabel, values, baseValues){
       dateEl.textContent = dateLabel;
       series.forEach((s,i)=>{
         const v = values[i];
         valueEls[i].textContent = v==null ? "–" : (s.fmt||fmtCompact)(v);
+        const base = baseValues ? baseValues[i] : null;
+        const changeEl = changeEls[i];
+        if(!changeEl) return;
+        if(v==null || base==null || !isFinite(v) || !isFinite(base) || base===0){
+          changeEl.textContent = ""; changeEl.style.color = "";
+        } else {
+          const pct = (v-base)/Math.abs(base)*100;
+          changeEl.textContent = (pct>=0?"+":"") + pct.toFixed(1) + "%";
+          changeEl.style.color = pct>=0 ? "var(--good)" : "var(--critical)";
+        }
       });
     }
     return {el, update};
@@ -1510,15 +1525,43 @@
     cross.setAttribute("vector-effect","non-scaling-stroke");
     svg.appendChild(cross);
 
+    // Floating date label anchored right above the crosshair line, following it as it moves - a
+    // second, in-chart-context readout of the exact same date the .readout-date text above the chart
+    // already shows, but tied visually to the precise line/point it belongs to.
+    const crossLabel = document.createElementNS(NS,"text");
+    crossLabel.setAttribute("y", padT-5); crossLabel.setAttribute("text-anchor","middle");
+    crossLabel.setAttribute("font-size","11"); crossLabel.setAttribute("font-weight","700");
+    crossLabel.setAttribute("fill","var(--ink-2)");
+    crossLabel.style.pointerEvents = "none";
+    svg.appendChild(crossLabel);
+
+    // "After crosshair" grayed-out overlay - one path per series, redrawn (not just repositioned) on
+    // every renderAt call to retrace only the segment from the crosshair's index to the window's last
+    // point in a muted color, visually marking that portion as "history relative to where you're
+    // looking" the same way the reference design grays out everything past the selected date. Lives
+    // outside zoomG, in the same always-at-rest final coordinates as the crosshair line/dots themselves
+    // (see the note on those above) rather than trying to also animate through a zoom/pan transition.
+    const grayOverlays = cfg.series.map(s=>{
+      const path = document.createElementNS(NS,"path");
+      path.setAttribute("fill","none"); path.setAttribute("stroke","var(--ink-3)");
+      path.setAttribute("stroke-width", s.width||1.8);
+      if(s.dashed) path.setAttribute("stroke-dasharray","5 3");
+      path.setAttribute("stroke-linecap","round"); path.setAttribute("stroke-linejoin","round");
+      path.setAttribute("vector-effect","non-scaling-stroke");
+      path.style.pointerEvents = "none";
+      svg.appendChild(path);
+      return path;
+    });
+
     // hover markers - one dot per series, placed at the point where the crosshair meets that
     // series' line. Live outside zoomG (like the crosshair) so they always track the current,
     // non-animating domain rather than a mid-zoom transform.
     const markers = cfg.series.map(s=>{
       const dot = document.createElementNS(NS,"circle");
-      dot.setAttribute("r","4");
+      dot.setAttribute("r","5.5");
       dot.setAttribute("fill", s.color);
       dot.setAttribute("stroke","var(--card)");
-      dot.setAttribute("stroke-width","1.5");
+      dot.setAttribute("stroke-width","2");
       dot.setAttribute("vector-effect","non-scaling-stroke");
       dot.style.pointerEvents = "none";
       svg.appendChild(dot);
@@ -1539,18 +1582,46 @@
 
     wrap.appendChild(svg);
 
+    // Value at the first available point currently in view, per series - the reference each series'
+    // % change readout is measured against. Independent of the crosshair index (doesn't change as the
+    // reader drags), so it's computed once rather than on every renderAt call.
+    const baseValues = cfg.series.map(s=>{
+      const arr = s.tooltipValues || s.values;
+      for(let k=0;k<arr.length;k++){ if(arr[k]!=null && isFinite(arr[k])) return arr[k]; }
+      return null;
+    });
     function renderAt(i, isDefault){
       const x = xOf(i);
       cross.setAttribute("x1",x); cross.setAttribute("x2",x);
+      // Anchored to the crosshair's exact x everywhere except near the plot edges, where a centered
+      // label would run past padL/padR and get clipped by the card - most visibly in the default rest
+      // state, where the crosshair sits right at the rightmost point. Pins to the edge and switches to
+      // start/end anchoring there instead, same fallback the x-axis date ticks already use.
+      const labelHalfWidth = 34;
+      if(x < padL+labelHalfWidth){ crossLabel.setAttribute("text-anchor","start"); crossLabel.setAttribute("x", padL); }
+      else if(x > w-padR-labelHalfWidth){ crossLabel.setAttribute("text-anchor","end"); crossLabel.setAttribute("x", w-padR); }
+      else { crossLabel.setAttribute("text-anchor","middle"); crossLabel.setAttribute("x", x); }
+      crossLabel.textContent = isDefault ? "Aktuell" : fmtDateOnly(cfg.dates[i]);
       const values = cfg.series.map(s=> s.tooltipValues ? s.tooltipValues[i] : s.values[i]);
-      readout.update(isDefault ? "Aktuell" : cfg.dates[i], values);
+      readout.update(isDefault ? "Aktuell" : cfg.dates[i], values, baseValues);
       cfg.series.forEach((s,si)=>{
         const v = s.values[i];
         const dot = markers[si];
-        if(v==null || !isFinite(v)){ dot.style.display="none"; return; }
-        dot.style.display="";
-        dot.setAttribute("cx", x);
-        dot.setAttribute("cy", yOf(v));
+        if(v==null || !isFinite(v)){ dot.style.display="none"; }
+        else {
+          dot.style.display="";
+          dot.setAttribute("cx", x);
+          dot.setAttribute("cy", yOf(v));
+        }
+        let d = "", started = false;
+        for(let k=i;k<n;k++){
+          const vv = s.values[k];
+          if(vv==null || !isFinite(vv)){ started=false; continue; }
+          const xx=xOf(k), yy=yOf(vv);
+          d += (started?"L":"M") + xx.toFixed(1) + "," + yy.toFixed(1) + " ";
+          started = true;
+        }
+        grayOverlays[si].setAttribute("d", d.trim());
       });
       // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
       // currently looking at, not just today's value - crosshair moves are the whole point of exploring
