@@ -312,7 +312,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v52 · Deployed 16.08.2026 08:28 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v53 · Deployed 16.08.2026 21:12 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -1634,6 +1634,7 @@
     // still reads clearly against a same-colored line right behind it.
     const markers = cfg.series.map(s=>{
       const dot = document.createElementNS(NS,"circle");
+      dot.setAttribute("class","hover-marker");
       dot.setAttribute("r","6.5");
       dot.setAttribute("fill", s.color);
       dot.setAttribute("stroke","var(--card)");
@@ -1668,7 +1669,9 @@
     });
     function renderAt(i, isDefault){
       const x = xOf(i);
+      const dateStr = cfg.dates[i];
       cross.setAttribute("x1",x); cross.setAttribute("x2",x);
+      cross.dataset.crosshairDate = dateStr;
       // Anchored to the crosshair's exact x everywhere except near the plot edges, where a centered
       // label would run past padL/padR and get clipped by the card - most visibly in the default rest
       // state, where the crosshair sits right at the rightmost point. Pins to the edge and switches to
@@ -1678,17 +1681,21 @@
       else if(x > w-padR-labelHalfWidth){ crossLabel.setAttribute("text-anchor","end"); crossLabel.setAttribute("x", w-padR); }
       else { crossLabel.setAttribute("text-anchor","middle"); crossLabel.setAttribute("x", x); }
       crossLabel.textContent = isDefault ? "Aktuell" : fmtDateOnly(cfg.dates[i]);
+      crossLabel.dataset.crosshairDate = dateStr;
       const values = cfg.series.map(s=> s.tooltipValues ? s.tooltipValues[i] : s.values[i]);
       readout.update(isDefault ? "Aktuell" : cfg.dates[i], values, baseValues);
       afterVeil.setAttribute("x", x); afterVeil.setAttribute("width", Math.max(0, w-padR-x));
+      afterVeil.dataset.crosshairDate = dateStr;
       cfg.series.forEach((s,si)=>{
         const v = s.values[i];
         const dot = markers[si];
+        dot.dataset.crosshairDate = dateStr;
         if(v==null || !isFinite(v)){ dot.style.display="none"; }
         else {
           dot.style.display="";
           dot.setAttribute("cx", x);
           dot.setAttribute("cy", yOf(v));
+          dot.dataset.crosshairValue = v;
         }
       });
       // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
@@ -1700,11 +1707,17 @@
         setActiveZone(z ? z.label : null);
       }
     }
-    // Restore the last relative position the reader picked on this chart (by key, across rebuilds);
-    // never having been touched leaves no entry here at all, so it defaults to the latest point.
+    // Restore the last position the reader picked on this chart (by key, across rebuilds); never
+    // having been touched leaves no entry here at all, so it defaults to the latest point. Prefers an
+    // exact date match (so switching timeframes - 5J to 1J, say - keeps the crosshair on the exact same
+    // day instead of jumping to whatever's now at the same relative position across the window) and
+    // only falls back to the saved relative fraction when that exact date isn't part of the new view at
+    // all (e.g. it panned or zoomed out of range).
     let initialIndex = n-1;
     if(cfg.zoomKey && selectedFraction[cfg.zoomKey] != null){
-      initialIndex = Math.max(0, Math.min(n-1, Math.round(selectedFraction[cfg.zoomKey]*(n-1))));
+      const saved = selectedFraction[cfg.zoomKey];
+      const dateIdx = saved.date ? cfg.dates.indexOf(saved.date) : -1;
+      initialIndex = dateIdx >= 0 ? dateIdx : Math.max(0, Math.min(n-1, Math.round(saved.frac*(n-1))));
     }
     // "Aktuell" should only ever label real, present-day data - a panned-back view's own last point is
     // still just the latest point *of that window*, not actually today, so it gets its real date instead.
@@ -1724,7 +1737,7 @@
       i = Math.max(0, Math.min(n-1, i));
       if(i !== lastCrosshairIndex){ lastCrosshairIndex = i; vibrateTick(); }
       renderAt(i, i === n-1 && trulyAtToday);
-      if(cfg.zoomKey) selectedFraction[cfg.zoomKey] = n>1 ? i/(n-1) : 0;
+      if(cfg.zoomKey) selectedFraction[cfg.zoomKey] = {date: cfg.dates[i], frac: n>1 ? i/(n-1) : 0};
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
@@ -1778,6 +1791,12 @@
         const rawDomain = {n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, startIdx:cfg.startIdx||0};
         panVlineTargets = collectVLineSyncTargets(wrap, rawDomain);
         panFlagTargets = collectFlagSyncTargets(wrap, rawDomain);
+      } else if(e.touches.length === 1){
+        // A plain tap (touchstart immediately followed by touchend, no meaningful movement in between)
+        // never fires touchmove at all, so without this the crosshair would just stay wherever it
+        // already was instead of jumping to the tapped point - handleMove is called here too, at the
+        // very start of the touch, not just from touchmove.
+        handleMove(e.touches[0].clientX);
       }
     }, {passive:false});
     hitRect.addEventListener("touchmove", e=>{
@@ -2017,18 +2036,6 @@
       }
     },
     {
-      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (per Toolbar-Button als gestrichelte vertikale Linien einblendbar) und nähert sich langfristig 0 %.",
-      requires:"hasSupply",
-      unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
-      build(view){
-        return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
-          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
-          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
-        });
-      }
-    },
-    {
       title:"Abstand zum Allzeithoch", desc:"Aktueller Kurs relativ zum bisherigen Rekordhoch (Drawdown in %). Tiefe, lang anhaltende Drawdowns markierten historisch eher Akkumulationsphasen als das Ende eines Aufwärtstrends.",
       build(view){
         return buildLineChart({
@@ -2151,6 +2158,18 @@
         built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
         return built;
       }
+    },
+    {
+      title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (per Toolbar-Button als gestrichelte vertikale Linien einblendbar) und nähert sich langfristig 0 %.",
+      requires:"hasSupply",
+      unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
+      build(view){
+        return buildLineChart({
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
+          series:[{key:"supplyGrowth", label:"Supply-Wachstum p.a.", color:"var(--c-supply)", values:view.supplyGrowth, width:1.4, fmt:fmtPctRaw}],
+          refLines:[{value:0, label:"0%", color:"var(--ink-3)"}]
+        });
+      }
     }
   ];
 
@@ -2266,26 +2285,30 @@
   }
 
   // ---------- rendering ----------
+  // Like the main tile grid (TILES.filter(tileIsAvailable)), a card whose underlying data isn't
+  // granted at all is dropped entirely rather than shown as an inert "nicht verfügbar" placeholder -
+  // built as an array of {available, html} pairs, filtered down to just the available ones, instead of
+  // always rendering all 8 regardless.
   function renderStatStrip(){
     const el = document.getElementById("statStrip");
     const price = lastVal(FULL.price), mvrv = lastVal(FULL.mvrv), nupl = lastVal(FULL.nupl), z = lastVal(FULL.zscore);
     const rp = lastVal(FULL.realizedPrice), mc = lastVal(FULL.marketCap), rc = lastVal(FULL.realizedCap);
     const ath = lastVal(FULL.athDrawdown), sg = lastVal(FULL.supplyGrowth), sup = lastVal(FULL.supply);
     const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
-    const na = `<span class="chip neutral"><i></i>nicht verfügbar</span>`;
     const mzPulse = mz && zoneChangedSinceLastVisit("mvrv", mz.label) ? " zone-pulse" : "";
     const nzPulse = zoneChangedSinceLastVisit("nupl", nz.label) ? " zone-pulse" : "";
     const zzPulse = FULL.hasZScore && zoneChangedSinceLastVisit("zscore", zz.label) ? " zone-pulse" : "";
-    el.innerHTML = `
-      <div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Letzter Tages-Schlusskurs</div></div>
-      <div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>`:"–"}</div></div>
-      <div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span></div></div>
-      <div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${FULL.hasZScore ? fmtRatio(z) : "–"}</div><div class="ctx">${FULL.hasZScore ? `<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>` : na}</div></div>
-      <div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>
-      <div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? (fmtUSD(mc) + " / " + fmtUSD(rc)) : "–"}</div><div class="ctx">${(FULL.hasMarketCap && FULL.hasRealizedCap) ? "Verhältnis = MVRV" : na}</div></div>
-      <div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>
-      <div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${FULL.hasSupply ? fmtBTC(sup) : "–"}</div><div class="ctx">${FULL.hasSupply ? ("Wachstum p.a.: " + fmtPctRaw(sg)) : na}</div></div>
-    `;
+    const stats = [
+      {available:true, html:`<div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Letzter Tages-Schlusskurs</div></div>`},
+      {available:true, html:`<div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>`:"–"}</div></div>`},
+      {available:true, html:`<div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span></div></div>`},
+      {available:FULL.hasZScore, html:`<div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${fmtRatio(z)}</div><div class="ctx"><span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span></div></div>`},
+      {available:true, html:`<div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>`},
+      {available:FULL.hasMarketCap && FULL.hasRealizedCap, html:`<div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${fmtUSD(mc)} / ${fmtUSD(rc)}</div><div class="ctx">Verhältnis = MVRV</div></div>`},
+      {available:true, html:`<div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>`},
+      {available:FULL.hasSupply, html:`<div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${fmtBTC(sup)}</div><div class="ctx">Wachstum p.a.: ${fmtPctRaw(sg)}</div></div>`}
+    ];
+    el.innerHTML = stats.filter(s=>s.available).map(s=>s.html).join("");
   }
 
   function renderHero(view){
@@ -2542,6 +2565,11 @@
       svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
+      // The crosshair's hover dots are geometry (their radius, unlike a stroke's width, isn't kept
+      // constant by vector-effect="non-scaling-stroke") - without this they read as tiny on a narrow
+      // mobile card, since the same "6.5 viewBox units" is a much smaller fraction of a ~350px-wide
+      // mobile card than of an ~1100px-wide desktop one.
+      svg.querySelectorAll(".hover-marker").forEach(c=> c.setAttribute("r", (7/scaleX).toFixed(2)));
     });
   }
 
@@ -2724,6 +2752,45 @@
     });
   }
 
+  // The crosshair itself (line, floating date label, "after" veil, hover dots) - tagged with the same
+  // data-crosshair-date/-value attributes renderAt() already sets - gets the exact same live-transform
+  // treatment as the halving vLines and cycle flags, so it visibly tracks the exact date it's pinned to
+  // through a range/zoom/log-linear transition instead of just snapping to its new spot once the
+  // rebuild settles. One object per chart (there's only ever one crosshair), not an array like the
+  // vLine/flag collectors - dots are the only piece that need their own Y (each series has its own
+  // value at that date), everything else only needs the shared X.
+  function collectCrosshairSyncTarget(wrap, rawDomain){
+    const cross = wrap.querySelector("svg > line[data-crosshair-date]");
+    if(!cross) return null;
+    const absIdx = FULL.dates.indexOf(cross.dataset.crosshairDate);
+    if(absIdx < 0) return null;
+    const rawX = domainXOf(rawDomain, absIdx);
+    const label = wrap.querySelector("svg > text[data-crosshair-date]");
+    const veil = wrap.querySelector("svg > rect[data-crosshair-date]");
+    const dots = [];
+    wrap.querySelectorAll("svg > circle.hover-marker[data-crosshair-date]").forEach(el=>{
+      if(el.style.display === "none") return;
+      const v = parseFloat(el.dataset.crosshairValue);
+      const rawY = isFinite(v) ? domainYOf(rawDomain, v) : null;
+      if(rawY!=null) dots.push({el, rawY});
+    });
+    return {cross, label, veil, dots, rawX, plotRight: rawDomain.w - rawDomain.padR};
+  }
+  function applyCrosshairSync(target, a, d, e, f){
+    if(!target) return;
+    const x = target.rawX*a + e;
+    target.cross.setAttribute("x1", x.toFixed(1)); target.cross.setAttribute("x2", x.toFixed(1));
+    if(target.label) target.label.setAttribute("x", x.toFixed(1));
+    if(target.veil){
+      target.veil.setAttribute("x", x.toFixed(1));
+      target.veil.setAttribute("width", Math.max(0, target.plotRight - x).toFixed(1));
+    }
+    target.dots.forEach(dt=>{
+      dt.el.setAttribute("cx", x.toFixed(1));
+      dt.el.setAttribute("cy", (dt.rawY*d + f).toFixed(1));
+    });
+  }
+
   // Solves for the 2D affine transform (scaleX/translateX for the date window, scaleY/translateY for
   // the value domain) that makes newDomain's zoom-content group visually match how oldDomain looked,
   // given both share the same viewBox width/height and padding. Applied as the group's *starting*
@@ -2857,7 +2924,40 @@
     return {pts, hasZ: /Z\s*$/i.test(d.trim())};
   }
 
-  function morphLogLinear(oldSvgClone, group, myGen){
+  // X never changes between the old and new domain here (same dates, same point count - only the
+  // y-mapping differs), so the flags and crosshair dots just need their Y linearly blended from their
+  // old-scale to their new-scale position, at the exact same eased progress the curve's own points
+  // interpolate at - no matrix/live-transform machinery needed, unlike the range/zoom case.
+  function collectLogLinearMorphTargets(wrap, oldDomain, newDomain){
+    const dots = [];
+    wrap.querySelectorAll("svg > circle.hover-marker[data-crosshair-date]").forEach(el=>{
+      if(el.style.display === "none") return;
+      const v = parseFloat(el.dataset.crosshairValue);
+      if(!isFinite(v)) return;
+      const oldY = domainYOf(oldDomain, v), newY = domainYOf(newDomain, v);
+      if(oldY==null || newY==null) return;
+      dots.push({el, oldY, newY});
+    });
+    const flags = [];
+    wrap.querySelectorAll("g[data-flag-date]").forEach(g=>{
+      const v = parseFloat(g.dataset.flagValue);
+      if(!isFinite(v)) return;
+      const oldY = domainYOf(oldDomain, v), newY = domainYOf(newDomain, v);
+      if(oldY==null || newY==null) return;
+      const m = /translate\(([-\d.]+),/.exec(g.getAttribute("transform")||"");
+      flags.push({g, x: m ? parseFloat(m[1]) : 0, oldY, newY});
+    });
+    return {dots, flags};
+  }
+  function applyLogLinearMorphFrame(targets, eased){
+    targets.dots.forEach(t=> t.el.setAttribute("cy", (t.oldY + (t.newY-t.oldY)*eased).toFixed(1)));
+    targets.flags.forEach(t=>{
+      const y = t.oldY + (t.newY-t.oldY)*eased;
+      t.g.setAttribute("transform", `translate(${t.x.toFixed(1)},${y.toFixed(1)})`);
+    });
+  }
+
+  function morphLogLinear(oldSvgClone, group, myGen, wrap, oldDomain, newDomain){
     if(!oldSvgClone) return false;
     const oldGroup = oldSvgClone.querySelector(".zoom-content");
     if(!oldGroup) return false;
@@ -2875,6 +2975,7 @@
       if(a.pts.length === 0 || a.pts.length !== b.pts.length) return false;
       pairs.push({el:newPaths[i], a:a.pts, b:b.pts, hasZ:b.hasZ, finalD:newPaths[i].getAttribute("d")});
     }
+    const morphTargets = collectLogLinearMorphTargets(wrap, oldDomain, newDomain);
 
     const start = performance.now();
     function frame(now){
@@ -2891,6 +2992,7 @@
         if(p.hasZ) d += "Z";
         p.el.setAttribute("d", d.trim());
       });
+      applyLogLinearMorphFrame(morphTargets, eased);
       if(raw < 1) requestAnimationFrame(frame);
       else pairs.forEach(p=> p.el.setAttribute("d", p.finalD)); // exact final value, no fp drift
     }
@@ -2936,10 +3038,11 @@
       // count truly matches; anything else (a genuine range change, even one that happens to also flip
       // scale type) falls through to the transform-based paths below exactly as before.
       const isScaleOnlyChange = oldDomain.n === newDomain.n && !!oldDomain.log !== !!newDomain.log;
-      if(isScaleOnlyChange && oldSvgClones[key] && morphLogLinear(oldSvgClones[key], group, myGen)){
+      if(isScaleOnlyChange && oldSvgClones[key] && morphLogLinear(oldSvgClones[key], group, myGen, wrap, oldDomain, newDomain)){
         animateAxisLabelValues(wrap, oldDomain, newDomain);
-        // Same date range/point count on both sides of a pure scale-type toggle, so every marker's x
-        // is already identical before and after - nothing to sync.
+        // X is already identical on both sides of a pure scale-type toggle (same dates, same point
+        // count) - only the Y each flag/dot sits at needs to morph, which morphLogLinear's own
+        // collectLogLinearMorphTargets/applyLogLinearMorphFrame already handled above.
         return;
       }
 
@@ -2949,8 +3052,9 @@
         // apply to them correctly.
         const vlineTargets = collectVLineSyncTargets(wrap, oldDomain);
         const flagTargets = collectFlagSyncTargets(wrap, oldDomain);
+        const crosshairTarget = collectCrosshairSyncTarget(wrap, oldDomain);
         if(animateZoomInWithOldContent(oldSvgClones[key], group, oldDomain, newDomain, myGen,
-             (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); })){
+             (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); applyCrosshairSync(crosshairTarget, a, d, e, f); })){
           animateAxisLabelValues(wrap, oldDomain, newDomain);
           return;
         }
@@ -2962,8 +3066,9 @@
       const identity = {a:1, d:1, e:0, f:0};
       const vlineTargets = collectVLineSyncTargets(wrap, newDomain);
       const flagTargets = collectFlagSyncTargets(wrap, newDomain);
+      const crosshairTarget = collectCrosshairSyncTarget(wrap, newDomain);
       animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; },
-        (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); });
+        (a,d,e,f)=>{ applyVLineSync(vlineTargets, a, e); applyFlagSync(flagTargets, a, d, e, f); applyCrosshairSync(crosshairTarget, a, d, e, f); });
       animateAxisLabelValues(wrap, oldDomain, newDomain);
     });
   }
