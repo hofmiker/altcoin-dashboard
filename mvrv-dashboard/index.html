@@ -304,7 +304,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v49 · Deployed 16.08.2026 07:41 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v50 · Deployed 16.08.2026 07:51 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -341,6 +341,7 @@
         </div>
         <div id="heroReadout"></div>
       </div>
+      <div id="heroToggles"></div>
       <div id="heroChart"></div>
       <div class="card-toolbar" id="heroToolbar"></div>
     </section>
@@ -495,10 +496,6 @@
   // On by default, opt-out via the "Halvings" toggle rendered into every chart's toolbar (see
   // buildRangeSeg), shared across every chart at once like rangeDays itself.
   let showHalvings = true;
-  // Hero-only: hides the 5 MVRV Quantile Band series (and their fills), leaving just the BTC price
-  // line - which then gets an area/gradient fill of its own (see renderHero) so it doesn't look bare
-  // without the bands behind it.
-  let showQuantileBands = true;
   let areaGradCounter = 0;
   let clipIdCounter = 0;
   // Persists WHERE each chart's crosshair/hover-dots are parked, across the full DOM rebuild every
@@ -2183,19 +2180,18 @@
     const chartHost = document.getElementById("heroChart");
     const readoutHost = document.getElementById("heroReadout");
     const toolbarHost = document.getElementById("heroToolbar");
-    chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = "";
+    const togglesHost = document.getElementById("heroToggles");
+    chartHost.innerHTML = ""; readoutHost.innerHTML = ""; toolbarHost.innerHTML = ""; togglesHost.innerHTML = "";
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg("hero"));
+    const bandKeys = ["p95","p75","p50","p25","p05"];
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
       {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.1, fmt:fmtUSD},
       {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.1, fmt:fmtUSD},
       {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.1, fmt:fmtUSD},
-      // The area/gradient fill only makes sense once the bands (which already visually fill this same
-      // space) are hidden - with them showing, an additional fill under the price line would just fight
-      // with the band fills for the same area.
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD, area:!showQuantileBands}
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -2203,18 +2199,36 @@
       {topKey:"p50", bottomKey:"p25", color:"var(--neutral-bg)"},
       {topKey:"p25", bottomKey:"p05", color:"var(--good-bg)"}
     ];
-    const visibleSeries = showQuantileBands ? series : series.filter(s=> s.key === "price");
-    const bandsBtn = document.createElement("button");
-    bandsBtn.type = "button";
-    bandsBtn.className = "halving-toggle-btn" + (showQuantileBands ? " active" : "");
-    bandsBtn.title = "MVRV Quantile Bands ein-/ausblenden";
-    bandsBtn.textContent = "Bänder";
-    bandsBtn.addEventListener("click", ()=>{
-      showQuantileBands = !showQuantileBands;
-      renderAll();
+    // Same show/hide tag chips every other tile's multi-series chart already gets (tileSeriesVisible,
+    // keyed "hero" here), rather than a single all-or-nothing button - each band toggles independently.
+    const visibleSeries = filterVisibleSeries("hero", series);
+    const visibleKeys = new Set(visibleSeries.map(s=>s.key));
+    const anyBandsVisible = bandKeys.some(k=>visibleKeys.has(k));
+    // The area/gradient fill only makes sense once every band (which already visually fills this same
+    // space) is hidden - with any showing, an additional fill under the price line would just fight
+    // with the band fills for the same area.
+    const priceIdx = visibleSeries.findIndex(s=>s.key==="price");
+    if(priceIdx>=0 && !anyBandsVisible) visibleSeries[priceIdx] = {...visibleSeries[priceIdx], area:true};
+    const visibleBandFill = bandFill.filter(bf=> visibleKeys.has(bf.topKey) && visibleKeys.has(bf.bottomKey));
+
+    const toggleWrap = document.createElement("div");
+    toggleWrap.className = "overlay-toggles tile-toggles";
+    series.filter(s=>s.key!=="price").forEach(s=>{
+      const visible = tileSeriesVisible["hero"] ? tileSeriesVisible["hero"][s.key] !== false : true;
+      const lab = document.createElement("label");
+      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+      lab.style.setProperty("--chip-color", s.color);
+      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${s.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        if(!tileSeriesVisible["hero"]) tileSeriesVisible["hero"] = {};
+        tileSeriesVisible["hero"][s.key] = e.target.checked;
+        renderAll();
+      });
+      toggleWrap.appendChild(lab);
     });
-    toolbarHost.appendChild(bandsBtn);
-    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: showQuantileBands ? bandFill : [], compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
+    togglesHost.appendChild(toggleWrap);
+
+    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -2260,29 +2274,6 @@
       head.appendChild(built.readoutEl);
       card.appendChild(head);
 
-      // Background zone bands (see MVRV-Perzentil/NUPL) are just a tint, meaningless on their own -
-      // spell out what each color means the same way the band-boundary chart's own readout row does.
-      if(built.zoneLegend && built.zoneLegend.length){
-        const legend = document.createElement("div");
-        legend.className = "zone-legend";
-        const activeLabel = built.currentZoneLabel;
-        legend.innerHTML = built.zoneLegend.map(z=>{
-          const cls = !activeLabel ? "" : (z.label===activeLabel ? " active" : " inactive");
-          return `<span class="zone-legend-item${cls}" data-zone-label="${z.label}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`;
-        }).join("");
-        card.appendChild(legend);
-        // Keeps the legend in sync as the reader drags the crosshair across the chart (see
-        // buildLineChart's setActiveZone/cfg.onZoneHover) - built.zoneCfg is the very same cfg object
-        // buildLineChart itself reads onZoneHover from, so assigning it here after the legend DOM
-        // exists is enough to wire the two together live.
-        if(built.zoneCfg) built.zoneCfg.onZoneHover = label=>{
-          legend.querySelectorAll(".zone-legend-item").forEach(el=>{
-            el.classList.toggle("active", label!=null && el.dataset.zoneLabel === label);
-            el.classList.toggle("inactive", label!=null && el.dataset.zoneLabel !== label);
-          });
-        };
-      }
-
       // Multi-series tiles get the same show/hide toggle chips as the "Kennzahlen überlagern" panel,
       // but scoped to just this one tile's own chart via tileSeriesVisible - a single-series tile has
       // nothing meaningful to toggle, so built.toggleableSeries is only ever set (in TILES' build())
@@ -2307,6 +2298,33 @@
       }
 
       card.appendChild(built.wrap);
+
+      // Background zone bands (see MVRV-Perzentil/NUPL) are just a tint, meaningless on their own -
+      // spell out what each color means the same way the band-boundary chart's own readout row does.
+      // Placed after the chart, not before it, so the legend's own active/inactive-driven width change
+      // as the crosshair moves (bolding whichever zone label is currently under it) never reflows the
+      // chart above it - only whatever sits below the legend could ever shift, which above the toolbar
+      // is nothing.
+      if(built.zoneLegend && built.zoneLegend.length){
+        const legend = document.createElement("div");
+        legend.className = "zone-legend";
+        const activeLabel = built.currentZoneLabel;
+        legend.innerHTML = built.zoneLegend.map(z=>{
+          const cls = !activeLabel ? "" : (z.label===activeLabel ? " active" : " inactive");
+          return `<span class="zone-legend-item${cls}" data-zone-label="${z.label}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`;
+        }).join("");
+        card.appendChild(legend);
+        // Keeps the legend in sync as the reader drags the crosshair across the chart (see
+        // buildLineChart's setActiveZone/cfg.onZoneHover) - built.zoneCfg is the very same cfg object
+        // buildLineChart itself reads onZoneHover from, so assigning it here after the legend DOM
+        // exists is enough to wire the two together live.
+        if(built.zoneCfg) built.zoneCfg.onZoneHover = label=>{
+          legend.querySelectorAll(".zone-legend-item").forEach(el=>{
+            el.classList.toggle("active", label!=null && el.dataset.zoneLabel === label);
+            el.classList.toggle("inactive", label!=null && el.dataset.zoneLabel !== label);
+          });
+        };
+      }
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
