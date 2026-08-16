@@ -312,7 +312,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v53 · Deployed 16.08.2026 21:12 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v54 · Deployed 16.08.2026 21:47 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -428,15 +428,46 @@
     cycleBoundariesCache = cycles;
     return cycles;
   }
-  // For each cycle, the date+value of that metric's own highest and lowest point within it - always
+  // How far price needs to have genuinely reversed from a candidate extreme, in either direction,
+  // before that extreme counts as "confirmed" rather than just "the highest/lowest point so far, which
+  // might still be improving". 20% is the same threshold conventionally used to call something a bear
+  // market in the first place, which is exactly the distinction being drawn here.
+  const CYCLE_EXTREME_CONFIRM_PCT = 20;
+  // For each *completed* cycle, its own highest and lowest point is simply whichever the historical
+  // record already shows - the cycle is over, so there's nothing left to "confirm". The current,
+  // still-ongoing cycle is different: its cheapest or priciest day so far might just be wherever price
+  // currently sits mid-move, not the cycle's real eventual top/bottom, so those only get reported once
+  // price has genuinely reversed CYCLE_EXTREME_CONFIRM_PCT% away from them without setting a new
+  // extreme since - unconfirmed candidates are silently dropped rather than shown as if final. Always
   // computed against the FULL history (not whatever's currently zoomed in on), so the same real
-  // extremes are found regardless of range; the caller (buildLineChart) is responsible for only
-  // drawing whichever of these actually fall within the currently visible window.
+  // extremes are found regardless of range; the caller (buildLineChart) is responsible for only drawing
+  // whichever of these actually fall within the currently visible window.
+  // Whole days between two real calendar dates already present in FULL.dates, via their actual
+  // timestamps rather than naive string/date-object math - used to caption each cycle flag with how
+  // many days separate it from the event that led into it (a halving into its cycle's top, that top
+  // into the cycle's bottom), per the halving->top->bottom distances this is ultimately in service of.
+  function daysBetween(dateA, dateB){
+    const idxA = FULL.dates.indexOf(dateA), idxB = FULL.dates.indexOf(dateB);
+    if(idxA<0 || idxB<0) return null;
+    return Math.round((FULL.t[idxB]-FULL.t[idxA]) / 86400000);
+  }
   function cycleExtremes(values){
     const dates = FULL.dates;
     const out = [];
-    cycleBoundaries().forEach(c=>{
-      let hiIdx=-1, loIdx=-1, hiV=-Infinity, loV=Infinity;
+    const boundaries = cycleBoundaries();
+    // A completed cycle's own high and low is simply whichever the historical record already shows
+    // within its halving-to-halving window - the cycle is over, so there's nothing left to "confirm".
+    // Because BTC's price has grown by orders of magnitude across every completed cycle, that window's
+    // cheapest day is almost always right near its *start* (still close to the tail of the previous
+    // cycle's crash) rather than after its own top - so the low is captioned relative to the halving
+    // that opened the cycle whenever it falls before the top, and relative to that top (as the bear-
+    // market low that followed it) only on the rarer occasions it genuinely comes after.
+    function captionLow(loDate, hiDate, cycleFrom){
+      if(loDate <= hiDate) return {sinceDate:cycleFrom, sinceLabel:"Halving", days:daysBetween(cycleFrom, loDate)};
+      return {sinceDate:hiDate, sinceLabel:"Zyklus-Hoch", days:daysBetween(hiDate, loDate)};
+    }
+    boundaries.forEach((c, ci)=>{
+      let hiIdx=-1, loIdx=-1, hiV=-Infinity, loV=Infinity, lastIdx=-1, lastV=null;
       for(let i=0;i<dates.length;i++){
         const dt = dates[i];
         if(dt<c.from || dt>c.to) continue;
@@ -444,11 +475,47 @@
         if(v==null || !isFinite(v)) continue;
         if(v>hiV){ hiV=v; hiIdx=i; }
         if(v<loV){ loV=v; loIdx=i; }
+        lastIdx=i; lastV=v;
       }
-      if(hiIdx>=0) out.push({date:dates[hiIdx], value:hiV, dir:1});
-      if(loIdx>=0 && loIdx!==hiIdx) out.push({date:dates[loIdx], value:loV, dir:-1});
+      if(hiIdx<0) return;
+      const isOngoing = ci === boundaries.length-1;
+      if(!isOngoing){
+        out.push({date:dates[hiIdx], value:hiV, dir:1, sinceDate:c.from, sinceLabel:"Halving", days:daysBetween(c.from, dates[hiIdx])});
+        if(loIdx>=0 && loIdx!==hiIdx) out.push({date:dates[loIdx], value:loV, dir:-1, ...captionLow(dates[loIdx], dates[hiIdx], c.from)});
+        return;
+      }
+      const topConfirmed = lastV <= hiV * (1 - CYCLE_EXTREME_CONFIRM_PCT/100);
+      if(!topConfirmed) return;
+      out.push({date:dates[hiIdx], value:hiV, dir:1, sinceDate:c.from, sinceLabel:"Halving", days:daysBetween(c.from, dates[hiIdx])});
+      // The bottom only makes sense as "the low of the decline that followed the confirmed top" - a
+      // low from earlier in the same cycle (before that top) is a pre-top dip, not a bear-market bottom.
+      let loIdx2=-1, loV2=Infinity;
+      for(let i=hiIdx;i<=lastIdx;i++){
+        const v = values[i];
+        if(v==null || !isFinite(v)) continue;
+        if(v<loV2){ loV2=v; loIdx2=i; }
+      }
+      if(loIdx2>=0 && loIdx2!==hiIdx){
+        const bottomConfirmed = lastV >= loV2 * (1 + CYCLE_EXTREME_CONFIRM_PCT/100);
+        if(bottomConfirmed) out.push({date:dates[loIdx2], value:loV2, dir:-1, sinceDate:dates[hiIdx], sinceLabel:"Zyklus-Hoch", days:daysBetween(dates[hiIdx], dates[loIdx2])});
+      }
     });
     return out;
+  }
+  // Which of the two market phases a given date falls into, given cycleExtremes()' own output
+  // chronologically sorted first (cycleExtremes returns each cycle's high before its low, which for a
+  // completed cycle is backwards - the low, right after that cycle's halving, comes chronologically
+  // BEFORE the high, its eventual bull-run peak). A bull market runs from a bottom to the next top; a
+  // bear market runs from a top to the next bottom (or, for the most recent confirmed top with no
+  // confirmed bottom yet, all the way to today - the decline is still ongoing). Dates before the very
+  // first known extreme have no established phase yet.
+  function cycleBullBearPhase(dateStr, sortedExtremes){
+    if(!sortedExtremes || !sortedExtremes.length || dateStr < sortedExtremes[0].date) return null;
+    let seg = sortedExtremes[0];
+    for(let k=0;k<sortedExtremes.length;k++){
+      if(sortedExtremes[k].date <= dateStr) seg = sortedExtremes[k]; else break;
+    }
+    return seg.dir>0 ? "bear" : "bull";
   }
   // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
   // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
@@ -458,6 +525,14 @@
   // a peak, so the low gets its own distinct glyph rather than just a mirrored flag.
   function buildFlagMarker(dir, color){
     const g = document.createElementNS(NS,"g");
+    // The visible glyph itself (thin pole/stem lines, a small pennant or chevron) is too fine to reliably
+    // hit with a mouse click or - especially - a fingertip tap, so a generous invisible circle carries the
+    // actual pointer/touch target instead, centered on whichever half of the glyph extends off the point.
+    const hitTarget = document.createElementNS(NS,"circle");
+    hitTarget.setAttribute("cx","0"); hitTarget.setAttribute("cy", dir>0 ? "-8" : "6");
+    hitTarget.setAttribute("r","13"); hitTarget.setAttribute("fill","transparent");
+    hitTarget.setAttribute("stroke","none");
+    g.appendChild(hitTarget);
     if(dir > 0){
       const poleLen = 13;
       const poleEndY = -poleLen;
@@ -1444,10 +1519,41 @@
         const g = buildFlagMarker(pt.dir, "var(--ink)");
         g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
         g.dataset.flagDate = pt.date; g.dataset.flagValue = v;
-        g.style.pointerEvents = "none";
         const title = document.createElementNS(NS,"title");
-        title.textContent = `${pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief"}: ${(flagSeries.fmt||fmtCompact)(pt.value)} am ${pt.date}`;
+        const kindLabel = pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief";
+        const sincePart = pt.days!=null ? ` · ${pt.days} Tage seit ${pt.sinceLabel} (${fmtDateOnly(pt.sinceDate)})` : "";
+        title.textContent = `${kindLabel}: ${(flagSeries.fmt||fmtCompact)(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}`;
         g.appendChild(title);
+        // Tapping/clicking a flag pins a horizontal+vertical reference line pair at its exact value and
+        // date, the same way a ruler would, so the reader can read its precise level/date off the axes
+        // without having to eyeball it - click again (on the same flag, or any other) to unpin. Deliberately
+        // just a snapshot annotation, not synced through the zoom/pan animation machinery like the flags
+        // themselves: it's a "look right now" reference aid, not a persistent chart feature, so it's fine
+        // for it to clear on the next rebuild same as picking a new range would naturally invalidate it anyway.
+        g.style.cursor = "pointer";
+        let pinned = null;
+        g.addEventListener("click", e=>{
+          e.stopPropagation();
+          if(pinned){ pinned.hLine.remove(); pinned.vLine.remove(); pinned.label.remove(); pinned = null; return; }
+          const hLine = document.createElementNS(NS,"line");
+          hLine.setAttribute("x1",padL); hLine.setAttribute("x2",w-padR); hLine.setAttribute("y1",y); hLine.setAttribute("y2",y);
+          hLine.setAttribute("stroke","var(--ink)"); hLine.setAttribute("stroke-width","1"); hLine.setAttribute("stroke-dasharray","2 3");
+          hLine.setAttribute("vector-effect","non-scaling-stroke"); hLine.style.pointerEvents = "none";
+          const vLine = document.createElementNS(NS,"line");
+          vLine.setAttribute("y1",padT); vLine.setAttribute("y2",h-padB); vLine.setAttribute("x1",x); vLine.setAttribute("x2",x);
+          vLine.setAttribute("stroke","var(--ink)"); vLine.setAttribute("stroke-width","1"); vLine.setAttribute("stroke-dasharray","2 3");
+          vLine.setAttribute("vector-effect","non-scaling-stroke"); vLine.style.pointerEvents = "none";
+          svg.insertBefore(hLine, g); svg.insertBefore(vLine, g);
+          const label = document.createElementNS(NS,"text");
+          const labelRight = x < w-padR-90;
+          label.setAttribute("x", labelRight ? x+8 : x-8); label.setAttribute("text-anchor", labelRight ? "start" : "end");
+          label.setAttribute("y", y > padT+14 ? y-6 : y+13);
+          label.setAttribute("font-size","10"); label.setAttribute("font-weight","700"); label.setAttribute("fill","var(--ink)");
+          label.textContent = `${(flagSeries.fmt||fmtCompact)(pt.value)} · ${fmtDateOnly(pt.date)}`;
+          label.style.pointerEvents = "none";
+          svg.appendChild(label);
+          pinned = {hLine, vLine, label};
+        });
         svg.appendChild(g);
       });
     }
@@ -1656,6 +1762,11 @@
     // element altogether rather than JS trying to cancel it after the fact.
     hitRect.style.touchAction = "none";
     svg.appendChild(hitRect);
+    // SVG hit-testing goes by paint order (topmost = last child = wins), and hitRect - appended last so
+    // far - would otherwise sit above the flag markers and swallow every click meant for their
+    // tap-to-pin listener below. Re-appending (moving) the flags now that hitRect exists puts them back
+    // on top, at the cost of a tiny click-dead-zone in the drag surface exactly where each flag icon sits.
+    svg.querySelectorAll("g[data-flag-date]").forEach(g=> svg.appendChild(g));
 
     wrap.appendChild(svg);
 
@@ -2320,13 +2431,24 @@
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg("hero"));
     const bandKeys = ["p95","p75","p50","p25","p05"];
+    // Colors the price line itself by which market phase each day fell in - bull market (rising from a
+    // confirmed cycle bottom toward the next top) in the same green already used for "cheap/good"
+    // elsewhere, bear market (declining from a top toward the next bottom) in the same red already used
+    // for "expensive/critical" - tied to the same Zyklen toggle as the flags marking those tops/bottoms
+    // in the first place, since without them showing there's no visible reference for what the color is
+    // even based on.
+    const heroExtremes = showHalvings ? [...cycleExtremes(FULL.price)].sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0) : null;
+    const heroPriceColorAt = heroExtremes && heroExtremes.length ? (i=>{
+      const phase = cycleBullBearPhase(view.dates[i], heroExtremes);
+      return phase==="bull" ? "var(--good)" : phase==="bear" ? "var(--critical)" : "var(--c-price)";
+    }) : undefined;
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
       {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.1, fmt:fmtUSD},
       {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.1, fmt:fmtUSD},
       {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.1, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD}
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD, colorAt:heroPriceColorAt}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
