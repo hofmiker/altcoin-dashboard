@@ -265,6 +265,21 @@
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-empty{padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;}
 
+  /* The RSI/MACD indicator sub-panels stack directly beneath the price chart as one continuous block
+     (see renderHero) - only the outermost container keeps the normal chart-wrap background/rounding, and
+     each subsequent panel loses its own so the whole stack reads as one card, with a divider line marking
+     where one panel's plot ends and the next begins instead of a visual seam. */
+  .hero-multipanel{display:flex; flex-direction:column;}
+  .hero-multipanel .chart-wrap{border-radius:0;}
+  .hero-multipanel .chart-wrap:first-child{border-top-left-radius:14px; border-top-right-radius:14px;}
+  .hero-multipanel .chart-wrap:last-child{border-bottom-left-radius:14px; border-bottom-right-radius:14px;}
+  .subpanel-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 10px 0; border-top:1px solid var(--border); margin-top:2px;}
+  .subpanel-title{font-size:12.5px; font-weight:700; color:var(--ink-2);}
+  .subpanel-head .readout{margin-left:0;}
+  .subpanel-head .readout-date{display:none;}
+
+  .indicator-toggles{display:flex; flex-wrap:wrap; gap:8px; margin-top:-4px;}
+
   .overlay-panel{gap:16px;}
   .overlay-toggles{display:flex; flex-wrap:wrap; gap:8px;}
   .overlay-toggle-chip{
@@ -312,7 +327,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v54 · Deployed 16.08.2026 21:47 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v55 · Deployed 17.08.2026 03:42 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -328,6 +343,8 @@
     </header>
 
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
+
+    <section class="panel overlay-panel" id="overlayPanel"></section>
 
     <section class="strip" id="statStrip"></section>
 
@@ -350,16 +367,9 @@
         <div id="heroReadout"></div>
       </div>
       <div id="heroToggles"></div>
-      <div id="heroChart"></div>
+      <div id="heroChart" class="hero-multipanel"></div>
       <div class="card-toolbar" id="heroToolbar"></div>
     </section>
-
-    <div class="controls-row">
-      <div class="seg" id="modeSeg" role="group" aria-label="Ansicht">
-        <button data-mode="tiles" class="active">Kacheln</button>
-        <button data-mode="overlay">Überlagert</button>
-      </div>
-    </div>
 
     <section id="metricsHost"></section>
 
@@ -567,7 +577,6 @@
   }
 
   let FULL = null;
-  let mode = "tiles";
   let rangeDays = 1825;
   // How many days back from "today" the current window's right edge is shifted - 0 means the window
   // ends on the most recent available date (the only state that existed before panning). Reset to 0
@@ -596,6 +605,10 @@
   // of the shared overlay - tileSeriesVisible[tileTitle][seriesKey] === false hides that one series
   // from that one tile. Absent entries default to visible, so tiles/series never need pre-seeding here.
   const tileSeriesVisible = {};
+  // Whether the RSI/MACD sub-panels stacked under the hero price chart (see renderHero) are shown at
+  // all - independent of tileSeriesVisible above, since these aren't a tile's own internal series but
+  // whole extra panels that can be toggled off entirely.
+  const heroIndicatorVisible = {rsi:true, macd:true};
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -1277,6 +1290,13 @@
     const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
     return mobile ? 1200 : 380;
   }
+  // Height for the RSI/MACD indicator sub-panels stacked under the hero price chart - deliberately
+  // flatter than a full chart (see chartHeight above), since they only need enough room to read a
+  // bounded oscillator or a narrow $ range, not a whole chart's worth of vertical space.
+  function subPanelHeight(){
+    const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    return mobile ? 420 : 130;
+  }
 
   // ---------- generic SVG multi-line chart ----------
   function buildLineChart(cfg){
@@ -1673,7 +1693,7 @@
     // Appended directly to svg, not zoomG, for the same reason as the y-axis above - the axis shows
     // whatever dates the new view covers immediately, it doesn't slide there.
     const mobileTicks = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-    const xTicks = Math.min(mobileTicks ? 3 : 6, n);
+    const xTicks = cfg.hideXAxis ? 0 : Math.min(mobileTicks ? 3 : 6, n);
     for(let k=0;k<xTicks;k++){
       const frac = xTicks<=1 ? 0 : k/(xTicks-1);
       // On narrow cards the labels are angled instead of laid out side by side (see below), so the
@@ -1847,8 +1867,13 @@
       let i = Math.round((svgX-padL)/(w-padL-padR)*(n-1));
       i = Math.max(0, Math.min(n-1, i));
       if(i !== lastCrosshairIndex){ lastCrosshairIndex = i; vibrateTick(); }
-      renderAt(i, i === n-1 && trulyAtToday);
+      const isDefault = i === n-1 && trulyAtToday;
+      renderAt(i, isDefault);
       if(cfg.zoomKey) selectedFraction[cfg.zoomKey] = {date: cfg.dates[i], frac: n>1 ? i/(n-1) : 0};
+      // Lets sibling panels sharing the same date axis (the RSI/MACD sub-panels stacked under the hero
+      // price chart - see renderHero) follow this same crosshair move, so dragging over any one of them
+      // moves all of them together instead of only the one actually under the pointer.
+      if(cfg.onIndexChange) cfg.onIndexChange(i, isDefault);
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
@@ -1956,7 +1981,16 @@
     // chart's zoom-content group start out looking like the previous render, then animate to identity -
     // and, via axisFmt, to smoothly count the y-axis tick labels from their old value to their new one
     // (the labels' fixed screen position never moves; only the number they display does).
-    return {wrap, readoutEl: readout.el, zoneLegend, zoneCfg: cfg, currentZoneLabel, domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0}};
+    return {
+      wrap, readoutEl: readout.el, zoneLegend, zoneCfg: cfg, currentZoneLabel,
+      domain:{n, min, max, log:!!cfg.log, h, padL, padR, padT, padB, w, axisFmt, startIdx:cfg.startIdx||0},
+      initialIndex, initialIsDefault: initialIndex === n-1 && trulyAtToday,
+      // Lets an outside caller drive this chart's own crosshair directly (used to keep the RSI/MACD
+      // sub-panels' crosshair in lockstep with the hero price chart's - see renderHero) without going
+      // through cfg.onIndexChange, which only fires for this chart's own genuine user-driven moves and
+      // would otherwise loop straight back into whichever sibling panel just called this.
+      setIndex(i, isDefault){ renderAt(i, isDefault); }
+    };
   }
 
   // ---------- range selector (rendered fresh into every card/panel on each render, so they always
@@ -2244,33 +2278,6 @@
       }
     },
     {
-      title:"RSI (14)", desc:"Relative Strength Index über 14 Tage — klassischer Momentum-Oszillator (0–100), rein aus dem Kursverlauf berechnet (kein On-Chain-Wert, daher immer verfügbar). Werte über 70 gelten traditionell als überkauft, unter 30 als überverkauft — historisch eher Extremregionen als ein für sich allein verlässliches Umkehrsignal.",
-      build(view){
-        return buildLineChart({
-          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
-          series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
-          axisFmt:v=>v.toFixed(0), yMin:0, yMax:100,
-          zoneBands:[
-            {from:70, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Überkauft"},
-            {from:30, to:70, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Neutral"},
-            {from:0, to:30, color:"var(--good-bg)", dotColor:"var(--good)", label:"Überverkauft"}
-          ]
-        });
-      }
-    },
-    {
-      title:"MACD (12/26/9)", desc:"Moving Average Convergence/Divergence — Differenz zwischen dem 12- und dem 26-Tage-EMA des Kurses (MACD-Linie), plus deren eigener 9-Tage-EMA als Signallinie. Kreuzt die MACD-Linie die Signallinie von unten nach oben, gilt das traditionell als bullisches Signal, von oben nach unten als bärisches — wie jeder Indikator kein eigenständiges Timing-Signal. In absoluten Dollar, daher am aussagekräftigsten in einem engeren Zeitraum statt über die komplette Kurshistorie.",
-      build(view){
-        const series = [
-          {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
-          {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
-        ];
-        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), refLines:[{value:0, label:"0", color:"var(--ink-3)"}]});
-        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
-        return built;
-      }
-    },
-    {
       title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (per Toolbar-Button als gestrichelte vertikale Linien einblendbar) und nähert sich langfristig 0 %.",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
@@ -2485,10 +2492,98 @@
     });
     togglesHost.appendChild(toggleWrap);
 
-    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
+    // RSI and MACD render as flatter sub-panels stacked directly under the price chart (see below)
+    // rather than as their own separate tiles - each independently toggleable here, same chip style as
+    // every other show/hide control on the page. Whichever of these is the lowest still-visible panel
+    // is the only one that gets to show the shared x-axis date labels (see hideXAxis below).
+    const indicatorToggleWrap = document.createElement("div");
+    indicatorToggleWrap.className = "overlay-toggles indicator-toggles";
+    [{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)"}, {key:"macd", label:"MACD (12/26/9)", color:"var(--c-macd)"}].forEach(ind=>{
+      const visible = heroIndicatorVisible[ind.key];
+      const lab = document.createElement("label");
+      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+      lab.style.setProperty("--chip-color", ind.color);
+      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${ind.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        heroIndicatorVisible[ind.key] = e.target.checked;
+        renderAll();
+      });
+      indicatorToggleWrap.appendChild(lab);
+    });
+    togglesHost.appendChild(indicatorToggleWrap);
+
+    const showRsi = heroIndicatorVisible.rsi, showMacd = heroIndicatorVisible.macd;
+    const lastPanel = showMacd ? "macd" : showRsi ? "rsi" : "price";
+
+    // Lets each panel's own crosshair move (see cfg.onIndexChange in buildLineChart) drive the other
+    // visible panels' crosshair to the same index, so the three read as one connected chart instead of
+    // three independently-hovered ones - declared before any of them are built since each one's
+    // onIndexChange closure needs to reach the other two, which don't exist yet at that point.
+    let priceBuilt, rsiBuilt, macdBuilt;
+    const syncTo = (skip)=> (i, isDefault)=>{
+      if(skip!=="price" && priceBuilt) priceBuilt.setIndex(i, isDefault);
+      if(skip!=="rsi" && rsiBuilt) rsiBuilt.setIndex(i, isDefault);
+      if(skip!=="macd" && macdBuilt) macdBuilt.setIndex(i, isDefault);
+    };
+
+    const built = buildLineChart({
+      dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill,
+      compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price",
+      hideXAxis: lastPanel!=="price", onIndexChange: syncTo("price")
+    });
+    priceBuilt = built;
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
+
+    if(showRsi){
+      rsiBuilt = buildLineChart({
+        dates:view.dates, height:subPanelHeight(), zoomKey:"RSI (14)", startIdx:view.startIdx, log:false,
+        series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
+        axisFmt:v=>v.toFixed(0), yMin:0, yMax:100, compactReadout:true,
+        zoneBands:[
+          {from:70, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Überkauft"},
+          {from:30, to:70, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Neutral"},
+          {from:0, to:30, color:"var(--good-bg)", dotColor:"var(--good)", label:"Überverkauft"}
+        ],
+        hideXAxis: lastPanel!=="rsi", onIndexChange: syncTo("rsi")
+      });
+      registerZoomChart("RSI (14)", rsiBuilt);
+      const head = document.createElement("div");
+      head.className = "subpanel-head";
+      head.innerHTML = `<span class="subpanel-title">RSI (14)</span>`;
+      attachInfo(head.querySelector(".subpanel-title"), "Relative Strength Index über 14 Tage — klassischer Momentum-Oszillator (0–100), rein aus dem Kursverlauf berechnet (kein On-Chain-Wert, daher immer verfügbar). Werte über 70 gelten traditionell als überkauft, unter 30 als überverkauft — historisch eher Extremregionen als ein für sich allein verlässliches Umkehrsignal.");
+      head.appendChild(rsiBuilt.readoutEl);
+      chartHost.appendChild(head);
+      chartHost.appendChild(rsiBuilt.wrap);
+    }
+
+    if(showMacd){
+      macdBuilt = buildLineChart({
+        dates:view.dates, height:subPanelHeight(), zoomKey:"MACD (12/26/9)", startIdx:view.startIdx, log:false,
+        series:[
+          {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
+          {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
+        ],
+        refLines:[{value:0, label:"0", color:"var(--ink-3)"}], compactReadout:true,
+        hideXAxis: lastPanel!=="macd", onIndexChange: syncTo("macd")
+      });
+      registerZoomChart("MACD (12/26/9)", macdBuilt);
+      const head = document.createElement("div");
+      head.className = "subpanel-head";
+      head.innerHTML = `<span class="subpanel-title">MACD (12/26/9)</span>`;
+      attachInfo(head.querySelector(".subpanel-title"), "Moving Average Convergence/Divergence — Differenz zwischen dem 12- und dem 26-Tage-EMA des Kurses (MACD-Linie), plus deren eigener 9-Tage-EMA als Signallinie. Kreuzt die MACD-Linie die Signallinie von unten nach oben, gilt das traditionell als bullisches Signal, von oben nach unten als bärisches — wie jeder Indikator kein eigenständiges Timing-Signal. In absoluten Dollar, daher am aussagekräftigsten in einem engeren Zeitraum statt über die komplette Kurshistorie.");
+      head.appendChild(macdBuilt.readoutEl);
+      chartHost.appendChild(head);
+      chartHost.appendChild(macdBuilt.wrap);
+    }
+
+    // Both sub-panels, if built, start out already showing the same point the price chart itself does
+    // (its own persisted/default position) rather than whatever they last independently remembered -
+    // otherwise a first render could show three panels each parked on a different date until the reader
+    // touches one of them.
+    if(rsiBuilt) rsiBuilt.setIndex(built.initialIndex, built.initialIsDefault);
+    if(macdBuilt) macdBuilt.setIndex(built.initialIndex, built.initialIsDefault);
   }
 
   function tileIsAvailable(tile){
@@ -2595,13 +2690,11 @@
   }
 
   function renderOverlay(view){
-    const host = document.getElementById("metricsHost");
-    host.innerHTML = "";
-    const panel = document.createElement("div");
-    panel.className = "panel overlay-panel";
+    const panel = document.getElementById("overlayPanel");
+    panel.innerHTML = "";
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
-    headRow.innerHTML = `<h3>Kennzahlen überlagern</h3>`;
+    headRow.innerHTML = `<h2>Kennzahlen überlagern</h2>`;
     panel.appendChild(headRow);
     attachInfo(headRow, "Wähle beliebige Kennzahlen aus, um sie normalisiert (0–100 % je sichtbarem Zeitraum) in einem Chart zu vergleichen — z. B. um zu sehen, wie MVRV, NUPL und Z-Score im Gleichlauf zum Kurs schwingen. Die angezeigten Werte in der Leiste über dem Chart sind die echten, nicht normalisierten Kennzahlen.");
 
@@ -2668,7 +2761,6 @@
     toolbar.className = "card-toolbar";
     toolbar.appendChild(buildRangeSeg("overlay"));
     panel.appendChild(toolbar);
-    host.appendChild(panel);
   }
 
   // Axis text sits inside a viewBox that's always 1000 wide, so its font-size (set in viewBox units)
@@ -2697,11 +2789,12 @@
 
   function renderAllImmediate(){
     const view = sliceRange(FULL, rangeDays, panOffsetDays);
+    renderOverlay(view);
     renderStatStrip();
     renderNarrative();
     renderGauges();
     renderHero(view);
-    if(mode === "tiles") renderTiles(view); else renderOverlay(view);
+    renderTiles(view);
     fitChartTypography();
   }
 
@@ -3232,17 +3325,7 @@
   }
 
   // ---------- controls ----------
-  function setActive(segId, btn){
-    document.querySelectorAll("#"+segId+" button").forEach(b=> b.classList.remove("active"));
-    btn.classList.add("active");
-  }
   function wireControls(){
-    document.getElementById("modeSeg").addEventListener("click", e=>{
-      const btn = e.target.closest("button"); if(!btn) return;
-      mode = btn.dataset.mode;
-      setActive("modeSeg", btn);
-      renderAll();
-    });
     document.getElementById("themeToggle").addEventListener("click", ()=>{
       setTheme(currentTheme() === "dark" ? "light" : "dark");
     });
