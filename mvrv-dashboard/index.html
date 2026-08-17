@@ -327,7 +327,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v55 · Deployed 17.08.2026 03:42 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v56 · Deployed 17.08.2026 03:50 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -2278,6 +2278,33 @@
       }
     },
     {
+      title:"RSI (14)", desc:"Relative Strength Index über 14 Tage — klassischer Momentum-Oszillator (0–100), rein aus dem Kursverlauf berechnet (kein On-Chain-Wert, daher immer verfügbar). Werte über 70 gelten traditionell als überkauft, unter 30 als überverkauft — historisch eher Extremregionen als ein für sich allein verlässliches Umkehrsignal. Läuft auch, kompakter, direkt unter dem BTC-Chart oben mit.",
+      build(view){
+        return buildLineChart({
+          dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false,
+          series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
+          axisFmt:v=>v.toFixed(0), yMin:0, yMax:100,
+          zoneBands:[
+            {from:70, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Überkauft"},
+            {from:30, to:70, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Neutral"},
+            {from:0, to:30, color:"var(--good-bg)", dotColor:"var(--good)", label:"Überverkauft"}
+          ]
+        });
+      }
+    },
+    {
+      title:"MACD (12/26/9)", desc:"Moving Average Convergence/Divergence — Differenz zwischen dem 12- und dem 26-Tage-EMA des Kurses (MACD-Linie), plus deren eigener 9-Tage-EMA als Signallinie. Kreuzt die MACD-Linie die Signallinie von unten nach oben, gilt das traditionell als bullisches Signal, von oben nach unten als bärisches — wie jeder Indikator kein eigenständiges Timing-Signal. In absoluten Dollar, daher am aussagekräftigsten in einem engeren Zeitraum statt über die komplette Kurshistorie. Läuft auch, kompakter, direkt unter dem BTC-Chart oben mit.",
+      build(view){
+        const series = [
+          {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
+          {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
+        ];
+        const built = buildLineChart({dates:view.dates, height:chartHeight(), zoomKey:this.title, startIdx:view.startIdx, log:false, series:filterVisibleSeries(this.title, series), refLines:[{value:0, label:"0", color:"var(--ink-3)"}]});
+        built.toggleableSeries = series.map(s=>({key:s.key, label:s.label, color:s.color}));
+        return built;
+      }
+    },
+    {
       title:"Supply-Wachstum (p.a.)", desc:"Jährliche Wachstumsrate der zirkulierenden Supply (rollierend, 365 Tage) — im Kern die Inflationsrate von Bitcoin durch Mining-Belohnungen. Sinkt stufenweise mit jedem Halving (per Toolbar-Button als gestrichelte vertikale Linien einblendbar) und nähert sich langfristig 0 %.",
       requires:"hasSupply",
       unavailableNote:"Braucht SplyCur — Coin Metrics gibt diese Metrik der aktuellen (schlüssellosen) Anfrage nicht frei.",
@@ -2538,7 +2565,7 @@
 
     if(showRsi){
       rsiBuilt = buildLineChart({
-        dates:view.dates, height:subPanelHeight(), zoomKey:"RSI (14)", startIdx:view.startIdx, log:false,
+        dates:view.dates, height:subPanelHeight(), zoomKey:"heroRsi", startIdx:view.startIdx, log:false,
         series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
         axisFmt:v=>v.toFixed(0), yMin:0, yMax:100, compactReadout:true,
         zoneBands:[
@@ -2548,7 +2575,7 @@
         ],
         hideXAxis: lastPanel!=="rsi", onIndexChange: syncTo("rsi")
       });
-      registerZoomChart("RSI (14)", rsiBuilt);
+      registerZoomChart("heroRsi", rsiBuilt);
       const head = document.createElement("div");
       head.className = "subpanel-head";
       head.innerHTML = `<span class="subpanel-title">RSI (14)</span>`;
@@ -2560,7 +2587,7 @@
 
     if(showMacd){
       macdBuilt = buildLineChart({
-        dates:view.dates, height:subPanelHeight(), zoomKey:"MACD (12/26/9)", startIdx:view.startIdx, log:false,
+        dates:view.dates, height:subPanelHeight(), zoomKey:"heroMacd", startIdx:view.startIdx, log:false,
         series:[
           {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
           {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
@@ -2568,7 +2595,7 @@
         refLines:[{value:0, label:"0", color:"var(--ink-3)"}], compactReadout:true,
         hideXAxis: lastPanel!=="macd", onIndexChange: syncTo("macd")
       });
-      registerZoomChart("MACD (12/26/9)", macdBuilt);
+      registerZoomChart("heroMacd", macdBuilt);
       const head = document.createElement("div");
       head.className = "subpanel-head";
       head.innerHTML = `<span class="subpanel-title">MACD (12/26/9)</span>`;
@@ -2783,7 +2810,7 @@
       // constant by vector-effect="non-scaling-stroke") - without this they read as tiny on a narrow
       // mobile card, since the same "6.5 viewBox units" is a much smaller fraction of a ~350px-wide
       // mobile card than of an ~1100px-wide desktop one.
-      svg.querySelectorAll(".hover-marker").forEach(c=> c.setAttribute("r", (7/scaleX).toFixed(2)));
+      svg.querySelectorAll(".hover-marker").forEach(c=> c.setAttribute("r", (5.2/scaleX).toFixed(2)));
     });
   }
 
