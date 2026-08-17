@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$61.500–64.000</div>
-          <div class="ctx">Pendelt bei ~$63,0k (±0% heute), ETH ebenfalls seitwärts</div>
+          <div class="ctx">Klettert leicht auf ~$63,5k (+0,9% heute), ETH ebenfalls fester (+1,4%)</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">37 / 100</div>
-          <div class="ctx">Fällt weiter von 44 auf 37 — Altseason vor Jahresende laut Analysten unwahrscheinlich, klar unter der Schwelle von 75</div>
-          <div class="gauge"><i style="width:37%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">30 / 100</div>
+          <div class="ctx">Fällt weiter von 37 auf 30 — klar in der Bitcoin-Season-Zone, weit unter der Schwelle von 75</div>
+          <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~58%</div>
-          <div class="ctx">Weiterhin bei ~58% — Kapital bleibt in Bitcoin konzentriert</div>
+          <div class="value mono">~56,1%</div>
+          <div class="ctx">Sinkt von ~58% auf ~56,1% trotz fallendem Altcoin Season Index — kein klares Rotationssignal</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–16.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–17.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "17.08.2026", text: "Bitcoin klettert leicht auf ~$63,5k (+0,9%), Ethereum legt stärker zu (+1,4%) — ein ruhiger, moderat positiver Handelstag. Der Altcoin Season Index fällt weiter von 37 auf 30, BTC-Dominanz sinkt dagegen leicht von ~58% auf ~56,1% — kein einheitliches Rotationssignal, Kapital bleibt insgesamt vorsichtig verteilt. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — Arthur Hayes' fortgesetzte Käufe über mehrere DeFi-Large-Caps (ENA, ETHFI, PENDLE, LDO) bleiben das einzige wiederkehrende Whale-Signal, ein AI-Memory-Token (Unibase, $345 Mio. Market Cap) legte 11% zu, ist aber bereits etabliert und ohne fresh-Katalysator." },
     { date: "16.08.2026", text: "Bitcoin pendelt seitwärts bei ~$63,0k, Ethereum bewegt sich ebenfalls kaum — ein ruhiger Tag ohne klare Richtung. Der Altcoin Season Index fällt weiter von 44 auf 37, BTC-Dominanz bleibt bei ~58% — Kapital bleibt klar in Bitcoin konzentriert, eine Altseason vor Jahresende gilt laut Analysten als unwahrscheinlich. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — Arthur Hayes' fortgesetzte Käufe über mehrere DeFi-Large-Caps (HYPE, LDO, ENA) bleiben das einzige wiederkehrende Whale-Signal." },
     { date: "15.08.2026", text: "Bitcoin pendelt bei ~$63,0k (−0,4%), Ethereum bewegt sich seitwärts — ein ruhiger Tag ohne klare Richtung. BTC-Dominanz und Altcoin Season Index bleiben mangels neuer verlässlicher Messung bei ~58,7% bzw. 44. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — Arthur Hayes kaufte heute breit über mehrere etablierte DeFi-Token (HYPE, LDO, ENA, PENDLE, ETHFI) nach, alles Large-Caps ohne eigenständiges Altcoin-Signal." },
     { date: "14.08.2026", text: "Bitcoin gibt nach auf ~$62,9k (−1,3%), Ethereum verliert ebenfalls (−1,1%) — ein spürbarer Rücksetzer nach dem ruhigen CPI-Tag. BTC-Dominanz und Altcoin Season Index bleiben mangels neuer verlässlicher Messung bei ~58,7% bzw. 44. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — Arthur Hayes verkaufte SYN und kaufte weiter ENA nach, BitMEX delistet zudem fünf Spot-Paare (u. a. HYPE) zum Handelsschluss heute." },
