@@ -265,15 +265,15 @@
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-empty{padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;}
 
-  /* The RSI/MACD indicator sub-panels stack directly beneath the price chart as one continuous block
-     (see renderHero) - only the outermost container keeps the normal chart-wrap background/rounding, and
-     each subsequent panel loses its own so the whole stack reads as one card, with a divider line marking
-     where one panel's plot ends and the next begins instead of a visual seam. */
-  .hero-multipanel{display:flex; flex-direction:column;}
-  .hero-multipanel .chart-wrap{border-radius:0;}
-  .hero-multipanel .chart-wrap:first-child{border-top-left-radius:14px; border-top-right-radius:14px;}
-  .hero-multipanel .chart-wrap:last-child{border-bottom-left-radius:14px; border-bottom-right-radius:14px;}
-  .subpanel-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 10px 0; border-top:1px solid var(--border); margin-top:2px;}
+  /* The RSI/MACD indicator sub-panels stack directly beneath the overlay chart as one continuous block
+     (see renderOverlay) - only the outermost container keeps the normal chart-wrap background/rounding,
+     and each subsequent panel loses its own so the whole stack reads as one card, with a divider line
+     marking where one panel's plot ends and the next begins instead of a visual seam. */
+  .multipanel{display:flex; flex-direction:column;}
+  .multipanel .chart-wrap{border-radius:0;}
+  .multipanel .chart-wrap:first-child{border-top-left-radius:14px; border-top-right-radius:14px;}
+  .multipanel .chart-wrap:last-child{border-bottom-left-radius:14px; border-bottom-right-radius:14px;}
+  .subpanel-head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 10px; padding:10px 10px 0; border-top:1px solid var(--border); margin-top:2px;}
   .subpanel-title{font-size:12.5px; font-weight:700; color:var(--ink-2);}
   .subpanel-head .readout{margin-left:0;}
   .subpanel-head .readout-date{display:none;}
@@ -307,10 +307,15 @@
   @media (max-width: 700px){
     .strip{grid-template-columns:1fr;}
     .grid{grid-template-columns:1fr;}
-    .controls-row{flex-direction:column; align-items:stretch;}
     .readout{align-items:flex-start; margin-left:0;}
     .readout-row{justify-content:flex-start;}
     h1{font-size:26px;}
+    /* On narrow screens the x-axis date labels rotate -45deg to fit (see buildLineChart's mobileTicks
+       branch), which lets their lower corner extend visibly below the chart's own nominal bottom edge -
+       svg{overflow:visible} means nothing clips that away. Without extra clearance here, whatever comes
+       right after the chart (a zone-legend most often, sitting on only a couple px of its own top margin)
+       sits close enough to actually overlap that rotated text instead of just looking a little snug. */
+    .chart-wrap{padding-bottom:26px;}
     /* The button's x-position varies with title length (e.g. "Market Cap vs. Realized Cap"), so a
        popup anchored left:0 relative to the button can run off the right edge of a narrow screen.
        Pin it to the viewport with fixed side margins instead, so it always folds back inside. */
@@ -327,7 +332,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v56 · Deployed 17.08.2026 03:50 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v57 · Deployed 18.08.2026 05:34 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -367,7 +372,7 @@
         <div id="heroReadout"></div>
       </div>
       <div id="heroToggles"></div>
-      <div id="heroChart" class="hero-multipanel"></div>
+      <div id="heroChart"></div>
       <div class="card-toolbar" id="heroToolbar"></div>
     </section>
 
@@ -423,35 +428,19 @@
     {date:"2024-04-20", label:"Halving"}
   ];
 
-  // The date ranges between consecutive halvings (plus the pre-first-halving and current-ongoing
-  // cycles) - used to find each cycle's own high/low point (see cycleExtremes below). Depends only on
-  // FULL.dates' span, not on any chart's own current view, so it's computed once and cached.
-  let cycleBoundariesCache = null;
-  function cycleBoundaries(){
-    if(cycleBoundariesCache) return cycleBoundariesCache;
-    if(!FULL || !FULL.dates || !FULL.dates.length) return [];
-    const bounds = [FULL.dates[0], ...HALVING_DATES.map(h=>h.date), FULL.dates[FULL.dates.length-1]];
-    const cycles = [];
-    for(let i=0;i<bounds.length-1;i++){
-      if(bounds[i] < bounds[i+1]) cycles.push({from:bounds[i], to:bounds[i+1]});
-    }
-    cycleBoundariesCache = cycles;
-    return cycles;
-  }
-  // How far price needs to have genuinely reversed from a candidate extreme, in either direction,
-  // before that extreme counts as "confirmed" rather than just "the highest/lowest point so far, which
-  // might still be improving". 20% is the same threshold conventionally used to call something a bear
-  // market in the first place, which is exactly the distinction being drawn here.
-  const CYCLE_EXTREME_CONFIRM_PCT = 20;
-  // For each *completed* cycle, its own highest and lowest point is simply whichever the historical
-  // record already shows - the cycle is over, so there's nothing left to "confirm". The current,
-  // still-ongoing cycle is different: its cheapest or priciest day so far might just be wherever price
-  // currently sits mid-move, not the cycle's real eventual top/bottom, so those only get reported once
-  // price has genuinely reversed CYCLE_EXTREME_CONFIRM_PCT% away from them without setting a new
-  // extreme since - unconfirmed candidates are silently dropped rather than shown as if final. Always
-  // computed against the FULL history (not whatever's currently zoomed in on), so the same real
-  // extremes are found regardless of range; the caller (buildLineChart) is responsible for only drawing
-  // whichever of these actually fall within the currently visible window.
+  // How far price needs to have genuinely reversed from a running high/low, in either direction, before
+  // that point counts as a confirmed cycle top/bottom rather than just "the most extreme point so far,
+  // which might still be improving". Deliberately far above the ~20% threshold that conventionally marks
+  // a bear market in general - empirically (see cycleExtremes below), only a threshold around 70-75%
+  // cleanly separates BTC's genuine, widely-recognized cycle-scale reversals (each one historically a
+  // decline or rally on the order of 80%+) from its routine multi-week/month volatility, which regularly
+  // produces 20-50%+ swings even mid-trend without those being anything anyone would call a cycle top or
+  // bottom. Verified against the real historical price series: 75% reproduces exactly the eight dates
+  // conventionally cited as BTC's cycle tops/bottoms (2011-06/2011-11, 2013-12/2015-01, 2017-12/2018-12,
+  // 2021-11/2022-11) with zero extra noise, while the halving-window-bounded approach this replaced
+  // mislabeled the 2024-03 pre-halving high (a new ATH set days before the 2024 halving, since surpassed
+  // many times over) as "the" cycle-4 top instead of the widely-recognized November 2021 one.
+  const CYCLE_EXTREME_CONFIRM_PCT = 75;
   // Whole days between two real calendar dates already present in FULL.dates, via their actual
   // timestamps rather than naive string/date-object math - used to caption each cycle flag with how
   // many days separate it from the event that led into it (a halving into its cycle's top, that top
@@ -461,64 +450,51 @@
     if(idxA<0 || idxB<0) return null;
     return Math.round((FULL.t[idxB]-FULL.t[idxA]) / 86400000);
   }
+  // A single continuous swing-high/swing-low scan across the *entire* price history, rather than a
+  // separate min/max per fixed halving-to-halving window - a per-window min/max mostly just finds
+  // whatever's cheapest right after a halving (an artifact of BTC's long-run uptrend, where nearly any
+  // earlier point is cheaper than any later one, not a real "cycle low") and it also breaks down entirely
+  // whenever a cycle's real top/bottom don't happen to fall tidily inside the "right" halving window (see
+  // the 2024-03 example above). Alternately tracking a running high/low and only "confirming" it once
+  // price has genuinely reversed CYCLE_EXTREME_CONFIRM_PCT% away without setting a new extreme first
+  // reliably reproduces the real historical tops/bottoms regardless of which halving window each falls
+  // in, and keeps every bottom chronologically *after* the top it followed (never the reverse). The
+  // final, still-open swing is deliberately left unconfirmed and unreported - for the ongoing cycle that
+  // correctly reads as "no bottom yet", exactly matching what the data can actually support.
   function cycleExtremes(values){
     const dates = FULL.dates;
+    const n = dates.length;
     const out = [];
-    const boundaries = cycleBoundaries();
-    // A completed cycle's own high and low is simply whichever the historical record already shows
-    // within its halving-to-halving window - the cycle is over, so there's nothing left to "confirm".
-    // Because BTC's price has grown by orders of magnitude across every completed cycle, that window's
-    // cheapest day is almost always right near its *start* (still close to the tail of the previous
-    // cycle's crash) rather than after its own top - so the low is captioned relative to the halving
-    // that opened the cycle whenever it falls before the top, and relative to that top (as the bear-
-    // market low that followed it) only on the rarer occasions it genuinely comes after.
-    function captionLow(loDate, hiDate, cycleFrom){
-      if(loDate <= hiDate) return {sinceDate:cycleFrom, sinceLabel:"Halving", days:daysBetween(cycleFrom, loDate)};
-      return {sinceDate:hiDate, sinceLabel:"Zyklus-Hoch", days:daysBetween(hiDate, loDate)};
+    let seekingHigh = true, extIdx = -1, extV = null, prevTopDate = null;
+    for(let i=0;i<n;i++){
+      const v = values[i];
+      if(v==null || !isFinite(v)) continue;
+      if(extIdx<0){ extIdx=i; extV=v; continue; }
+      if(seekingHigh){
+        if(v>extV){ extV=v; extIdx=i; }
+        else if(v <= extV*(1-CYCLE_EXTREME_CONFIRM_PCT/100)){
+          const halving = [...HALVING_DATES].reverse().find(h=>h.date<=dates[extIdx]);
+          const sinceDate = halving ? halving.date : dates[0];
+          const sinceLabel = halving ? "Halving" : "Datenbeginn";
+          out.push({date:dates[extIdx], value:extV, dir:1, sinceDate, sinceLabel, days:daysBetween(sinceDate, dates[extIdx])});
+          prevTopDate = dates[extIdx];
+          seekingHigh=false; extV=v; extIdx=i;
+        }
+      } else {
+        if(v<extV){ extV=v; extIdx=i; }
+        else if(v >= extV*(1+CYCLE_EXTREME_CONFIRM_PCT/100)){
+          out.push({date:dates[extIdx], value:extV, dir:-1, sinceDate:prevTopDate, sinceLabel:"Zyklus-Hoch", days:daysBetween(prevTopDate, dates[extIdx])});
+          seekingHigh=true; extV=v; extIdx=i;
+        }
+      }
     }
-    boundaries.forEach((c, ci)=>{
-      let hiIdx=-1, loIdx=-1, hiV=-Infinity, loV=Infinity, lastIdx=-1, lastV=null;
-      for(let i=0;i<dates.length;i++){
-        const dt = dates[i];
-        if(dt<c.from || dt>c.to) continue;
-        const v = values[i];
-        if(v==null || !isFinite(v)) continue;
-        if(v>hiV){ hiV=v; hiIdx=i; }
-        if(v<loV){ loV=v; loIdx=i; }
-        lastIdx=i; lastV=v;
-      }
-      if(hiIdx<0) return;
-      const isOngoing = ci === boundaries.length-1;
-      if(!isOngoing){
-        out.push({date:dates[hiIdx], value:hiV, dir:1, sinceDate:c.from, sinceLabel:"Halving", days:daysBetween(c.from, dates[hiIdx])});
-        if(loIdx>=0 && loIdx!==hiIdx) out.push({date:dates[loIdx], value:loV, dir:-1, ...captionLow(dates[loIdx], dates[hiIdx], c.from)});
-        return;
-      }
-      const topConfirmed = lastV <= hiV * (1 - CYCLE_EXTREME_CONFIRM_PCT/100);
-      if(!topConfirmed) return;
-      out.push({date:dates[hiIdx], value:hiV, dir:1, sinceDate:c.from, sinceLabel:"Halving", days:daysBetween(c.from, dates[hiIdx])});
-      // The bottom only makes sense as "the low of the decline that followed the confirmed top" - a
-      // low from earlier in the same cycle (before that top) is a pre-top dip, not a bear-market bottom.
-      let loIdx2=-1, loV2=Infinity;
-      for(let i=hiIdx;i<=lastIdx;i++){
-        const v = values[i];
-        if(v==null || !isFinite(v)) continue;
-        if(v<loV2){ loV2=v; loIdx2=i; }
-      }
-      if(loIdx2>=0 && loIdx2!==hiIdx){
-        const bottomConfirmed = lastV >= loV2 * (1 + CYCLE_EXTREME_CONFIRM_PCT/100);
-        if(bottomConfirmed) out.push({date:dates[loIdx2], value:loV2, dir:-1, sinceDate:dates[hiIdx], sinceLabel:"Zyklus-Hoch", days:daysBetween(dates[hiIdx], dates[loIdx2])});
-      }
-    });
     return out;
   }
-  // Which of the two market phases a given date falls into, given cycleExtremes()' own output
-  // chronologically sorted first (cycleExtremes returns each cycle's high before its low, which for a
-  // completed cycle is backwards - the low, right after that cycle's halving, comes chronologically
-  // BEFORE the high, its eventual bull-run peak). A bull market runs from a bottom to the next top; a
-  // bear market runs from a top to the next bottom (or, for the most recent confirmed top with no
-  // confirmed bottom yet, all the way to today - the decline is still ongoing). Dates before the very
-  // first known extreme have no established phase yet.
+  // Which of the two market phases a given date falls into, given cycleExtremes()' own output (already
+  // chronologically ordered - each swing low comes after the high it followed). A bull market runs from
+  // a bottom to the next top; a bear market runs from a top to the next bottom (or, for the most recent
+  // confirmed top with no confirmed bottom yet, all the way to today - the decline is still ongoing).
+  // Dates before the very first known extreme have no established phase yet.
   function cycleBullBearPhase(dateStr, sortedExtremes){
     if(!sortedExtremes || !sortedExtremes.length || dateStr < sortedExtremes[0].date) return null;
     let seg = sortedExtremes[0];
@@ -605,10 +581,10 @@
   // of the shared overlay - tileSeriesVisible[tileTitle][seriesKey] === false hides that one series
   // from that one tile. Absent entries default to visible, so tiles/series never need pre-seeding here.
   const tileSeriesVisible = {};
-  // Whether the RSI/MACD sub-panels stacked under the hero price chart (see renderHero) are shown at
+  // Whether the RSI/MACD sub-panels stacked under the overlay chart (see renderOverlay) are shown at
   // all - independent of tileSeriesVisible above, since these aren't a tile's own internal series but
   // whole extra panels that can be toggled off entirely.
-  const heroIndicatorVisible = {rsi:true, macd:true};
+  const indicatorVisible = {rsi:true, macd:true};
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -2004,7 +1980,13 @@
   ];
   function buildRangeSeg(zoomKey){
     const group = document.createElement("div");
-    group.style.display = "inline-flex"; group.style.alignItems = "center"; group.style.gap = "6px";
+    // flex-wrap here (not just on the outer .card-toolbar) matters on narrow screens: without it, this
+    // whole group - the range seg, jump-to-today, and Zyklen button together - is one rigid non-wrapping
+    // unit, so .card-toolbar's own wrapping can only ever break *between* whole groups, never within one,
+    // letting a too-wide group overflow its card instead of folding onto a second line like everything
+    // else in this toolbar already does.
+    group.style.display = "inline-flex"; group.style.flexWrap = "wrap"; group.style.alignItems = "center";
+    group.style.justifyContent = "flex-end"; group.style.gap = "6px";
     const seg = document.createElement("div");
     seg.className = "seg seg-sm";
     seg.setAttribute("role","group"); seg.setAttribute("aria-label","Zeitraum");
@@ -2471,7 +2453,7 @@
     // for "expensive/critical" - tied to the same Zyklen toggle as the flags marking those tops/bottoms
     // in the first place, since without them showing there's no visible reference for what the color is
     // even based on.
-    const heroExtremes = showHalvings ? [...cycleExtremes(FULL.price)].sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0) : null;
+    const heroExtremes = showHalvings ? cycleExtremes(FULL.price) : null;
     const heroPriceColorAt = heroExtremes && heroExtremes.length ? (i=>{
       const phase = cycleBullBearPhase(view.dates[i], heroExtremes);
       return phase==="bull" ? "var(--good)" : phase==="bear" ? "var(--critical)" : "var(--c-price)";
@@ -2519,98 +2501,10 @@
     });
     togglesHost.appendChild(toggleWrap);
 
-    // RSI and MACD render as flatter sub-panels stacked directly under the price chart (see below)
-    // rather than as their own separate tiles - each independently toggleable here, same chip style as
-    // every other show/hide control on the page. Whichever of these is the lowest still-visible panel
-    // is the only one that gets to show the shared x-axis date labels (see hideXAxis below).
-    const indicatorToggleWrap = document.createElement("div");
-    indicatorToggleWrap.className = "overlay-toggles indicator-toggles";
-    [{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)"}, {key:"macd", label:"MACD (12/26/9)", color:"var(--c-macd)"}].forEach(ind=>{
-      const visible = heroIndicatorVisible[ind.key];
-      const lab = document.createElement("label");
-      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
-      lab.style.setProperty("--chip-color", ind.color);
-      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${ind.label}`;
-      lab.querySelector("input").addEventListener("change", e=>{
-        heroIndicatorVisible[ind.key] = e.target.checked;
-        renderAll();
-      });
-      indicatorToggleWrap.appendChild(lab);
-    });
-    togglesHost.appendChild(indicatorToggleWrap);
-
-    const showRsi = heroIndicatorVisible.rsi, showMacd = heroIndicatorVisible.macd;
-    const lastPanel = showMacd ? "macd" : showRsi ? "rsi" : "price";
-
-    // Lets each panel's own crosshair move (see cfg.onIndexChange in buildLineChart) drive the other
-    // visible panels' crosshair to the same index, so the three read as one connected chart instead of
-    // three independently-hovered ones - declared before any of them are built since each one's
-    // onIndexChange closure needs to reach the other two, which don't exist yet at that point.
-    let priceBuilt, rsiBuilt, macdBuilt;
-    const syncTo = (skip)=> (i, isDefault)=>{
-      if(skip!=="price" && priceBuilt) priceBuilt.setIndex(i, isDefault);
-      if(skip!=="rsi" && rsiBuilt) rsiBuilt.setIndex(i, isDefault);
-      if(skip!=="macd" && macdBuilt) macdBuilt.setIndex(i, isDefault);
-    };
-
-    const built = buildLineChart({
-      dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill,
-      compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price",
-      hideXAxis: lastPanel!=="price", onIndexChange: syncTo("price")
-    });
-    priceBuilt = built;
+    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
-
-    if(showRsi){
-      rsiBuilt = buildLineChart({
-        dates:view.dates, height:subPanelHeight(), zoomKey:"heroRsi", startIdx:view.startIdx, log:false,
-        series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
-        axisFmt:v=>v.toFixed(0), yMin:0, yMax:100, compactReadout:true,
-        zoneBands:[
-          {from:70, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Überkauft"},
-          {from:30, to:70, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Neutral"},
-          {from:0, to:30, color:"var(--good-bg)", dotColor:"var(--good)", label:"Überverkauft"}
-        ],
-        hideXAxis: lastPanel!=="rsi", onIndexChange: syncTo("rsi")
-      });
-      registerZoomChart("heroRsi", rsiBuilt);
-      const head = document.createElement("div");
-      head.className = "subpanel-head";
-      head.innerHTML = `<span class="subpanel-title">RSI (14)</span>`;
-      attachInfo(head.querySelector(".subpanel-title"), "Relative Strength Index über 14 Tage — klassischer Momentum-Oszillator (0–100), rein aus dem Kursverlauf berechnet (kein On-Chain-Wert, daher immer verfügbar). Werte über 70 gelten traditionell als überkauft, unter 30 als überverkauft — historisch eher Extremregionen als ein für sich allein verlässliches Umkehrsignal.");
-      head.appendChild(rsiBuilt.readoutEl);
-      chartHost.appendChild(head);
-      chartHost.appendChild(rsiBuilt.wrap);
-    }
-
-    if(showMacd){
-      macdBuilt = buildLineChart({
-        dates:view.dates, height:subPanelHeight(), zoomKey:"heroMacd", startIdx:view.startIdx, log:false,
-        series:[
-          {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
-          {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
-        ],
-        refLines:[{value:0, label:"0", color:"var(--ink-3)"}], compactReadout:true,
-        hideXAxis: lastPanel!=="macd", onIndexChange: syncTo("macd")
-      });
-      registerZoomChart("heroMacd", macdBuilt);
-      const head = document.createElement("div");
-      head.className = "subpanel-head";
-      head.innerHTML = `<span class="subpanel-title">MACD (12/26/9)</span>`;
-      attachInfo(head.querySelector(".subpanel-title"), "Moving Average Convergence/Divergence — Differenz zwischen dem 12- und dem 26-Tage-EMA des Kurses (MACD-Linie), plus deren eigener 9-Tage-EMA als Signallinie. Kreuzt die MACD-Linie die Signallinie von unten nach oben, gilt das traditionell als bullisches Signal, von oben nach unten als bärisches — wie jeder Indikator kein eigenständiges Timing-Signal. In absoluten Dollar, daher am aussagekräftigsten in einem engeren Zeitraum statt über die komplette Kurshistorie.");
-      head.appendChild(macdBuilt.readoutEl);
-      chartHost.appendChild(head);
-      chartHost.appendChild(macdBuilt.wrap);
-    }
-
-    // Both sub-panels, if built, start out already showing the same point the price chart itself does
-    // (its own persisted/default position) rather than whatever they last independently remembered -
-    // otherwise a first render could show three panels each parked on a different date until the reader
-    // touches one of them.
-    if(rsiBuilt) rsiBuilt.setIndex(built.initialIndex, built.initialIsDefault);
-    if(macdBuilt) macdBuilt.setIndex(built.initialIndex, built.initialIsDefault);
   }
 
   function tileIsAvailable(tile){
@@ -2756,8 +2650,46 @@
     });
     panel.appendChild(legendWrap);
 
+    // RSI and MACD render as flatter sub-panels stacked directly under the overlay chart, rather than
+    // only as their own separate tiles - each independently toggleable here, same chip style as every
+    // other show/hide control on the page. Whichever of these is the lowest still-visible panel is the
+    // only one that gets to show the shared x-axis date labels (see hideXAxis below).
+    const indicatorToggleWrap = document.createElement("div");
+    indicatorToggleWrap.className = "overlay-toggles indicator-toggles";
+    [{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)"}, {key:"macd", label:"MACD (12/26/9)", color:"var(--c-macd)"}].forEach(ind=>{
+      const visible = indicatorVisible[ind.key];
+      const lab = document.createElement("label");
+      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+      lab.style.setProperty("--chip-color", ind.color);
+      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${ind.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        indicatorVisible[ind.key] = e.target.checked;
+        renderAll();
+      });
+      indicatorToggleWrap.appendChild(lab);
+    });
+    panel.appendChild(indicatorToggleWrap);
+
     const selectedKeys = Object.keys(overlaySel).filter(k=> overlaySel[k] && metricAvailable(k));
-    if(selectedKeys.length === 0){
+    const hasMain = selectedKeys.length > 0;
+    const showRsi = indicatorVisible.rsi, showMacd = indicatorVisible.macd;
+    const lastPanel = showMacd ? "macd" : showRsi ? "rsi" : (hasMain ? "main" : null);
+
+    // Lets each panel's own crosshair move (see cfg.onIndexChange in buildLineChart) drive the other
+    // visible panels' crosshair to the same index, so the stack reads as one connected chart instead of
+    // independently-hovered pieces - declared before any of them are built since each one's
+    // onIndexChange closure needs to reach the others, which don't exist yet at that point.
+    let mainBuilt, rsiBuilt, macdBuilt;
+    const syncTo = (skip)=> (i, isDefault)=>{
+      if(skip!=="main" && mainBuilt) mainBuilt.setIndex(i, isDefault);
+      if(skip!=="rsi" && rsiBuilt) rsiBuilt.setIndex(i, isDefault);
+      if(skip!=="macd" && macdBuilt) macdBuilt.setIndex(i, isDefault);
+    };
+
+    const chartHost = document.createElement("div");
+    chartHost.className = "multipanel";
+
+    if(!hasMain){
       const empty = document.createElement("p");
       empty.className = "sub";
       empty.textContent = "Wähle mindestens eine Kennzahl aus, um sie zu überlagern.";
@@ -2770,20 +2702,75 @@
         fmt: METRICS[key].fmt,
         width:1.4
       }));
-      const built = buildLineChart({
+      mainBuilt = buildLineChart({
         dates:view.dates, series, log:false, height:chartHeight(),
         axisFmt: v=> (v*100).toFixed(0)+"%",
         compactReadout: series.length > 3,
-        zoomKey:"overlay", startIdx:view.startIdx
+        zoomKey:"overlay", startIdx:view.startIdx,
+        hideXAxis: lastPanel!=="main", onIndexChange: syncTo("main")
       });
-      registerZoomChart("overlay", built);
+      registerZoomChart("overlay", mainBuilt);
       const readoutRow = document.createElement("div");
       readoutRow.style.display = "flex";
       readoutRow.style.justifyContent = "flex-end";
-      readoutRow.appendChild(built.readoutEl);
+      readoutRow.appendChild(mainBuilt.readoutEl);
       panel.appendChild(readoutRow);
-      panel.appendChild(built.wrap);
+      chartHost.appendChild(mainBuilt.wrap);
     }
+
+    if(showRsi){
+      rsiBuilt = buildLineChart({
+        dates:view.dates, height:subPanelHeight(), zoomKey:"overlayRsi", startIdx:view.startIdx, log:false,
+        series:[{key:"rsi", label:"RSI (14)", color:"var(--c-rsi)", values:view.rsi, width:1.4, fmt:v=>v.toFixed(0)}],
+        axisFmt:v=>v.toFixed(0), yMin:0, yMax:100, compactReadout:true,
+        zoneBands:[
+          {from:70, to:100, color:"var(--critical-bg)", dotColor:"var(--critical)", label:"Überkauft"},
+          {from:30, to:70, color:"var(--neutral-bg)", dotColor:"var(--neutral)", label:"Neutral"},
+          {from:0, to:30, color:"var(--good-bg)", dotColor:"var(--good)", label:"Überverkauft"}
+        ],
+        hideXAxis: lastPanel!=="rsi", onIndexChange: syncTo("rsi")
+      });
+      registerZoomChart("overlayRsi", rsiBuilt);
+      const head = document.createElement("div");
+      head.className = "subpanel-head";
+      head.innerHTML = `<span class="subpanel-title">RSI (14)</span>`;
+      attachInfo(head.querySelector(".subpanel-title"), "Relative Strength Index über 14 Tage — klassischer Momentum-Oszillator (0–100), rein aus dem Kursverlauf berechnet (kein On-Chain-Wert, daher immer verfügbar). Werte über 70 gelten traditionell als überkauft, unter 30 als überverkauft — historisch eher Extremregionen als ein für sich allein verlässliches Umkehrsignal.");
+      head.appendChild(rsiBuilt.readoutEl);
+      chartHost.appendChild(head);
+      chartHost.appendChild(rsiBuilt.wrap);
+    }
+
+    if(showMacd){
+      macdBuilt = buildLineChart({
+        dates:view.dates, height:subPanelHeight(), zoomKey:"overlayMacd", startIdx:view.startIdx, log:false,
+        series:[
+          {key:"macd", label:"MACD", color:"var(--c-macd)", values:view.macd, width:1.4, fmt:fmtUSD},
+          {key:"macdSignal", label:"Signal", color:"var(--c-macdsignal)", values:view.macdSignal, width:1.4, dashed:true, fmt:fmtUSD}
+        ],
+        refLines:[{value:0, label:"0", color:"var(--ink-3)"}], compactReadout:true,
+        hideXAxis: lastPanel!=="macd", onIndexChange: syncTo("macd")
+      });
+      registerZoomChart("overlayMacd", macdBuilt);
+      const head = document.createElement("div");
+      head.className = "subpanel-head";
+      head.innerHTML = `<span class="subpanel-title">MACD (12/26/9)</span>`;
+      attachInfo(head.querySelector(".subpanel-title"), "Moving Average Convergence/Divergence — Differenz zwischen dem 12- und dem 26-Tage-EMA des Kurses (MACD-Linie), plus deren eigener 9-Tage-EMA als Signallinie. Kreuzt die MACD-Linie die Signallinie von unten nach oben, gilt das traditionell als bullisches Signal, von oben nach unten als bärisches — wie jeder Indikator kein eigenständiges Timing-Signal. In absoluten Dollar, daher am aussagekräftigsten in einem engeren Zeitraum statt über die komplette Kurshistorie.");
+      head.appendChild(macdBuilt.readoutEl);
+      chartHost.appendChild(head);
+      chartHost.appendChild(macdBuilt.wrap);
+    }
+
+    if(chartHost.children.length) panel.appendChild(chartHost);
+
+    // Both sub-panels, if built, start out already showing the same point the main chart itself does
+    // (its own persisted/default position) rather than whatever they last independently remembered -
+    // otherwise a first render could show three panels each parked on a different date until the reader
+    // touches one of them.
+    if(mainBuilt){
+      if(rsiBuilt) rsiBuilt.setIndex(mainBuilt.initialIndex, mainBuilt.initialIsDefault);
+      if(macdBuilt) macdBuilt.setIndex(mainBuilt.initialIndex, mainBuilt.initialIsDefault);
+    }
+
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
     toolbar.appendChild(buildRangeSeg("overlay"));
