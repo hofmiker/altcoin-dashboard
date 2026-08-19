@@ -332,7 +332,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v58 · Deployed 19.08.2026 19:08 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v59 · Deployed 19.08.2026 19:52 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -515,6 +515,24 @@
   // against this dashboard's own FULL price history via ordinary least squares in log-log space. The
   // fit only needs computing once (FULL never changes after the initial load), so it's cached.
   const GENESIS_MS = Date.parse("2009-01-03T00:00:00Z");
+  // Average real gap between the four known halvings (derived from HALVING_DATES itself, not a fixed
+  // "every 4 years" assumption - actual gaps have run 1319-1428 days depending on the network's hash
+  // rate at the time) - used to project a few more halvings, and how far to extend the power-law
+  // corridor past the real data, when the power-law chart's own range is set to "Alles" (see
+  // computePowerLawLayout). Clearly speculative by construction; every projected date is flagged as such
+  // wherever it's shown.
+  function avgHalvingCycleDays(){
+    let total = 0;
+    for(let i=1;i<HALVING_DATES.length;i++) total += (Date.parse(HALVING_DATES[i].date+"T00:00:00Z")-Date.parse(HALVING_DATES[i-1].date+"T00:00:00Z"))/86400000;
+    return total/(HALVING_DATES.length-1);
+  }
+  function projectedHalvings(count){
+    const avg = avgHalvingCycleDays();
+    const lastMs = Date.parse(HALVING_DATES[HALVING_DATES.length-1].date+"T00:00:00Z");
+    const out = [];
+    for(let i=1;i<=count;i++) out.push({date:new Date(lastMs+i*avg*86400000).toISOString().slice(0,10), projected:true});
+    return out;
+  }
   let powerLawFitCache = null;
   function powerLawFit(){
     if(powerLawFitCache) return powerLawFitCache;
@@ -536,6 +554,24 @@
     powerLawFitCache = {slope, intercept, r2: 1-ssRes/ssTot, sigma: Math.sqrt(ssRes/n), n};
     return powerLawFitCache;
   }
+  // The "Bitcoin Rainbow Chart" is a distinct, related visualization - not the power law itself, but a
+  // popular companion to it: instead of one trend line with a plain +-confidence corridor, it slices the
+  // same kind of logarithmic regression into several colored qualitative bands (from "basically a fire
+  // sale" at the bottom to "maximum bubble territory" at the top). Built here as extra bands around the
+  // exact same self-fitted regression above (see powerLawFit) - offsets in multiples of its own sigma -
+  // rather than a second, separately-sourced regression, so it stays consistent with the primary fit
+  // shown alongside it instead of potentially disagreeing with it.
+  const RAINBOW_ZONES = [
+    {hi:4.2, lo:2.2, label:"Maximaler Hype", color:"#c0392b"},
+    {hi:2.2, lo:1.5, label:"Verkaufen!", color:"#e67e22"},
+    {hi:1.5, lo:0.9, label:"FOMO", color:"#f1c40f"},
+    {hi:0.9, lo:0.3, label:"Ist das eine Blase?", color:"#a6ce39"},
+    {hi:0.3, lo:-0.3, label:"Fairer Wert", color:"#2ecc71"},
+    {hi:-0.3, lo:-0.9, label:"Noch günstig", color:"#16a085"},
+    {hi:-0.9, lo:-1.5, label:"Akkumulieren", color:"#2980b9"},
+    {hi:-1.5, lo:-2.2, label:"Kaufen!", color:"#3949ab"},
+    {hi:-2.2, lo:-4.2, label:"Fire Sale", color:"#7b2d8e"}
+  ];
   // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
   // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
   // <g>'s transform. dir=1 (cycle high): a small flag on a pole planted on the peak, pole pointing up
@@ -618,6 +654,16 @@
   // all - independent of tileSeriesVisible above, since these aren't a tile's own internal series but
   // whole extra panels that can be toggled off entirely.
   const indicatorVisible = {rsi:true, macd:true};
+  // Independent log/linear state for the power-law chart's own two axes (see renderPowerLaw) - unlike
+  // every other chart's single Log/Linear toggle (Y only, X is always plain calendar time), this one
+  // supports switching X (time) and Y (price) separately, since the whole "power law" thing is about
+  // what a log-log view specifically reveals.
+  let powerLawLogX = true, powerLawLogY = true;
+  // Which optional overlay layers the power-law chart draws on top of the plain price line - the fitted
+  // trend + its confidence corridor (on by default, since that's the chart's whole point) and, as a
+  // separate opt-in layer, a multi-band "rainbow" coloring of the same underlying fit (off by default -
+  // secondary/exploratory, not the primary reading).
+  const powerLawLayerVisible = {powerlaw:true, rainbow:false};
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -2541,183 +2587,301 @@
   }
 
   // A dedicated log-log chart (both axes logarithmic, not just price like every other chart's own
-  // Log/Linear toggle) plotting the whole price history against the fitted power-law trend line (see
+  // Log/Linear toggle) plotting the price history against the fitted power-law trend line (see
   // powerLawFit above) plus a +-2-sigma corridor. Deliberately NOT built on buildLineChart - that whole
-  // machinery (zoom/pan, range selection, per-index crosshair sync) assumes a linear, evenly-by-day X
-  // axis, which a log-time axis fundamentally isn't (consecutive days are pixels apart near the left
-  // edge and fractions of a pixel apart near the right) - and a power law is inherently a whole-history
-  // relationship anyway, not something that means much zoomed into a recent window. Always shows the
-  // complete history; there's no range toolbar here to match.
-  function renderPowerLaw(){
-    const panel = document.getElementById("powerLawPanel");
-    panel.innerHTML = "";
-    const headRow = document.createElement("div");
-    headRow.className = "panel-head";
-    headRow.innerHTML = `<h3>BTC-Kurs (Power Law, Log-Log)</h3>`;
-    panel.appendChild(headRow);
-    const fit = powerLawFit();
-    attachInfo(headRow, `Die "Bitcoin Power Law"-These: auf einer beidseitig logarithmischen Skala (Kurs UND Tage seit dem Genesis-Block vom 03.01.2009 logarithmisch) folgt der BTC-Kurs über die gesamte Historie annähernd einer Geraden, Kurs ≈ A × Tage^n - hier direkt per linearer Regression im Log-Log-Raum aus den vorliegenden Kursdaten berechnet (keine von extern übernommenen Koeffizienten): Kurs(t) = 10^${fit.intercept.toFixed(2)} × Tage^${fit.slope.toFixed(2)}, R² = ${fit.r2.toFixed(3)} über ${fit.n.toLocaleString("de-DE")} Tage. Das gestrichelte Band zeigt ±2 Standardabweichungen (log-Skala) um diese Gerade. Reine statistische Kurvenanpassung an die Vergangenheit - keine Prognose und keine Anlageempfehlung.`);
-
+  // machinery (zoom/pan, per-index crosshair sync) assumes a linear, evenly-by-day X axis, which a
+  // log-time axis fundamentally isn't (consecutive days are pixels apart near the left edge and
+  // fractions of a pixel apart near the right). It does, however, share the same global range selector
+  // (see buildRangeSeg("powerlaw") in renderPowerLaw) every other chart on the page already uses, so
+  // picking e.g. "1J" anywhere narrows this chart's own displayed window too - only "Alles" additionally
+  // projects the corridor/halvings a few cycles past the real data (see computePowerLawLayout).
+  // Cached point list (the whole valid price history, as {date,days,t,price}) - doesn't depend on either
+  // axis's log/linear state or the selected range, so it's computed once rather than on every pass.
+  let powerLawPointsCache = null;
+  function powerLawPoints(){
+    if(powerLawPointsCache) return powerLawPointsCache;
     const points = [];
     for(let i=0;i<FULL.dates.length;i++){
       const p = FULL.price[i];
       if(p==null || !isFinite(p) || p<=0) continue;
       const days = (FULL.t[i]-GENESIS_MS)/86400000;
       if(days<=0) continue;
-      points.push({date:FULL.dates[i], days, price:p});
+      points.push({date:FULL.dates[i], days, t:FULL.t[i], price:p});
     }
-    if(points.length < 2){
-      const empty = document.createElement("div");
-      empty.className = "chart-empty";
-      empty.textContent = "Keine Daten verfügbar";
-      panel.appendChild(empty);
-      return;
-    }
+    powerLawPointsCache = points;
+    return points;
+  }
+  // Which date the crosshair currently sits on - module-level (not local to one render call) so it
+  // survives across renderPowerLaw() rebuilds, the same way selectedFraction persists other charts'
+  // crosshair position across their own rebuilds. Stored as a date (not a raw index) since the range
+  // selector can change which subset of points is even in play - an index would silently point at a
+  // different day after that, a date can just be re-looked-up (or, if it's since scrolled out of the
+  // visible window, safely fall back to the window's latest point instead). Null means "not yet
+  // touched, default to the latest".
+  let powerLawCrosshairDate = null;
 
+  // "Nice" round tick values spanning [min,max] - used for the Y axis only when it's linear (log mode
+  // just uses one tick per power of ten, the natural spacing for a log axis, computed inline below).
+  function niceLinearTicks(min, max, targetCount){
+    const range = max-min || 1;
+    const rawStep = range/targetCount;
+    const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const norm = rawStep/mag;
+    const step = (norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+    const ticks = [];
+    for(let v=Math.ceil(min/step)*step; v<=max+step*1e-9; v+=step) ticks.push(v);
+    return ticks;
+  }
+
+  // Pure geometry computation - every pixel position anything on the chart needs, for a given choice of
+  // log/linear on each axis and which point (if any) the crosshair sits on. Kept entirely separate from
+  // DOM building (see renderPowerLawDOM below) so an axis toggle can compute both the "from" and "to"
+  // layout and interpolate between them frame by frame, without needing two live, half-built SVGs.
+  function computePowerLawLayout(logX, logY, crosshairDate){
+    const allPoints = powerLawPoints();
+    const fit = powerLawFit();
     const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
-    const logDaysMin = Math.log10(points[0].days), logDaysMax = Math.log10(points[points.length-1].days);
+    const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
+
+    // Window the real price data to the same shared range/pan the rest of the page uses (see
+    // sliceRange, which this mirrors against allPoints' own .t instead of FULL's) - "Alles" is the one
+    // exception: besides showing everything, it also extends daysMax a further 3 average halving cycles
+    // past the last real day, so the corridor/rainbow/halving lines visibly project into the future
+    // instead of stopping dead at today (the actual price line, of course, still just ends at today -
+    // there's no real data to draw past that, only the model).
+    let points, isProjected = false;
+    if(rangeDays === "all"){
+      points = allPoints;
+      isProjected = true;
+    } else {
+      const lastT = allPoints[allPoints.length-1].t;
+      const endT = lastT - (panOffsetDays||0)*86400000;
+      let endIdx = allPoints.length;
+      if(panOffsetDays > 0){
+        endIdx = allPoints.findIndex(p=> p.t > endT);
+        if(endIdx < 0) endIdx = allPoints.length;
+      }
+      const cutoff = endT - rangeDays*86400000;
+      let idx = allPoints.findIndex(p=> p.t >= cutoff);
+      if(idx < 0) idx = 0;
+      if(idx >= endIdx) idx = Math.max(0, endIdx-1);
+      points = allPoints.slice(idx, endIdx);
+    }
+    const daysMin = points[0].days;
+    const daysMax = isProjected ? points[points.length-1].days + 3*avgHalvingCycleDays() : points[points.length-1].days;
+
+    function xVal(days){ return logX ? Math.log10(days) : days; }
+    const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
+    function xOf(days){ return padL + (xVal(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
+
+    // The vertical extent always starts from a log10(price)-space calculation (matching how the fit
+    // itself, and its sigma, are defined) regardless of which mode Y ends up displayed in - a linear Y
+    // axis then just spans the same underlying price range on a different (non-log) scale, rather than
+    // needing an entirely separate notion of "how tall should this chart be" per mode.
     const priceLogVals = points.map(p=>Math.log10(p.price));
-    const fitLogAt = logDays => fit.slope*logDays + fit.intercept;
-    const bandPad = 2*fit.sigma;
-    const yMin = Math.min(Math.min(...priceLogVals), fitLogAt(logDaysMin)-bandPad, fitLogAt(logDaysMax)-bandPad) - 0.06;
-    const yMax = Math.max(Math.max(...priceLogVals), fitLogAt(logDaysMin)+bandPad, fitLogAt(logDaysMax)+bandPad) + 0.06;
+    const bandPad = powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
+    const rainbowPad = powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    const extentPad = Math.max(bandPad, rainbowPad);
+    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
+    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
+    const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
+    function yVal(price){ return logY ? Math.log10(price) : price; }
+    function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
 
-    function xOf(days){ return padL + (Math.log10(days)-logDaysMin)/(logDaysMax-logDaysMin)*(w-padL-padR); }
-    function logPriceToY(logP){ return padT + (1-(logP-yMin)/(yMax-yMin))*(h-padT-padB); }
-    function priceToY(price){ return logPriceToY(Math.log10(price)); }
+    const pricePts = points.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
 
+    const SAMPLES = 240;
+    function daysAtSample(i){
+      const xv = xValMin + (i/SAMPLES)*(xValMax-xValMin);
+      return logX ? Math.pow(10,xv) : xv;
+    }
+    function tracePts(sigmaOffset){
+      const pts = [];
+      for(let i=0;i<=SAMPLES;i++){
+        const days = daysAtSample(i);
+        const price = Math.pow(10, fitLogAt(days)+sigmaOffset*fit.sigma);
+        pts.push({x: padL+(i/SAMPLES)*(w-padL-padR), y: yOf(price)});
+      }
+      return pts;
+    }
+    const fitPts = tracePts(0);
+    const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+
+    // Real halvings, plus (only in the projected "Alles" view) a few estimated future ones - both
+    // tied to the same shared "Zyklen" toggle every other chart's halving markers already respect.
+    const halvingSource = showHalvings ? HALVING_DATES.concat(isProjected ? projectedHalvings(3) : []) : [];
+    const halvings = halvingSource
+      .map(hv=>({date:hv.date, projected:!!hv.projected, days:(Date.parse(hv.date+"T00:00:00Z")-GENESIS_MS)/86400000}))
+      .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
+      .map(hv=>({...hv, x:xOf(hv.days)}));
+
+    // Y gridlines: one per power of ten in log mode (the natural spacing for a log axis), "nice" round
+    // price values in linear mode.
+    const yTicks = logY
+      ? (()=>{ const lo=Math.floor(yValMin), hi=Math.ceil(yValMax), out=[]; for(let d=lo;d<=hi;d++) if(d>=yValMin&&d<=yValMax) out.push({y:yOf(Math.pow(10,d)), label:fmtUSD(Math.pow(10,d))}); return out; })()
+      : niceLinearTicks(yValMin,yValMax,6).map(v=>({y:yOf(v), label:fmtUSD(v)}));
+    // X ticks: one per calendar year (every other year once there'd be too many to read), positioned by
+    // that year's own days-since-genesis - in log mode that's *not* evenly spaced (early years sit far
+    // apart, recent ones crowd together), which is the whole point of this chart; in linear mode the
+    // same positions come out evenly spaced automatically, since xOf() itself changes, not this logic.
+    // Derived from daysMin/daysMax themselves (not points[0]/points[last]'s own dates), since a
+    // projected "Alles" view's daysMax reaches years past the last real data point.
+    const firstYear = new Date(GENESIS_MS+daysMin*86400000).getUTCFullYear();
+    const lastYear = new Date(GENESIS_MS+daysMax*86400000).getUTCFullYear();
+    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+    const xTicks = [];
+    for(let y=firstYear; y<=lastYear; y+=yearStep){
+      const days = (Date.parse(`${y}-01-01T00:00:00Z`)-GENESIS_MS)/86400000;
+      if(days < daysMin || days > daysMax) continue;
+      xTicks.push({x:xOf(days), label:String(y)});
+    }
+
+    // Resolve the persisted crosshair date against *this* window's own points - falls back to the
+    // window's latest point both on first load (crosshairDate still null) and whenever the previously
+    // selected date has since scrolled out of view (a narrower range, or a pan).
+    let crosshairPtIdx = crosshairDate==null ? -1 : points.findIndex(p=>p.date===crosshairDate);
+    if(crosshairPtIdx<0) crosshairPtIdx = points.length-1;
+    const crosshairPt = points[crosshairPtIdx];
+    const crosshairFair = Math.pow(10, fitLogAt(crosshairPt.days));
+    const crosshair = {date:crosshairPt.date, price:crosshairPt.price, fairPrice:crosshairFair, isLatest: crosshairPtIdx===points.length-1,
+      priceX:xOf(crosshairPt.days), priceY:yOf(crosshairPt.price), fitX:xOf(crosshairPt.days), fitY:yOf(crosshairFair)};
+
+    return {w,h,padL,padR,padT,padB, points, fit, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, crosshair, daysMin, daysMax, xOf, yOf, fitLogAt};
+  }
+
+  function pathD(pts){
+    let d = "";
+    pts.forEach((p,i)=>{ d += (i===0?"M":"L") + p.x.toFixed(1) + "," + p.y.toFixed(1) + " "; });
+    return d;
+  }
+  function zonePathD(hiPts, loPts){
+    let d = pathD(hiPts);
+    for(let i=loPts.length-1;i>=0;i--) d += "L"+loPts[i].x.toFixed(1)+","+loPts[i].y.toFixed(1)+" ";
+    return d + "Z";
+  }
+
+  // Builds the actual SVG/DOM from an already-computed layout (see computePowerLawLayout) - kept
+  // separate so an axis-toggle animation can build the true end state once, then drive its elements'
+  // attributes directly frame by frame rather than re-running this whole function on every frame.
+  function renderPowerLawDOM(layout){
+    const {w,h,padL,padR,padT,padB, points, fitLogAt} = layout;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    // Y gridlines - one per power of ten within range, the natural tick spacing on a log axis.
-    const decadeLo = Math.floor(yMin), decadeHi = Math.ceil(yMax);
-    for(let d=decadeLo; d<=decadeHi; d++){
-      if(d<yMin || d>yMax) continue;
-      const y = logPriceToY(d);
+    if(powerLawLayerVisible.rainbow){
+      layout.rainbowZones.forEach(z=>{
+        const zone = document.createElementNS(NS,"path");
+        zone.setAttribute("class","pl-rainbow-zone");
+        zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
+        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.16"); zone.setAttribute("stroke","none");
+        svg.appendChild(zone);
+      });
+    }
+
+    layout.yTicks.forEach(t=>{
       const gl = document.createElementNS(NS,"line");
-      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label");
-      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
-      lbl.textContent = fmtUSD(Math.pow(10,d));
+      lbl.textContent = t.label;
       svg.appendChild(lbl);
-    }
-    // X ticks - one per calendar year (every other year once there'd be too many to read), positioned
-    // by that year's own days-since-genesis rather than evenly spaced, since evenly-by-year *is* evenly
-    // spaced only in linear time - on this log-time axis, early years sit far apart and recent ones
-    // crowd together near the right edge, which is the whole point of this chart.
-    const firstYear = Number(points[0].date.slice(0,4)), lastYear = Number(points[points.length-1].date.slice(0,4));
-    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
-    for(let y=firstYear; y<=lastYear; y+=yearStep){
-      const days = (Date.parse(`${y}-01-01T00:00:00Z`)-GENESIS_MS)/86400000;
-      if(days < points[0].days || days > points[points.length-1].days) continue;
-      const x = xOf(days);
+    });
+    layout.xTicks.forEach(t=>{
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label axis-label-x");
-      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
-      lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+      lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-6})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
-      lbl.textContent = String(y);
+      lbl.textContent = t.label;
       svg.appendChild(lbl);
-    }
+    });
 
-    // Halving markers, same convention as every other BTC-price chart on the page.
-    HALVING_DATES.forEach(hv=>{
-      const days = (Date.parse(hv.date+"T00:00:00Z")-GENESIS_MS)/86400000;
-      if(days < points[0].days || days > points[points.length-1].days) return;
-      const x = xOf(days);
+    layout.halvings.forEach(hv=>{
       const line = document.createElementNS(NS,"line");
-      line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
+      line.setAttribute("class","pl-halving");
+      line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
       line.setAttribute("vector-effect","non-scaling-stroke");
+      // Projected future halvings (only ever present in the "Alles" view - see computePowerLawLayout)
+      // are an estimate, not a fact - faded relative to the four real ones so they read as speculative.
+      if(hv.projected){
+        line.setAttribute("opacity","0.4");
+        const title = document.createElementNS(NS,"title");
+        title.textContent = `Geschätztes Halving: ${fmtDateOnly(hv.date)} (Ø Zyklusdauer der bisherigen Halvings)`;
+        line.appendChild(title);
+      }
       svg.appendChild(line);
     });
 
-    // +-2-sigma corridor (dashed) and the power-law center line itself, sampled at even steps in
-    // log10(days) - which, on this axis, is simply even steps in pixel-X, so no per-sample inverse
-    // mapping back through days is needed.
-    const SAMPLES = 240;
-    function tracePath(offset){
-      let d = "";
-      for(let i=0;i<=SAMPLES;i++){
-        const logDays = logDaysMin + (i/SAMPLES)*(logDaysMax-logDaysMin);
-        const x = padL + (i/SAMPLES)*(w-padL-padR);
-        const y = logPriceToY(fitLogAt(logDays)+offset);
-        d += (i===0?"M":"L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
-      }
-      return d;
+    if(powerLawLayerVisible.powerlaw){
+      [layout.bandHiPts, layout.bandLoPts].forEach((pts,i)=>{
+        const band = document.createElementNS(NS,"path");
+        band.setAttribute("class", i===0?"pl-band-hi":"pl-band-lo");
+        band.setAttribute("d", pathD(pts));
+        band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
+        band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
+        band.setAttribute("vector-effect","non-scaling-stroke");
+        svg.appendChild(band);
+      });
+      const fitLine = document.createElementNS(NS,"path");
+      fitLine.setAttribute("class","pl-fit-line");
+      fitLine.setAttribute("d", pathD(layout.fitPts));
+      fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
+      fitLine.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(fitLine);
     }
-    [bandPad, -bandPad].forEach(offset=>{
-      const band = document.createElementNS(NS,"path");
-      band.setAttribute("d", tracePath(offset));
-      band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
-      band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
-      band.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(band);
-    });
-    const fitLine = document.createElementNS(NS,"path");
-    fitLine.setAttribute("d", tracePath(0));
-    fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
-    fitLine.setAttribute("vector-effect","non-scaling-stroke");
-    svg.appendChild(fitLine);
 
-    // Actual price line.
-    let priceD = "";
-    points.forEach((pt,i)=>{ priceD += (i===0?"M":"L") + xOf(pt.days).toFixed(1) + "," + priceToY(pt.price).toFixed(1) + " "; });
     const priceLine = document.createElementNS(NS,"path");
-    priceLine.setAttribute("d", priceD);
+    priceLine.setAttribute("class","pl-price-line");
+    priceLine.setAttribute("d", pathD(layout.pricePts));
     priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
     priceLine.setAttribute("vector-effect","non-scaling-stroke");
     svg.appendChild(priceLine);
 
     // Crosshair - a simplified version of buildLineChart's own (no zoom/pan to sync with here): a
     // vertical line plus a dot on each of the two traces, following the pointer via binary search over
-    // points[] (sorted by days, but not evenly spaced in log-day pixel terms, unlike every other chart's
+    // points[] (sorted by days, but not evenly spaced in pixel terms here, unlike every other chart's
     // plain by-index lookup).
     const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("class","pl-crosshair");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
     cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1"); cross.setAttribute("vector-effect","non-scaling-stroke");
     svg.appendChild(cross);
     const priceDot = document.createElementNS(NS,"circle");
-    priceDot.setAttribute("class","hover-marker"); priceDot.setAttribute("r","6.5");
+    priceDot.setAttribute("class","hover-marker pl-price-dot"); priceDot.setAttribute("r","6.5");
     priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
     svg.appendChild(priceDot);
     const fitDot = document.createElementNS(NS,"circle");
-    fitDot.setAttribute("class","hover-marker"); fitDot.setAttribute("r","6.5");
+    fitDot.setAttribute("class","hover-marker pl-fit-dot"); fitDot.setAttribute("r","6.5");
     fitDot.setAttribute("fill","var(--c-powerlaw)"); fitDot.setAttribute("stroke","var(--card)"); fitDot.setAttribute("stroke-width","1.5");
+    if(!powerLawLayerVisible.powerlaw) fitDot.style.display = "none";
     svg.appendChild(fitDot);
 
     const readout = buildReadout(
       [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}, {key:"fair", label:"Power-Law-Fair-Value", color:"var(--c-powerlaw)", fmt:fmtUSD}],
       {compact:true}
     );
-    const readoutRow = document.createElement("div");
-    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
-    readoutRow.appendChild(readout.el);
-    panel.insertBefore(readoutRow, headRow.nextSibling);
-
-    function renderAt(idx){
-      const pt = points[idx];
-      const fairPrice = Math.pow(10, fitLogAt(Math.log10(pt.days)));
-      const x = xOf(pt.days);
-      cross.setAttribute("x1",x); cross.setAttribute("x2",x);
-      priceDot.setAttribute("cx",x); priceDot.setAttribute("cy", priceToY(pt.price));
-      fitDot.setAttribute("cx",x); fitDot.setAttribute("cy", priceToY(fairPrice));
-      const dev = (pt.price-fairPrice)/fairPrice*100;
-      readout.update(idx===points.length-1 ? "Aktuell" : fmtDateOnly(pt.date), [pt.price, fairPrice], [pt.price, fairPrice]);
+    function paintCrosshair(cr){
+      cross.setAttribute("x1",cr.priceX); cross.setAttribute("x2",cr.priceX);
+      priceDot.setAttribute("cx",cr.priceX); priceDot.setAttribute("cy",cr.priceY);
+      fitDot.setAttribute("cx",cr.fitX); fitDot.setAttribute("cy",cr.fitY);
+      const dev = (cr.price-cr.fairPrice)/cr.fairPrice*100;
+      readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price, cr.fairPrice], [cr.price, cr.fairPrice]);
       // The readout's own %-change column normally measures drift from the window's first point, which
-      // means nothing here - repurposed instead to show how far today's actual price sits from the
-      // power-law fair value at that same date, the one comparison this whole chart exists to make.
+      // means nothing here - repurposed instead to show how far the actual price sits from the power-
+      // law fair value at that same date, the one comparison this whole chart exists to make.
       const changeEls = readout.el.querySelectorAll(".readout-change");
       if(changeEls[0]) changeEls[0].textContent = "";
       if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
     }
-    renderAt(points.length-1);
+    paintCrosshair(layout.crosshair);
 
     const hitRect = document.createElementNS(NS,"rect");
     hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
@@ -2729,27 +2893,166 @@
       const scaleX = rect.width/w;
       const svgX = (clientX-rect.left)/scaleX;
       const frac = Math.max(0, Math.min(1, (svgX-padL)/(w-padL-padR)));
-      const targetDays = Math.pow(10, logDaysMin + frac*(logDaysMax-logDaysMin));
-      // Binary search points[] (ascending by days) for whichever real data point is closest to the
-      // pointer's implied day - the points themselves aren't evenly spaced in pixel terms here, unlike
-      // every index-based chart elsewhere on the page.
+      // Binary search points[] (ascending by days) for whichever real data point sits closest to the
+      // pointer's implied x position - the points themselves aren't evenly spaced in pixel terms here,
+      // unlike every index-based chart elsewhere on the page.
       let lo=0, hi=points.length-1;
       while(lo<hi){
         const mid = (lo+hi)>>1;
-        if(points[mid].days < targetDays) lo = mid+1; else hi = mid;
+        if(layout.xOf(points[mid].days) < padL+frac*(w-padL-padR)) lo = mid+1; else hi = mid;
       }
-      if(lo>0 && Math.abs(points[lo-1].days-targetDays) < Math.abs(points[lo].days-targetDays)) lo -= 1;
-      renderAt(lo);
+      if(lo>0 && Math.abs(layout.xOf(points[lo-1].days)-(padL+frac*(w-padL-padR))) < Math.abs(layout.xOf(points[lo].days)-(padL+frac*(w-padL-padR)))) lo -= 1;
+      const pt = points[lo];
+      powerLawCrosshairDate = pt.date;
+      const fairPrice = Math.pow(10, fitLogAt(pt.days));
+      const x = layout.xOf(pt.days);
+      paintCrosshair({date:pt.date, price:pt.price, fairPrice, isLatest: lo===points.length-1, priceX:x, priceY:layout.yOf(pt.price), fitX:x, fitY:layout.yOf(fairPrice)});
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
     hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
     svg.appendChild(hitRect);
 
+    const readoutRow = document.createElement("div");
+    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
+    readoutRow.appendChild(readout.el);
+
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
     wrap.appendChild(svg);
+
+    return {svg, wrap, readoutRow};
+  }
+
+  function renderPowerLaw(){
+    const panel = document.getElementById("powerLawPanel");
+    panel.innerHTML = "";
+    const headRow = document.createElement("div");
+    headRow.className = "panel-head";
+    headRow.innerHTML = `<h3>BTC-Kurs (Power Law, Log-Log)</h3>`;
+    panel.appendChild(headRow);
+    const fit = powerLawFit();
+    attachInfo(headRow, `Die "Bitcoin Power Law"-These: auf einer beidseitig logarithmischen Skala (Kurs UND Tage seit dem Genesis-Block vom 03.01.2009 logarithmisch) folgt der BTC-Kurs über die gesamte Historie annähernd einer Geraden, Kurs ≈ A × Tage^n - hier direkt per linearer Regression im Log-Log-Raum aus den vorliegenden Kursdaten berechnet (keine von extern übernommenen Koeffizienten): Kurs(t) = 10^${fit.intercept.toFixed(2)} × Tage^${fit.slope.toFixed(2)}, R² = ${fit.r2.toFixed(3)} über ${fit.n.toLocaleString("de-DE")} Tage. Das gestrichelte Band zeigt ±2 Standardabweichungen (log-Skala) um diese Gerade. Die "Regenbogen"-Ansicht ist ein eigenständiges, populäres Verwandtes-Konzept (nicht die Power Law selbst) - hier als zusätzliche Bänder um dieselbe Gerade nachgebildet statt einer separaten, von extern übernommenen Regression. Reine statistische Kurvenanpassung an die Vergangenheit - keine Prognose und keine Anlageempfehlung.`);
+
+    const points = powerLawPoints();
+    if(points.length < 2){
+      const empty = document.createElement("div");
+      empty.className = "chart-empty";
+      empty.textContent = "Keine Daten verfügbar";
+      panel.appendChild(empty);
+      return;
+    }
+
+    const layerToggleWrap = document.createElement("div");
+    layerToggleWrap.className = "overlay-toggles";
+    [{key:"powerlaw", label:"Power Law", color:"var(--c-powerlaw)"}, {key:"rainbow", label:"Regenbogen", color:"#e67e22"}].forEach(layer=>{
+      const visible = powerLawLayerVisible[layer.key];
+      const lab = document.createElement("label");
+      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+      lab.style.setProperty("--chip-color", layer.color);
+      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${layer.label}`;
+      lab.querySelector("input").addEventListener("change", e=>{
+        powerLawLayerVisible[layer.key] = e.target.checked;
+        renderPowerLaw();
+      });
+      layerToggleWrap.appendChild(lab);
+    });
+    panel.appendChild(layerToggleWrap);
+
+    const layout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
+    const {wrap, readoutRow} = renderPowerLawDOM(layout);
+    panel.insertBefore(readoutRow, layerToggleWrap);
     panel.appendChild(wrap);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildPowerLawAxisSeg("X", ()=>powerLawLogX, v=> animatePowerLawAxisChange(v, powerLawLogY)));
+    toolbar.appendChild(buildPowerLawAxisSeg("Y", ()=>powerLawLogY, v=> animatePowerLawAxisChange(powerLawLogX, v)));
+    toolbar.appendChild(buildRangeSeg("powerlaw"));
+    panel.appendChild(toolbar);
+  }
+
+  function buildPowerLawAxisSeg(axisLabel, getVal, onChange){
+    const group = document.createElement("div");
+    group.style.display = "inline-flex"; group.style.alignItems = "center"; group.style.gap = "6px";
+    const tag = document.createElement("span");
+    tag.textContent = axisLabel + ":";
+    tag.style.fontSize = "11px"; tag.style.fontWeight = "700"; tag.style.color = "var(--ink-3)";
+    group.appendChild(tag);
+    const seg = document.createElement("div");
+    seg.className = "seg seg-sm";
+    seg.setAttribute("role","group"); seg.setAttribute("aria-label", axisLabel+"-Achse: Skala");
+    const currentVal = getVal() ? "log" : "linear";
+    SCALE_OPTIONS.forEach(opt=>{
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.textContent = opt.label;
+      if(opt.value === currentVal) btn.classList.add("active");
+      btn.addEventListener("click", ()=> onChange(opt.value === "log"));
+      seg.appendChild(btn);
+    });
+    group.appendChild(seg);
+    return group;
+  }
+
+  // Animates the power-law chart's own axis-scale change (X, Y, or both at once) - deliberately a
+  // separate, self-contained animation rather than folding this chart into the shared renderAllZoom()
+  // system every other chart's Log/Linear toggle already uses: that whole machinery (chartDomains,
+  // zoomGen, morphLogLinear's path-point-count matching) is built entirely around buildLineChart's
+  // uniform-by-index X axis, which this chart's log-or-linear *time* axis fundamentally isn't. Builds
+  // the true end state up front (via the normal render path), then drives every animatable element's own
+  // attributes directly from interpolated old/new layouts each frame - the same "compute both endpoints,
+  // then interpolate" idea the rest of the app's zoom/morph animations already use, just implemented
+  // locally since the element set and their meaning (price line, fit line, sigma bands, rainbow zones,
+  // halving lines, crosshair) don't match any existing chart's shape.
+  function animatePowerLawAxisChange(newLogX, newLogY){
+    const oldLayout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
+    powerLawLogX = newLogX; powerLawLogY = newLogY;
+    renderPowerLaw();
+    const svg = document.querySelector("#powerLawPanel svg");
+    if(!svg) return;
+    const newLayout = computePowerLawLayout(newLogX, newLogY, powerLawCrosshairDate);
+
+    const priceLine = svg.querySelector(".pl-price-line");
+    const fitLine = svg.querySelector(".pl-fit-line");
+    const bandHi = svg.querySelector(".pl-band-hi");
+    const bandLo = svg.querySelector(".pl-band-lo");
+    const rainbowEls = [...svg.querySelectorAll(".pl-rainbow-zone")];
+    const halvingEls = [...svg.querySelectorAll(".pl-halving")];
+    const priceDot = svg.querySelector(".pl-price-dot");
+    const fitDot = svg.querySelector(".pl-fit-dot");
+    const cross = svg.querySelector(".pl-crosshair");
+
+    const start = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      const lerp = (a,b)=> a+(b-a)*eased;
+      const lerpPts = (A,B)=> A.map((p,i)=> B[i] ? ({x:lerp(p.x,B[i].x), y:lerp(p.y,B[i].y)}) : p);
+
+      if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
+      if(fitLine) fitLine.setAttribute("d", pathD(lerpPts(oldLayout.fitPts, newLayout.fitPts)));
+      if(bandHi) bandHi.setAttribute("d", pathD(lerpPts(oldLayout.bandHiPts, newLayout.bandHiPts)));
+      if(bandLo) bandLo.setAttribute("d", pathD(lerpPts(oldLayout.bandLoPts, newLayout.bandLoPts)));
+      rainbowEls.forEach((el,i)=>{
+        const oz = oldLayout.rainbowZones[i], nz = newLayout.rainbowZones[i];
+        if(oz && nz) el.setAttribute("d", zonePathD(lerpPts(oz.hiPts,nz.hiPts), lerpPts(oz.loPts,nz.loPts)));
+      });
+      halvingEls.forEach((el,i)=>{
+        const oh = oldLayout.halvings[i], nh = newLayout.halvings[i];
+        if(oh && nh){ const x = lerp(oh.x,nh.x); el.setAttribute("x1",x); el.setAttribute("x2",x); }
+      });
+      if(oldLayout.crosshair && newLayout.crosshair){
+        const px = lerp(oldLayout.crosshair.priceX, newLayout.crosshair.priceX);
+        const py = lerp(oldLayout.crosshair.priceY, newLayout.crosshair.priceY);
+        const fx = lerp(oldLayout.crosshair.fitX, newLayout.crosshair.fitX);
+        const fy = lerp(oldLayout.crosshair.fitY, newLayout.crosshair.fitY);
+        if(priceDot){ priceDot.setAttribute("cx",px); priceDot.setAttribute("cy",py); }
+        if(fitDot){ fitDot.setAttribute("cx",fx); fitDot.setAttribute("cy",fy); }
+        if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
+      }
+      if(raw < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
 
   function tileIsAvailable(tile){
