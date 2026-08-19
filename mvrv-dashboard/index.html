@@ -371,6 +371,8 @@
 
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
 
+    <section class="panel" id="cycleChartPanel"></section>
+
     <section class="panel" id="powerLawPanel"></section>
 
     <section class="panel overlay-panel" id="overlayPanel"></section>
@@ -727,6 +729,20 @@
   // separate opt-in layer, a multi-band "rainbow" coloring of the same underlying fit (off by default -
   // secondary/exploratory, not the primary reading).
   const powerLawLayerVisible = {powerlaw:true, rainbow:false};
+  // The "Marktzyklen" chart's own layers - "Zyklus" (halvings, confirmed/tentative cycle flags, bull/
+  // bear background zones) is on by default since that's this chart's whole purpose; Power Law and
+  // Rainbow reuse the exact same self-fitted regression as the power-law chart above (see
+  // cycleChartFixedLayout), just drawn onto this chart's own fixed log-log coordinate space, off by
+  // default to keep the primary cycle reading uncluttered.
+  const cycleChartLayerVisible = {zyklus:true, powerlaw:false, rainbow:false};
+  // Which date the "Marktzyklen" chart's own crosshair sits on - mirrors powerLawCrosshairDate below
+  // (own module-level date, not index, for the same reasons).
+  let cycleChartCrosshairDate = null;
+  // {structKey, fixed, svg, viewBox, rangeDays, panOffsetDays} of the chart's last render - lets
+  // renderCycleChart() tell "only the shared range/pan changed" (animate the viewBox, the whole point of
+  // this chart - see cycleChartViewBoxFor) apart from "something structural changed" (a layer toggle, the
+  // Zyklen visibility, or a viewport resize - snap-rebuild instead, same as every other toggle in the app).
+  let cycleChartState = null;
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -3137,6 +3153,568 @@
     requestAnimationFrame(frame);
   }
 
+  function daysSinceGenesis(dateStr){ return (Date.parse(dateStr+"T00:00:00Z")-GENESIS_MS)/86400000; }
+
+  // The "Marktzyklen" chart's whole design rests on one idea: unlike every other chart's Y-axis
+  // (autoscaled per selected timeframe), this chart's log-log coordinate mapping (xOf/yOf below) is
+  // computed ONCE, always spanning the complete history plus a 3-cycle future projection - and never
+  // changes again after that, regardless of which timeframe is selected. Picking a shorter timeframe
+  // then isn't a rescale (which would visibly distort the power-law line's apparent slope depending on
+  // the window), it's a pure camera zoom into a sub-rectangle of this one fixed space (see
+  // cycleChartViewBoxFor) - exactly the "the x:y ratio must stay fixed, only a zoom-in happens" behaviour
+  // asked for. Cached per "structural" cache key (see renderCycleChart) - layer toggles/showHalvings
+  // change what's drawn and how much vertical headroom the corridor needs, so those rebuild this; the
+  // shared range/pan selection never does, since it only affects the *viewBox* crop, not this layout.
+  let cycleChartFixedLayoutCache = null, cycleChartFixedLayoutKey = null;
+  function cycleChartFixedLayout(structKey){
+    if(cycleChartFixedLayoutCache && cycleChartFixedLayoutKey === structKey) return cycleChartFixedLayoutCache;
+    const allPoints = powerLawPoints();
+    const fit = powerLawFit();
+    const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
+    const w = 1000, h = chartHeight(), padL = 58, padR = 14, padT = 16, padB = 34;
+
+    const daysMin = allPoints[0].days;
+    const daysMax = allPoints[allPoints.length-1].days + 3*avgHalvingCycleDays();
+    function xOf(days){ return padL + (Math.log10(days)-Math.log10(daysMin))/(Math.log10(daysMax)-Math.log10(daysMin))*(w-padL-padR); }
+
+    const priceLogVals = allPoints.map(p=>Math.log10(p.price));
+    const bandPad = cycleChartLayerVisible.powerlaw ? 2*fit.sigma : 0;
+    const rainbowPad = cycleChartLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    const extentPad = Math.max(bandPad, rainbowPad);
+    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
+    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
+    function yOf(price){ return padT + (1-(Math.log10(price)-yLogMin)/(yLogMax-yLogMin))*(h-padT-padB); }
+
+    const pricePts = allPoints.map(p=>({x:xOf(p.days), y:yOf(p.price), date:p.date}));
+
+    const SAMPLES = 240;
+    function daysAtSample(i){ const lv = Math.log10(daysMin) + (i/SAMPLES)*(Math.log10(daysMax)-Math.log10(daysMin)); return Math.pow(10,lv); }
+    function tracePts(sigmaOffset){
+      const pts = [];
+      for(let i=0;i<=SAMPLES;i++){
+        const days = daysAtSample(i);
+        pts.push({x:xOf(days), y:yOf(Math.pow(10, fitLogAt(days)+sigmaOffset*fit.sigma))});
+      }
+      return pts;
+    }
+    const fitPts = tracePts(0);
+    const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+
+    const halvingSource = showHalvings ? HALVING_DATES.concat(projectedHalvings(3)) : [];
+    const halvings = halvingSource
+      .map(hv=>({date:hv.date, projected:!!hv.projected, days:daysSinceGenesis(hv.date)}))
+      .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
+      .map(hv=>({...hv, x:xOf(hv.days)}));
+
+    const yTicks = (()=>{ const lo=Math.floor(yLogMin), hi=Math.ceil(yLogMax), out=[]; for(let d=lo;d<=hi;d++) if(d>=yLogMin&&d<=yLogMax) out.push({y:yOf(Math.pow(10,d)), label:fmtUSD(Math.pow(10,d))}); return out; })();
+    const firstYear = new Date(GENESIS_MS+daysMin*86400000).getUTCFullYear();
+    const lastYear = new Date(GENESIS_MS+daysMax*86400000).getUTCFullYear();
+    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+    const xTicks = [];
+    for(let y=firstYear; y<=lastYear; y+=yearStep){
+      const days = daysSinceGenesis(`${y}-01-01`);
+      if(days < daysMin || days > daysMax) continue;
+      xTicks.push({x:xOf(days), label:String(y)});
+    }
+
+    // Cycle-high/-low flags (see cycleExtremes/cycleTentativeExtreme) positioned in this same fixed
+    // space, plus the confirmed extremes' own bull(green)/bear(red) background zones - a rectangle per
+    // swing between one confirmed extreme and the next, exactly mirroring the well-known "Bitcoin bull/
+    // bear market cycles" chart style. The most recent swing (last confirmed extreme -> today) hasn't
+    // reversed CYCLE_EXTREME_CONFIRM_PCT% yet, so it's neither - drawn as its own hatched "?" zone
+    // instead of guessing green or red for a call the data itself can't yet make.
+    const flags = showHalvings ? (()=>{
+      const confirmedFlags = cycleExtremes(FULL.price).map(pt=>({...pt, confirmed:true}));
+      const tentativeFlag = cycleTentativeExtreme(FULL.price);
+      const all = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
+      return all.map(pt=>({...pt, x:xOf(daysSinceGenesis(pt.date)), y:yOf(pt.value)}));
+    })() : [];
+    const zones = (()=>{
+      if(!cycleChartLayerVisible.zyklus) return [];
+      const confirmedFlags = cycleExtremes(FULL.price);
+      // The trailing swing since the last CONFIRMED extreme can easily still be running for a long time
+      // (it only "confirms" once price reverses CYCLE_EXTREME_CONFIRM_PCT% - see cycleExtremes) - without
+      // splitting it further, the hatched "uncertain" zone would stretch across the entire multi-year
+      // run, most of which is obviously still one clear trend. Using the tentative running extreme (see
+      // cycleTentativeExtreme) as an interior boundary instead keeps the solid color going right up to
+      // that peak/trough, same as the flag marker for it already does, and confines the genuine "?" to
+      // just the still-moving edge beyond it - matching the standard bull/bear cycle chart's own reading.
+      const tentative = cycleTentativeExtreme(FULL.price);
+      const lastRealDays = allPoints[allPoints.length-1].days;
+      const out = [];
+      const pushRun = (fromDays, toDate, bull)=> out.push({x0:xOf(fromDays), x1:xOf(daysSinceGenesis(toDate)), bull, tentative:false});
+      if(confirmedFlags.length){
+        const first = confirmedFlags[0];
+        pushRun(daysMin, first.date, first.dir>0);
+        for(let i=0;i<confirmedFlags.length-1;i++){
+          const a=confirmedFlags[i], b=confirmedFlags[i+1];
+          pushRun(daysSinceGenesis(a.date), b.date, b.dir>0);
+        }
+        const last = confirmedFlags[confirmedFlags.length-1];
+        if(tentative) pushRun(daysSinceGenesis(last.date), tentative.date, tentative.dir>0);
+        out.push({x0: xOf(daysSinceGenesis(tentative ? tentative.date : last.date)), x1:xOf(lastRealDays), bull:null, tentative:true});
+      } else if(tentative){
+        pushRun(daysMin, tentative.date, tentative.dir>0);
+        out.push({x0:xOf(daysSinceGenesis(tentative.date)), x1:xOf(lastRealDays), bull:null, tentative:true});
+      } else {
+        out.push({x0:xOf(daysMin), x1:xOf(lastRealDays), bull:null, tentative:true});
+      }
+      return out;
+    })();
+
+    cycleChartFixedLayoutCache = {w,h,padL,padR,padT,padB, daysMin,daysMax, xOf,yOf, fit, fitLogAt,
+      allPoints, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, flags, zones};
+    cycleChartFixedLayoutKey = structKey;
+    return cycleChartFixedLayoutCache;
+  }
+
+  // The crop window implementing the "pure zoom, fixed ratio" behaviour: a sub-rectangle of the fixed
+  // 1000xh space above, sized/positioned from the SAME shared rangeDays/panOffsetDays every other chart's
+  // range selector already drives. Expressed in terms of the PLOT AREA (padL..w-padR, padT..h-padB) -
+  // where the actual data lives, xOf/yOf already bake those margins in - not the raw 0..w/0..h canvas, so
+  // that the "Alles" case (the full plot area, unzoomed) round-trips to an identity transform (see
+  // cycleChartTransformFor) instead of silently shrinking everything by the margin's width on top of
+  // whatever zoom is applied. vh is always vw*(plotH/plotW) - the exact same aspect ratio as the plot
+  // area itself - so the x:y ratio genuinely never changes, only how much of the fixed space is visible does.
+  // The same date-window slicing every other chart's sliceRange applies, mirrored here against
+  // fixed.allPoints' own .t field instead of FULL's - shared by cycleChartViewBoxFor (below) and the
+  // crosshair resolution in applyCycleChartTransform/animateCycleChartTransform, so both agree on exactly
+  // which real data points the currently-selected range/pan actually shows.
+  function cycleChartWindowPoints(fixed){
+    const {allPoints} = fixed;
+    if(rangeDays === "all") return allPoints;
+    const lastT = allPoints[allPoints.length-1].t;
+    const endT = lastT - (panOffsetDays||0)*86400000;
+    let endIdx = allPoints.length;
+    if(panOffsetDays > 0){
+      endIdx = allPoints.findIndex(p=> p.t > endT);
+      if(endIdx < 0) endIdx = allPoints.length;
+    }
+    const cutoff = endT - rangeDays*86400000;
+    let idx = allPoints.findIndex(p=> p.t >= cutoff);
+    if(idx < 0) idx = 0;
+    if(idx >= endIdx) idx = Math.max(0, endIdx-1);
+    return allPoints.slice(idx, endIdx);
+  }
+
+  function cycleChartViewBoxFor(fixed){
+    const {w,h,padL,padR,padT,padB,xOf,yOf} = fixed;
+    const plotW = w-padL-padR, plotH = h-padT-padB;
+    if(rangeDays === "all") return {vx:padL, vy:padT, vw:plotW, vh:plotH};
+    const windowPts = cycleChartWindowPoints(fixed);
+    if(!windowPts.length) return {vx:padL, vy:padT, vw:plotW, vh:plotH};
+    const x0 = xOf(windowPts[0].days), x1 = xOf(windowPts[windowPts.length-1].days);
+    // A floor on vw guards against a degenerate (near-zero-width) crop in extreme edge cases - anchored
+    // to x1 (not x0) so the window's own latest point always lands exactly on the plot's right edge
+    // regardless of whether the floor kicked in, rather than leaving unexplained empty space there. On a
+    // log-day X-axis a short recent range genuinely can span only a sliver of the fixed space (the same
+    // number of calendar days represents a shrinking fraction of log10(days) as days-since-genesis grows)
+    // - the floor only ever matters for these very short/very recent windows, never for wide ones.
+    const vw = Math.max(x1-x0, 20);
+    const x0Anchored = x1-vw;
+    const vh = vw*(plotH/plotW);
+    // Vertical centering: the fixed aspect ratio means vh's height is dictated purely by vw (how much
+    // TIME is showing), not by how much this particular window's own price actually moved - a very
+    // volatile short window can easily need more vertical room than that allows. Centering on the whole
+    // window's own min/max would then clip whichever end sits furthest from the middle, which could just
+    // as easily be the *latest* price - the one point every one of these ranges should always keep in
+    // view. Anchoring on the window's last point instead guarantees "today" (or wherever panOffsetDays
+    // has shifted "today" to) is always visible, at the cost of possibly cropping older/more extreme
+    // excursions within the same window off the top or bottom - an accepted trade-off of a true fixed-
+    // ratio zoom (see the module comment on cycleChartFixedLayout for why this chart doesn't autoscale).
+    const anchorY = yOf(windowPts[windowPts.length-1].price);
+    return {vx:x0Anchored, vy: anchorY-vh/2, vw, vh};
+  }
+
+  // Converts a crop window (see cycleChartViewBoxFor, itself expressed in plot-area terms) into a
+  // scale+translate transform for the chart's own zoom-content group, mapping vx/vy to the plot area's
+  // own top-left (padL,padT) rather than the canvas origin - k is the same magnification on both axes
+  // (never independently stretched), which is exactly what keeps the log-log ratio fixed across a
+  // timeframe change. At vb = the full plot area (the "Alles" case) this correctly comes out to the
+  // identity transform, since the fixed content's own xOf/yOf already position everything with padL/padT
+  // baked in - see cycleChartViewBoxFor's own comment for why the two must agree on that convention.
+  function cycleChartTransformFor(fixed, vb){
+    const plotW = fixed.w-fixed.padL-fixed.padR;
+    const k = plotW/vb.vw;
+    return {k, tx: fixed.padL - vb.vx*k, ty: fixed.padT - vb.vy*k};
+  }
+  function cycScreenPos(t, fixedX, fixedY){ return {x: t.k*fixedX+t.tx, y: t.k*fixedY+t.ty}; }
+
+  // Repositions everything deliberately kept OUTSIDE the zoomed/clipped content group - axis tick
+  // gridlines/labels, cycle flags - from the fixed coordinates they were built with, using the current
+  // transform. None of these live inside the scaled group itself (a scale transform must never visually
+  // stretch text or a flag glyph - see buildLineChart's own zoom system for the same reasoning), so their
+  // position has to be recomputed by hand on every frame of a zoom instead of just inheriting a CSS
+  // transform for free. Ticks fade out (display:none) once their position leaves the plot area - they's
+  // pre-built for the ENTIRE fixed history+projection up front, so at any given zoom level most of them
+  // are simply not relevant yet.
+  function applyCycleChartTicksAndFlags(built, fixed, t){
+    const {padL,padR,padT,padB,w,h} = fixed;
+    built.yTickEls.forEach(({tick,gl,lbl})=>{
+      const y = t.k*tick.y+t.ty;
+      const visible = y>=padT-1 && y<=h-padB+1;
+      gl.style.display = lbl.style.display = visible ? "" : "none";
+      if(visible){ gl.setAttribute("y1",y); gl.setAttribute("y2",y); lbl.setAttribute("y", y+3); }
+    });
+    built.xTickEls.forEach(({tick,lbl})=>{
+      const x = t.k*tick.x+t.tx;
+      const visible = x>=padL-1 && x<=w-padR+1;
+      lbl.style.display = visible ? "" : "none";
+      if(visible){ lbl.setAttribute("x",x); lbl.setAttribute("transform", `rotate(-45 ${x} ${h-6})`); }
+    });
+    built.flagEls.forEach(({pt,g})=>{
+      const scr = cycScreenPos(t, pt.x, pt.y);
+      const visible = scr.x>=padL-20 && scr.x<=w-padR+20 && scr.y>=padT-20 && scr.y<=h-padB+20;
+      g.style.display = visible ? "" : "none";
+      if(visible) g.setAttribute("transform", `translate(${scr.x.toFixed(1)},${scr.y.toFixed(1)})`);
+    });
+  }
+
+  // Resolves the persisted crosshair date against whatever the CURRENTLY selected range/pan actually
+  // shows (via cycleChartWindowPoints), not the full history - a date that's since scrolled outside the
+  // visible window (or was never touched at all) falls back to the window's own latest point, the same
+  // "persist by date, fall back to latest-in-window" rule every other chart's crosshair already follows.
+  function cycleChartResolveCrosshair(fixed){
+    const windowPts = cycleChartWindowPoints(fixed);
+    const cpt = cycleChartCrosshairDate==null ? null : windowPts.find(p=>p.date===cycleChartCrosshairDate);
+    return cpt || windowPts[windowPts.length-1];
+  }
+
+  // Snaps the chart straight to a target crop window, no animation - used for the initial paint and for
+  // any re-render where the shared range/pan genuinely didn't change (a harmless idempotent no-op then).
+  function applyCycleChartTransform(built, fixed, vb){
+    const t = cycleChartTransformFor(fixed, vb);
+    built.currentTransform = t;
+    built.zoomG.style.transform = `matrix(${t.k},0,0,${t.k},${t.tx},${t.ty})`;
+    applyCycleChartTicksAndFlags(built, fixed, t);
+    built.paintCrosshair(cycleChartResolveCrosshair(fixed));
+  }
+
+  // The actual "pure zoom-in on timeframe change" animation: interpolates k/tx/ty (not the underlying
+  // path data - none of that needs to change at all, only how much of the fixed space is on screen does)
+  // over the same shared ZOOM_DURATION_MS/zoomEase every other zoom/range animation in the app uses.
+  function animateCycleChartTransform(built, fixed, fromVB, toVB){
+    const from = cycleChartTransformFor(fixed, fromVB);
+    const to = cycleChartTransformFor(fixed, toVB);
+    const myGen = ++cycleChartZoomGen;
+    const start = performance.now();
+    function frame(now){
+      if(myGen !== cycleChartZoomGen) return;
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      const t = {k: from.k+(to.k-from.k)*eased, tx: from.tx+(to.tx-from.tx)*eased, ty: from.ty+(to.ty-from.ty)*eased};
+      built.currentTransform = t;
+      built.zoomG.style.transform = `matrix(${t.k},0,0,${t.k},${t.tx},${t.ty})`;
+      applyCycleChartTicksAndFlags(built, fixed, t);
+      built.paintCrosshair(cycleChartResolveCrosshair(fixed));
+      if(raw < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  let cycleChartZoomGen = 0;
+
+  // Builds the chart's DOM once - the price line, fitted corridor/rainbow, halving lines and bull/bear
+  // zone bands all live inside one clipped, transformable group (zoomG) built from fixed.xOf/yOf and
+  // never touched again by a range/pan change (only the group's own transform retargets - see
+  // applyCycleChartTransform/animateCycleChartTransform above). Zone bands and halving lines are drawn
+  // hugely over-tall (way past the visible plot) so they keep spanning the full height no matter how far
+  // the current crop window's own vertical center has drifted from the middle of the fixed space.
+  function renderCycleChartDOM(fixed, initialVB){
+    const {w,h,padL,padR,padT,padB} = fixed;
+    const OVER = 1e5;
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.setAttribute("role","img");
+
+    const defs = document.createElementNS(NS,"defs");
+    svg.appendChild(defs);
+    const hatchId = "cycHatch" + (++clipIdCounter);
+    const pattern = document.createElementNS(NS,"pattern");
+    pattern.setAttribute("id",hatchId); pattern.setAttribute("width","8"); pattern.setAttribute("height","8");
+    pattern.setAttribute("patternTransform","rotate(45)"); pattern.setAttribute("patternUnits","userSpaceOnUse");
+    const hatchLine = document.createElementNS(NS,"line");
+    hatchLine.setAttribute("x1","0"); hatchLine.setAttribute("y1","0"); hatchLine.setAttribute("x2","0"); hatchLine.setAttribute("y2","8");
+    hatchLine.setAttribute("stroke","var(--ink-3)"); hatchLine.setAttribute("stroke-width","2");
+    pattern.appendChild(hatchLine);
+    defs.appendChild(pattern);
+
+    const clipId = "cycClip" + (++clipIdCounter);
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id",clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+
+    const clipG = document.createElementNS(NS,"g");
+    clipG.setAttribute("clip-path", `url(#${clipId})`);
+    const zoomG = document.createElementNS(NS,"g");
+    zoomG.setAttribute("class","cyc-zoom-content");
+    clipG.appendChild(zoomG);
+
+    if(cycleChartLayerVisible.zyklus){
+      fixed.zones.forEach(z=>{
+        const rect = document.createElementNS(NS,"rect");
+        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", -OVER);
+        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", 2*OVER);
+        if(z.tentative){ rect.setAttribute("fill", `url(#${hatchId})`); rect.setAttribute("opacity","0.5"); }
+        else { rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.12"); }
+        zoomG.appendChild(rect);
+      });
+    }
+
+    if(cycleChartLayerVisible.rainbow){
+      fixed.rainbowZones.forEach(z=>{
+        const zone = document.createElementNS(NS,"path");
+        zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
+        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.16"); zone.setAttribute("stroke","none");
+        zoomG.appendChild(zone);
+      });
+    }
+
+    if(showHalvings){
+      fixed.halvings.forEach(hv=>{
+        const line = document.createElementNS(NS,"line");
+        line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",-OVER); line.setAttribute("y2",OVER);
+        line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
+        line.setAttribute("vector-effect","non-scaling-stroke");
+        if(hv.projected){
+          line.setAttribute("opacity","0.4");
+          const title = document.createElementNS(NS,"title");
+          title.textContent = `Geschätztes Halving: ${fmtDateOnly(hv.date)} (Ø Zyklusdauer der bisherigen Halvings)`;
+          line.appendChild(title);
+        }
+        zoomG.appendChild(line);
+      });
+    }
+
+    if(cycleChartLayerVisible.powerlaw){
+      [fixed.bandHiPts, fixed.bandLoPts].forEach(pts=>{
+        const band = document.createElementNS(NS,"path");
+        band.setAttribute("d", pathD(pts));
+        band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
+        band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
+        band.setAttribute("vector-effect","non-scaling-stroke");
+        zoomG.appendChild(band);
+      });
+      const fitLine = document.createElementNS(NS,"path");
+      fitLine.setAttribute("d", pathD(fixed.fitPts));
+      fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
+      fitLine.setAttribute("vector-effect","non-scaling-stroke");
+      zoomG.appendChild(fitLine);
+    }
+
+    const priceLine = document.createElementNS(NS,"path");
+    priceLine.setAttribute("d", pathD(fixed.pricePts));
+    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
+    priceLine.setAttribute("vector-effect","non-scaling-stroke");
+    zoomG.appendChild(priceLine);
+
+    svg.appendChild(clipG);
+
+    const yTickEls = fixed.yTicks.map(t=>{
+      const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR);
+      gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(gl);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label"); lbl.setAttribute("x",padL-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = t.label;
+      svg.appendChild(lbl);
+      return {tick:t, gl, lbl};
+    });
+    const xTickEls = fixed.xTicks.map(t=>{
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = t.label;
+      svg.appendChild(lbl);
+      return {tick:t, lbl};
+    });
+
+    const flagEls = fixed.flags.map(pt=>{
+      const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
+      if(!pt.confirmed){ g.style.opacity = "0.65"; g.setAttribute("stroke-dasharray","2 2"); }
+      const title = document.createElementNS(NS,"title");
+      const kindLabel = pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief";
+      const sincePart = pt.days!=null ? ` · ${pt.days} Tage seit ${pt.sinceLabel} (${fmtDateOnly(pt.sinceDate)})` : "";
+      const unconfirmedPart = pt.confirmed ? "" : ` · noch nicht bestätigt (keine ${CYCLE_EXTREME_CONFIRM_PCT}%-Umkehr seither) - könnte noch von einem neuen ${pt.dir>0?"Hoch":"Tief"} übertroffen werden`;
+      title.textContent = `${pt.confirmed?"":"Bisheriges "}${kindLabel}: ${fmtUSD(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}${unconfirmedPart}`;
+      g.appendChild(title);
+      g.dataset.flagDate = pt.date;
+      svg.appendChild(g);
+      return {pt, g};
+    });
+
+    const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
+    cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1"); cross.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(cross);
+    const priceDot = document.createElementNS(NS,"circle");
+    priceDot.setAttribute("class","hover-marker"); priceDot.setAttribute("r","6.5");
+    priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
+    svg.appendChild(priceDot);
+    const fitDot = document.createElementNS(NS,"circle");
+    fitDot.setAttribute("class","hover-marker"); fitDot.setAttribute("r","6.5");
+    fitDot.setAttribute("fill","var(--c-powerlaw)"); fitDot.setAttribute("stroke","var(--card)"); fitDot.setAttribute("stroke-width","1.5");
+    if(!cycleChartLayerVisible.powerlaw) fitDot.style.display = "none";
+    svg.appendChild(fitDot);
+
+    const readout = buildReadout(
+      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}, {key:"fair", label:"Power-Law-Fair-Value", color:"var(--c-powerlaw)", fmt:fmtUSD}],
+      {compact:true}
+    );
+    if(!cycleChartLayerVisible.powerlaw){
+      const items = readout.el.querySelectorAll(".readout-item");
+      if(items[1]) items[1].style.display = "none";
+    }
+
+    const hitRect = document.createElementNS(NS,"rect");
+    hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
+    hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
+    hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair"; hitRect.style.touchAction = "none";
+    svg.appendChild(hitRect);
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    const readoutRow = document.createElement("div");
+    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
+    readoutRow.appendChild(readout.el);
+
+    const built = {svg, wrap, readoutRow, zoomG, yTickEls, xTickEls, flagEls, cross, priceDot, fitDot, readout, currentTransform:{k:1,tx:0,ty:0}};
+
+    function paintCrosshair(pt){
+      const t = built.currentTransform;
+      const scr = cycScreenPos(t, fixed.xOf(pt.days), fixed.yOf(pt.price));
+      cross.setAttribute("x1",scr.x); cross.setAttribute("x2",scr.x);
+      priceDot.setAttribute("cx",scr.x); priceDot.setAttribute("cy",scr.y);
+      const fairPrice = Math.pow(10, fixed.fitLogAt(pt.days));
+      const fairScr = cycScreenPos(t, fixed.xOf(pt.days), fixed.yOf(fairPrice));
+      fitDot.setAttribute("cx",fairScr.x); fitDot.setAttribute("cy",fairScr.y);
+      const isLatest = pt === fixed.allPoints[fixed.allPoints.length-1];
+      const dev = (pt.price-fairPrice)/fairPrice*100;
+      readout.update(isLatest ? "Aktuell" : fmtDateOnly(pt.date), [pt.price, fairPrice], [pt.price, fairPrice]);
+      const changeEls = readout.el.querySelectorAll(".readout-change");
+      if(changeEls[0]) changeEls[0].textContent = "";
+      if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
+    }
+    built.paintCrosshair = paintCrosshair;
+
+    function handleMove(clientX){
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width/w; // viewBox stays fixed at w=1000 always, so this stays valid at any zoom
+      const svgX = (clientX-rect.left)/scaleX;
+      const t = built.currentTransform;
+      const fixedX = (svgX - t.tx)/t.k;
+      const allPts = fixed.allPoints;
+      let lo=0, hi=allPts.length-1;
+      while(lo<hi){
+        const mid=(lo+hi)>>1;
+        if(fixed.xOf(allPts[mid].days) < fixedX) lo=mid+1; else hi=mid;
+      }
+      if(lo>0 && Math.abs(fixed.xOf(allPts[lo-1].days)-fixedX) < Math.abs(fixed.xOf(allPts[lo].days)-fixedX)) lo -= 1;
+      cycleChartCrosshairDate = allPts[lo].date;
+      paintCrosshair(allPts[lo]);
+    }
+    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
+
+    return built;
+  }
+
+  function cycleChartStructKey(){
+    return JSON.stringify([cycleChartLayerVisible.zyklus, cycleChartLayerVisible.powerlaw, cycleChartLayerVisible.rainbow, showHalvings, chartHeight()]);
+  }
+
+  // Entry point, called from renderAllImmediate() alongside every other chart. Splits into two very
+  // different paths: a genuine structural change (first paint, a layer toggle, the shared Zyklen
+  // visibility, or a viewport resize) tears down and rebuilds the whole SVG same as any other chart's
+  // toggle would; a shared range/pan-only change reuses the exact same SVG and just retargets (and, if it
+  // actually moved, animates) its zoom transform instead - see the module comment on cycleChartFixedLayout
+  // for why this chart can't just rebuild-with-new-domain the way every other chart's range selector does.
+  function renderCycleChart(){
+    const panel = document.getElementById("cycleChartPanel");
+    if(!panel) return;
+    const points = powerLawPoints();
+    const structKey = cycleChartStructKey();
+    const prev = cycleChartState;
+    const reuse = !!(prev && prev.structKey === structKey && prev.built && points.length >= 2 && panel.contains(prev.built.wrap));
+
+    if(!reuse){
+      panel.innerHTML = "";
+      const headRow = document.createElement("div");
+      headRow.className = "panel-head";
+      headRow.innerHTML = `<h3>BTC-Kurs (Marktzyklen)</h3>`;
+      panel.appendChild(headRow);
+      attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter), plus optional dieselbe Power-Law-Regression und Regenbogen-Bänder wie im Log-Log-Chart oben. Die technische Besonderheit hier: Preis UND Zeit sind fest logarithmisch, mit einem festen Seitenverhältnis - ein Wechsel des Zeitraums ist deshalb bewusst nur ein reiner Zoom in denselben Koordinatenraum, keine Neuskalierung, damit die sichtbare Steigung der Kurve nicht je nach gewähltem Zeitraum unterschiedlich aussieht. Die schraffierte Zone am rechten Rand markiert die laufende, noch nicht bestätigte Marktphase.`);
+      if(points.length < 2){
+        const empty = document.createElement("div");
+        empty.className = "chart-empty";
+        empty.textContent = "Keine Daten verfügbar";
+        panel.appendChild(empty);
+        cycleChartState = null;
+        return;
+      }
+
+      const layerToggleWrap = document.createElement("div");
+      layerToggleWrap.className = "overlay-toggles";
+      [{key:"zyklus", label:"Zyklus", color:"var(--good)"}, {key:"powerlaw", label:"Power Law", color:"var(--c-powerlaw)"}, {key:"rainbow", label:"Regenbogen", color:"#e67e22"}].forEach(layer=>{
+        const visible = cycleChartLayerVisible[layer.key];
+        const lab = document.createElement("label");
+        lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
+        lab.style.setProperty("--chip-color", layer.color);
+        lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${layer.label}`;
+        lab.querySelector("input").addEventListener("change", e=>{
+          cycleChartLayerVisible[layer.key] = e.target.checked;
+          renderCycleChart();
+        });
+        layerToggleWrap.appendChild(lab);
+      });
+      panel.appendChild(layerToggleWrap);
+
+      const fixed = cycleChartFixedLayout(structKey);
+      const targetVB = cycleChartViewBoxFor(fixed);
+      const built = renderCycleChartDOM(fixed, targetVB);
+      panel.insertBefore(built.readoutRow, layerToggleWrap);
+      panel.appendChild(built.wrap);
+      applyCycleChartTransform(built, fixed, targetVB);
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      toolbar.appendChild(buildRangeSeg("cyclechart"));
+      panel.appendChild(toolbar);
+
+      cycleChartState = {structKey, fixed, built, viewBox: targetVB, rangeDays, panOffsetDays};
+      return;
+    }
+
+    // Reuse path: nothing structural changed, so the existing SVG (price line, corridor, zones,
+    // halvings, flags) stays exactly as it is - only the shared range/pan may have moved, which just
+    // retargets (and animates) the zoom-content group's transform.
+    const {fixed, built} = prev;
+    const targetVB = cycleChartViewBoxFor(fixed);
+    if(prev.rangeDays !== rangeDays || prev.panOffsetDays !== panOffsetDays){
+      animateCycleChartTransform(built, fixed, prev.viewBox, targetVB);
+    } else {
+      applyCycleChartTransform(built, fixed, targetVB);
+    }
+    const oldToolbar = panel.querySelector(".card-toolbar");
+    if(oldToolbar){
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      toolbar.appendChild(buildRangeSeg("cyclechart"));
+      oldToolbar.replaceWith(toolbar);
+    }
+    cycleChartState = {structKey, fixed, built, viewBox: targetVB, rangeDays, panOffsetDays};
+  }
+
   function tileIsAvailable(tile){
     if(!tile.requires) return true;
     if(tile.requires === "hasZScore") return FULL.hasZScore;
@@ -3248,6 +3826,7 @@
     const nav = document.getElementById("sectionNav");
     if(!nav) return;
     const sections = [
+      {id:"cycleChartPanel", label:"Marktzyklen"},
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
       {id:"heroPanel", label:"MVRV Bands"},
@@ -3489,6 +4068,7 @@
     renderHero(view);
     renderTiles(view);
     renderPowerLaw();
+    renderCycleChart();
     fitChartTypography();
     renderSectionNav();
   }
