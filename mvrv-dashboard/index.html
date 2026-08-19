@@ -90,6 +90,26 @@
   .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600;}
   .backlink:hover{text-decoration:underline;}
 
+  /* Sticky chip-row nav: one row on every viewport (no separate desktop-sidebar layout) so behaviour
+     stays identical on mobile and desktop - it just scrolls horizontally once the chips overflow, same
+     gesture as everything else on a touch screen. Sits directly under the header, sticks to the very
+     top of the viewport once scrolled past, above every chart/card (z-index) so it never gets covered. */
+  .section-nav{
+    position:sticky; top:0; z-index:40; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden;
+    padding:9px 2px; margin:0 -2px; background:var(--bg); border-bottom:1px solid var(--border);
+    scrollbar-width:none;
+  }
+  .section-nav::-webkit-scrollbar{display:none;}
+  .section-nav a{
+    flex:none; font-family:var(--font-display); font-size:12px; font-weight:600; white-space:nowrap;
+    color:var(--ink-2); text-decoration:none; background:var(--card); border:1px solid var(--border);
+    border-radius:999px; padding:6px 13px; transition:border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .section-nav a:hover{color:var(--ink); border-color:var(--ink-3);}
+  .section-nav a.active{color:var(--accent); border-color:var(--accent); background:var(--accent-bg);}
+  /* Keeps a scrolled-to section's heading from landing flush under the sticky nav bar. */
+  .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:56px;}
+
   .theme-toggle{
     width:38px; height:38px; border-radius:50%; border:1.5px solid var(--border); background:var(--card);
     display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
@@ -347,7 +367,11 @@
       </div>
     </header>
 
+    <nav class="section-nav" id="sectionNav" aria-label="Chart-Navigation"></nav>
+
     <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
+
+    <section class="panel" id="powerLawPanel"></section>
 
     <section class="panel overlay-panel" id="overlayPanel"></section>
 
@@ -377,8 +401,6 @@
     </section>
 
     <section id="metricsHost"></section>
-
-    <section class="panel" id="powerLawPanel"></section>
 
     <details class="panel" id="detailsPanel">
       <summary>Methodik, Formeln &amp; Datenquelle <span class="hint">Details anzeigen</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
@@ -492,6 +514,36 @@
     }
     return out;
   }
+  // The ongoing swing's own running high/low so far - deliberately kept separate from cycleExtremes()
+  // above rather than folded into it, since it hasn't reversed CYCLE_EXTREME_CONFIRM_PCT% yet and so
+  // isn't "confirmed" by that function's own definition: it could still be beaten by a new high (or
+  // low) before the swing is done. Leaving it out of the chart entirely reads as if nothing has
+  // happened since the last confirmed extreme even when, e.g., a genuine new all-time high sits right
+  // there in the data - so it's surfaced as its own, visually distinct "tentative" marker instead (see
+  // the flag-drawing block in buildLineChart), explicitly captioned as unconfirmed rather than silently
+  // presented as final. Not used for bull/bear phase classification (cycleBullBearPhase) or line
+  // coloring - those stay confirmed-only, on purpose.
+  function cycleTentativeExtreme(values){
+    const dates = FULL.dates;
+    const confirmed = cycleExtremes(values);
+    const last = confirmed[confirmed.length-1];
+    const seekingHigh = !last || last.dir < 0;
+    const startIdx = last ? dates.indexOf(last.date) : 0;
+    let extIdx = -1, extV = seekingHigh ? -Infinity : Infinity;
+    for(let i=startIdx;i<dates.length;i++){
+      const v = values[i];
+      if(v==null || !isFinite(v)) continue;
+      if(seekingHigh ? v>extV : v<extV){ extV=v; extIdx=i; }
+    }
+    if(extIdx<0 || (last && extIdx===startIdx)) return null;
+    if(seekingHigh){
+      const halving = [...HALVING_DATES].reverse().find(h=>h.date<=dates[extIdx]);
+      const sinceDate = halving ? halving.date : dates[0];
+      const sinceLabel = halving ? "Halving" : "Datenbeginn";
+      return {date:dates[extIdx], value:extV, dir:1, sinceDate, sinceLabel, days:daysBetween(sinceDate,dates[extIdx]), confirmed:false};
+    }
+    return {date:dates[extIdx], value:extV, dir:-1, sinceDate:last.date, sinceLabel:"Zyklus-Hoch", days:daysBetween(last.date,dates[extIdx]), confirmed:false};
+  }
   // Which of the two market phases a given date falls into, given cycleExtremes()' own output (already
   // chronologically ordered - each swing low comes after the high it followed). A bull market runs from
   // a bottom to the next top; a bear market runs from a top to the next bottom (or, for the most recent
@@ -580,6 +632,17 @@
   // a peak, so the low gets its own distinct glyph rather than just a mirrored flag.
   function buildFlagMarker(dir, color){
     const g = document.createElementNS(NS,"g");
+    // Everything visible/interactive lives in this inner group, carrying only a *scale* (see the
+    // .flag-scale rule in fitChartTypography) - kept separate from the outer g's own translate(x,y),
+    // which live position updates (initial placement, zoom/pan sync, tap-to-pin) set independently and
+    // must never be clobbered by a typography pass. Without this the glyph is a fixed size in raw
+    // viewBox units, which - unlike the hover-marker dots, already normalized to a constant real pixel
+    // size - renders correctly only on a full-width ~1000px-wide chart and shrinks proportionally on
+    // anything narrower, reading as "barely visible" on wide 2-column desktop tiles and especially on
+    // narrow mobile cards.
+    const inner = document.createElementNS(NS,"g");
+    inner.setAttribute("class","flag-scale");
+    g.appendChild(inner);
     // The visible glyph itself (thin pole/stem lines, a small pennant or chevron) is too fine to reliably
     // hit with a mouse click or - especially - a fingertip tap, so a generous invisible circle carries the
     // actual pointer/touch target instead, centered on whichever half of the glyph extends off the point.
@@ -587,36 +650,36 @@
     hitTarget.setAttribute("cx","0"); hitTarget.setAttribute("cy", dir>0 ? "-8" : "6");
     hitTarget.setAttribute("r","13"); hitTarget.setAttribute("fill","transparent");
     hitTarget.setAttribute("stroke","none");
-    g.appendChild(hitTarget);
+    inner.appendChild(hitTarget);
     if(dir > 0){
       const poleLen = 13;
       const poleEndY = -poleLen;
       const pole = document.createElementNS(NS,"line");
       pole.setAttribute("x1","0"); pole.setAttribute("y1","0"); pole.setAttribute("x2","0"); pole.setAttribute("y2",poleEndY);
       pole.setAttribute("stroke",color); pole.setAttribute("stroke-width","1.6"); pole.setAttribute("vector-effect","non-scaling-stroke");
-      g.appendChild(pole);
+      inner.appendChild(pole);
       const pennant = document.createElementNS(NS,"path");
       pennant.setAttribute("d", `M0,${poleEndY} L8,${poleEndY+3} L0,${poleEndY+6} Z`);
       pennant.setAttribute("fill", color);
-      g.appendChild(pennant);
+      inner.appendChild(pennant);
     } else {
       const stemLen = 9;
       const stem = document.createElementNS(NS,"line");
       stem.setAttribute("x1","0"); stem.setAttribute("y1","0"); stem.setAttribute("x2","0"); stem.setAttribute("y2",stemLen);
       stem.setAttribute("stroke",color); stem.setAttribute("stroke-width","1.6"); stem.setAttribute("stroke-linecap","round");
       stem.setAttribute("vector-effect","non-scaling-stroke");
-      g.appendChild(stem);
+      inner.appendChild(stem);
       const chevron = document.createElementNS(NS,"path");
       chevron.setAttribute("d", `M-4,${stemLen-5} L0,${stemLen} L4,${stemLen-5}`);
       chevron.setAttribute("fill","none"); chevron.setAttribute("stroke",color); chevron.setAttribute("stroke-width","1.6");
       chevron.setAttribute("stroke-linecap","round"); chevron.setAttribute("stroke-linejoin","round");
       chevron.setAttribute("vector-effect","non-scaling-stroke");
-      g.appendChild(chevron);
+      inner.appendChild(chevron);
       const tray = document.createElementNS(NS,"line");
       tray.setAttribute("x1","-5"); tray.setAttribute("y1",stemLen+4); tray.setAttribute("x2","5"); tray.setAttribute("y2",stemLen+4);
       tray.setAttribute("stroke",color); tray.setAttribute("stroke-width","1.6"); tray.setAttribute("stroke-linecap","round");
       tray.setAttribute("vector-effect","non-scaling-stroke");
-      g.appendChild(tray);
+      inner.appendChild(tray);
     }
     return g;
   }
@@ -753,6 +816,16 @@
     if(!dateStr) return "unbekannt";
     const [y,m,d] = dateStr.split("-");
     return `${d}.${m}.${y}`;
+  }
+
+  // Stable, URL/id-safe slug for a tile title (umlauts folded, everything else stripped) - used as the
+  // tile card's DOM id so the section nav can link/scroll to it directly.
+  function slugify(str){
+    return "tile-" + str
+      .toLowerCase()
+      .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+      .replace(/[^a-z0-9]+/g,"-")
+      .replace(/^-+|-+$/g,"");
   }
 
   function lastVal(arr){
@@ -1583,7 +1656,14 @@
     // showHalvings toggle as the halving lines themselves - both are "Zyklus" markers.
     const flagSeries = cfg.cycleFlagsKey ? cfg.series.find(s=>s.key===cfg.cycleFlagsKey) : null;
     if(showHalvings && flagSeries && FULL && FULL[cfg.cycleFlagsKey]){
-      cycleExtremes(FULL[cfg.cycleFlagsKey]).forEach(pt=>{
+      const confirmedFlags = cycleExtremes(FULL[cfg.cycleFlagsKey]).map(pt=>({...pt, confirmed:true}));
+      // The ongoing swing's own running high/low so far (see cycleTentativeExtreme) - shown alongside
+      // the confirmed set, just visually toned down and explicitly captioned as unconfirmed, rather than
+      // left off the chart entirely until it's finished reversing 75% and "officially" counts. Without
+      // this, a genuine new high sitting right there in the data would otherwise just... not appear.
+      const tentativeFlag = cycleTentativeExtreme(FULL[cfg.cycleFlagsKey]);
+      const allFlags = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
+      allFlags.forEach(pt=>{
         if(pt.date < cfg.dates[0] || pt.date > cfg.dates[n-1]) return;
         const idx = cfg.dates.indexOf(pt.date);
         if(idx<0) return;
@@ -1591,13 +1671,15 @@
         if(v==null || !isFinite(v)) return;
         const x = xOf(idx), y = yOf(v);
         if(y==null) return;
-        const g = buildFlagMarker(pt.dir, "var(--ink)");
+        const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
         g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
         g.dataset.flagDate = pt.date; g.dataset.flagValue = v;
+        if(!pt.confirmed){ g.style.opacity = "0.65"; g.setAttribute("stroke-dasharray","2 2"); }
         const title = document.createElementNS(NS,"title");
         const kindLabel = pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief";
         const sincePart = pt.days!=null ? ` · ${pt.days} Tage seit ${pt.sinceLabel} (${fmtDateOnly(pt.sinceDate)})` : "";
-        title.textContent = `${kindLabel}: ${(flagSeries.fmt||fmtCompact)(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}`;
+        const unconfirmedPart = pt.confirmed ? "" : ` · noch nicht bestätigt (keine ${CYCLE_EXTREME_CONFIRM_PCT}%-Umkehr seither) - könnte noch von einem neuen ${pt.dir>0?"Hoch":"Tief"} übertroffen werden`;
+        title.textContent = `${pt.confirmed?"":"Bisheriges "}${kindLabel}: ${(flagSeries.fmt||fmtCompact)(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}${unconfirmedPart}`;
         g.appendChild(title);
         // Tapping/clicking a flag pins a horizontal+vertical reference line pair at its exact value and
         // date, the same way a ruler would, so the reader can read its precise level/date off the axes
@@ -3079,6 +3161,7 @@
     TILES.filter(tileIsAvailable).forEach(tile=>{
       const card = document.createElement("div");
       card.className = "card";
+      card.id = slugify(tile.title);
 
       const zone = tile.zone ? tile.zone() : null;
       const head = document.createElement("div");
@@ -3156,6 +3239,50 @@
       grid.appendChild(card);
     });
     host.appendChild(grid);
+  }
+
+  // One flat, horizontally-scrollable chip row lists every chart section - power-law/overlay/hero plus
+  // one entry per currently-available tile - and works identically on desktop and mobile (it just
+  // overflows into horizontal scroll on narrow viewports rather than needing a separate sidebar layout).
+  function renderSectionNav(){
+    const nav = document.getElementById("sectionNav");
+    if(!nav) return;
+    const sections = [
+      {id:"powerLawPanel", label:"Power Law"},
+      {id:"overlayPanel", label:"Überlagerung"},
+      {id:"heroPanel", label:"MVRV Bands"},
+      ...TILES.filter(tileIsAvailable).map(t=>({id:slugify(t.title), label:t.title}))
+    ];
+    nav.innerHTML = sections.map(s=>`<a href="#${s.id}" data-nav-target="${s.id}">${s.label}</a>`).join("");
+    nav.querySelectorAll("a").forEach(a=>{
+      a.addEventListener("click", e=>{
+        e.preventDefault();
+        document.getElementById(a.dataset.navTarget)?.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+    });
+    updateSectionNavActive();
+  }
+
+  // Highlights whichever chip corresponds to the section currently scrolled just under the sticky bar.
+  // Re-queries target elements by id fresh on every call instead of caching them once, since
+  // renderAllImmediate() tears down and rebuilds practically every section's DOM on most state changes.
+  let lastActiveNavId = null;
+  function updateSectionNavActive(){
+    const nav = document.getElementById("sectionNav");
+    if(!nav) return;
+    const links = [...nav.querySelectorAll("a")];
+    if(!links.length) return;
+    const navHeight = nav.getBoundingClientRect().height || 0;
+    let activeId = links[0].dataset.navTarget;
+    for(const a of links){
+      const el = document.getElementById(a.dataset.navTarget);
+      if(el && el.getBoundingClientRect().top - navHeight <= 4) activeId = a.dataset.navTarget;
+    }
+    links.forEach(a=> a.classList.toggle("active", a.dataset.navTarget === activeId));
+    if(activeId !== lastActiveNavId){
+      lastActiveNavId = activeId;
+      nav.querySelector("a.active")?.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"});
+    }
   }
 
   function renderOverlay(view){
@@ -3346,6 +3473,10 @@
       // mobile card, since the same "6.5 viewBox units" is a much smaller fraction of a ~350px-wide
       // mobile card than of an ~1100px-wide desktop one.
       svg.querySelectorAll(".hover-marker").forEach(c=> c.setAttribute("r", (5.2/scaleX).toFixed(2)));
+      // Cycle-high/-low flag glyphs (see buildFlagMarker) are geometry too, same issue as the hover
+      // dots above - normalized here to a constant real pixel size (matching how they'd look on a
+      // full-width ~1000px chart) regardless of how narrow the actual card is.
+      svg.querySelectorAll(".flag-scale").forEach(g=> g.setAttribute("transform", `scale(${(1/scaleX).toFixed(3)})`));
     });
   }
 
@@ -3359,6 +3490,7 @@
     renderTiles(view);
     renderPowerLaw();
     fitChartTypography();
+    renderSectionNav();
   }
 
   // Default entry point for every state change - just rebuilds instantly, nothing moves. Mode switch,
@@ -3906,6 +4038,16 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(()=>{ if(FULL) renderAllImmediate(); }, 200);
     });
+
+    // Single page-lifetime scroll listener (rAF-throttled) drives the sticky nav's active-chip
+    // highlighting - wired once here rather than re-attached on every render, since renderSectionNav()
+    // rebuilds the nav's own DOM (and therefore any listener attached to it) on nearly every state change.
+    let navScrollTicking = false;
+    window.addEventListener("scroll", ()=>{
+      if(navScrollTicking) return;
+      navScrollTicking = true;
+      requestAnimationFrame(()=>{ updateSectionNavActive(); navScrollTicking = false; });
+    }, {passive:true});
   }
 
   async function loadAndRender(force){
