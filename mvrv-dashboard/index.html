@@ -626,6 +626,32 @@
     {hi:-1.5, lo:-2.2, label:"Kaufen!", color:"#3949ab"},
     {hi:-2.2, lo:-4.2, label:"Fire Sale", color:"#7b2d8e"}
   ];
+  // Which rainbow band a given point falls in, expressed as its deviation from the fit line in multiples
+  // of the fit's own sigma (the same unit RAINBOW_ZONES' hi/lo are defined in) - shared by both charts'
+  // crosshair painting to highlight the matching legend chip, and valid for a projected future date just
+  // as much as a real historical one (sigmaOffset is defined purely from the model, no real price needed).
+  function rainbowZoneForSigma(sigmaOffset){
+    return RAINBOW_ZONES.find(z=> sigmaOffset<=z.hi && sigmaOffset>=z.lo) || null;
+  }
+  // Builds the rainbow layer's own legend row - same visual language as the MVRV-Perzentil tile's own
+  // zone-legend (.zone-legend/.zone-legend-item/.zone-legend-dot), just not tied to a fixed value-range
+  // zoneBands prop since the rainbow bands live in sigma-space, not the series' own raw values. Returned
+  // setActive() lets the caller (paintCrosshair, in both charts) bold whichever band the crosshair/hover
+  // point currently falls in, exactly like the tile version already does on hover.
+  function buildRainbowLegend(){
+    const legend = document.createElement("div");
+    legend.className = "zone-legend";
+    legend.innerHTML = RAINBOW_ZONES.map(z=>
+      `<span class="zone-legend-item" data-zone-label="${z.label}"><i class="zone-legend-dot" style="background:${z.color}"></i>${z.label}</span>`
+    ).join("");
+    function setActive(label){
+      legend.querySelectorAll(".zone-legend-item").forEach(el=>{
+        el.classList.toggle("active", label!=null && el.dataset.zoneLabel===label);
+        el.classList.toggle("inactive", label!=null && el.dataset.zoneLabel!==label);
+      });
+    }
+    return {el:legend, setActive};
+  }
   // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
   // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
   // <g>'s transform. dir=1 (cycle high): a small flag on a pole planted on the peak, pole pointing up
@@ -2771,6 +2797,10 @@
     function xVal(days){ return logX ? Math.log10(days) : days; }
     const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
     function xOf(days){ return padL + (xVal(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
+    // Inverse of xOf - screen x back to days-since-genesis - used only to resolve a hover position past
+    // the last real data point (into the projected "Alles" corridor), where there's no real point for the
+    // usual nearest-point binary search to land on.
+    function xInv(screenX){ const xv = xValMin + (screenX-padL)/(w-padL-padR)*(xValMax-xValMin); return logX ? Math.pow(10,xv) : xv; }
 
     // The vertical extent always starts from a log10(price)-space calculation (matching how the fit
     // itself, and its sigma, are defined) regardless of which mode Y ends up displayed in - a linear Y
@@ -2845,7 +2875,7 @@
     const crosshair = {date:crosshairPt.date, price:crosshairPt.price, fairPrice:crosshairFair, isLatest: crosshairPtIdx===points.length-1,
       priceX:xOf(crosshairPt.days), priceY:yOf(crosshairPt.price), fitX:xOf(crosshairPt.days), fitY:yOf(crosshairFair)};
 
-    return {w,h,padL,padR,padT,padB, points, fit, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, crosshair, daysMin, daysMax, xOf, yOf, fitLogAt};
+    return {w,h,padL,padR,padT,padB, points, fit, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, crosshair, daysMin, daysMax, xOf, xInv, yOf, fitLogAt};
   }
 
   function pathD(pts){
@@ -2862,7 +2892,7 @@
   // Builds the actual SVG/DOM from an already-computed layout (see computePowerLawLayout) - kept
   // separate so an axis-toggle animation can build the true end state once, then drive its elements'
   // attributes directly frame by frame rather than re-running this whole function on every frame.
-  function renderPowerLawDOM(layout){
+  function renderPowerLawDOM(layout, onSigma){
     const {w,h,padL,padR,padT,padB, points, fitLogAt} = layout;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -2874,7 +2904,7 @@
         const zone = document.createElementNS(NS,"path");
         zone.setAttribute("class","pl-rainbow-zone");
         zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
-        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.16"); zone.setAttribute("stroke","none");
+        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.55"); zone.setAttribute("stroke","none");
         svg.appendChild(zone);
       });
     }
@@ -2967,9 +2997,22 @@
       {compact:true}
     );
     function paintCrosshair(cr){
-      cross.setAttribute("x1",cr.priceX); cross.setAttribute("x2",cr.priceX);
-      priceDot.setAttribute("cx",cr.priceX); priceDot.setAttribute("cy",cr.priceY);
+      cross.setAttribute("x1",cr.fitX); cross.setAttribute("x2",cr.fitX);
       fitDot.setAttribute("cx",cr.fitX); fitDot.setAttribute("cy",cr.fitY);
+      if(cr.projected){
+        // Past the last real data point, into the projected "Alles" corridor - there's no actual price
+        // out here, only the model's own prediction, so the price dot/row are blanked rather than left
+        // showing a stale value, and the rainbow legend (if any) has nothing real to classify either.
+        priceDot.style.display = "none";
+        readout.update(`Projiziert: ${fmtDateOnly(cr.date)}`, [null, cr.fairPrice], [null, cr.fairPrice]);
+        const changeEls = readout.el.querySelectorAll(".readout-change");
+        if(changeEls[0]) changeEls[0].textContent = "";
+        if(changeEls[1]) changeEls[1].textContent = "";
+        if(onSigma) onSigma(null);
+        return;
+      }
+      priceDot.style.display = "";
+      priceDot.setAttribute("cx",cr.priceX); priceDot.setAttribute("cy",cr.priceY);
       const dev = (cr.price-cr.fairPrice)/cr.fairPrice*100;
       readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price, cr.fairPrice], [cr.price, cr.fairPrice]);
       // The readout's own %-change column normally measures drift from the window's first point, which
@@ -2978,6 +3021,7 @@
       const changeEls = readout.el.querySelectorAll(".readout-change");
       if(changeEls[0]) changeEls[0].textContent = "";
       if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
+      if(onSigma) onSigma((Math.log10(cr.price)-Math.log10(cr.fairPrice))/layout.fit.sigma);
     }
     paintCrosshair(layout.crosshair);
 
@@ -2991,15 +3035,30 @@
       const scaleX = rect.width/w;
       const svgX = (clientX-rect.left)/scaleX;
       const frac = Math.max(0, Math.min(1, (svgX-padL)/(w-padL-padR)));
+      const screenX = padL+frac*(w-padL-padR);
+      const impliedDays = layout.xInv(screenX);
+      const lastReal = points[points.length-1];
+      if(impliedDays > lastReal.days){
+        // Past the last real data point (only reachable in "Alles" mode, where daysMax extends 3 cycles
+        // past today) - no real price exists here, so show the model's own fair-value prediction instead
+        // of silently clamping back to today, per explicit feedback that the tooltip should also cover
+        // the projected future, not just the real history.
+        powerLawCrosshairDate = null;
+        const fairPrice = Math.pow(10, fitLogAt(impliedDays));
+        const x = layout.xOf(impliedDays);
+        const dateStr = new Date(GENESIS_MS + impliedDays*86400000).toISOString().slice(0,10);
+        paintCrosshair({date:dateStr, fairPrice, projected:true, fitX:x, fitY:layout.yOf(fairPrice)});
+        return;
+      }
       // Binary search points[] (ascending by days) for whichever real data point sits closest to the
       // pointer's implied x position - the points themselves aren't evenly spaced in pixel terms here,
       // unlike every index-based chart elsewhere on the page.
       let lo=0, hi=points.length-1;
       while(lo<hi){
         const mid = (lo+hi)>>1;
-        if(layout.xOf(points[mid].days) < padL+frac*(w-padL-padR)) lo = mid+1; else hi = mid;
+        if(layout.xOf(points[mid].days) < screenX) lo = mid+1; else hi = mid;
       }
-      if(lo>0 && Math.abs(layout.xOf(points[lo-1].days)-(padL+frac*(w-padL-padR))) < Math.abs(layout.xOf(points[lo].days)-(padL+frac*(w-padL-padR)))) lo -= 1;
+      if(lo>0 && Math.abs(layout.xOf(points[lo-1].days)-screenX) < Math.abs(layout.xOf(points[lo].days)-screenX)) lo -= 1;
       const pt = points[lo];
       powerLawCrosshairDate = pt.date;
       const fairPrice = Math.pow(10, fitLogAt(pt.days));
@@ -3057,10 +3116,13 @@
     });
     panel.appendChild(layerToggleWrap);
 
+    const legendApi = powerLawLayerVisible.rainbow ? buildRainbowLegend() : null;
+
     const layout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
-    const {wrap, readoutRow} = renderPowerLawDOM(layout);
+    const {wrap, readoutRow} = renderPowerLawDOM(layout, legendApi ? sigma=> legendApi.setActive(sigma==null ? null : (rainbowZoneForSigma(sigma)||{}).label) : null);
     panel.insertBefore(readoutRow, layerToggleWrap);
     panel.appendChild(wrap);
+    if(legendApi) panel.appendChild(legendApi.el);
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
@@ -3176,6 +3238,9 @@
     const daysMin = allPoints[0].days;
     const daysMax = allPoints[allPoints.length-1].days + 3*avgHalvingCycleDays();
     function xOf(days){ return padL + (Math.log10(days)-Math.log10(daysMin))/(Math.log10(daysMax)-Math.log10(daysMin))*(w-padL-padR); }
+    // Inverse of xOf - fixed-space x back to days-since-genesis - used to resolve a hover position past
+    // the last real data point, into the projected corridor.
+    function xInv(x){ const lv = Math.log10(daysMin) + (x-padL)/(w-padL-padR)*(Math.log10(daysMax)-Math.log10(daysMin)); return Math.pow(10,lv); }
 
     const priceLogVals = allPoints.map(p=>Math.log10(p.price));
     const bandPad = cycleChartLayerVisible.powerlaw ? 2*fit.sigma : 0;
@@ -3263,7 +3328,7 @@
       return out;
     })();
 
-    cycleChartFixedLayoutCache = {w,h,padL,padR,padT,padB, daysMin,daysMax, xOf,yOf, fit, fitLogAt,
+    cycleChartFixedLayoutCache = {w,h,padL,padR,padT,padB, daysMin,daysMax, xOf,xInv,yOf, fit, fitLogAt,
       allPoints, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, flags, zones};
     cycleChartFixedLayoutKey = structKey;
     return cycleChartFixedLayoutCache;
@@ -3420,7 +3485,7 @@
   // applyCycleChartTransform/animateCycleChartTransform above). Zone bands and halving lines are drawn
   // hugely over-tall (way past the visible plot) so they keep spanning the full height no matter how far
   // the current crop window's own vertical center has drifted from the middle of the fixed space.
-  function renderCycleChartDOM(fixed, initialVB){
+  function renderCycleChartDOM(fixed, initialVB, onSigma){
     const {w,h,padL,padR,padT,padB} = fixed;
     const OVER = 1e5;
     const svg = document.createElementNS(NS,"svg");
@@ -3470,7 +3535,7 @@
       fixed.rainbowZones.forEach(z=>{
         const zone = document.createElementNS(NS,"path");
         zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
-        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.16"); zone.setAttribute("stroke","none");
+        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.55"); zone.setAttribute("stroke","none");
         zoomG.appendChild(zone);
       });
     }
@@ -3590,18 +3655,34 @@
 
     function paintCrosshair(pt){
       const t = built.currentTransform;
-      const scr = cycScreenPos(t, fixed.xOf(pt.days), fixed.yOf(pt.price));
-      cross.setAttribute("x1",scr.x); cross.setAttribute("x2",scr.x);
-      priceDot.setAttribute("cx",scr.x); priceDot.setAttribute("cy",scr.y);
+      const fixedX = fixed.xOf(pt.days);
       const fairPrice = Math.pow(10, fixed.fitLogAt(pt.days));
-      const fairScr = cycScreenPos(t, fixed.xOf(pt.days), fixed.yOf(fairPrice));
+      const fairScr = cycScreenPos(t, fixedX, fixed.yOf(fairPrice));
+      cross.setAttribute("x1",fairScr.x); cross.setAttribute("x2",fairScr.x);
       fitDot.setAttribute("cx",fairScr.x); fitDot.setAttribute("cy",fairScr.y);
+      if(pt.projected){
+        // Past the last real data point, into the projected corridor - no real price exists out here,
+        // so the price dot/row are blanked rather than left showing a stale value, and the rainbow
+        // legend (if any) has nothing real to classify either. Only reachable at "Alles" range, where
+        // the fixed space's daysMax extends 3 cycles past today.
+        priceDot.style.display = "none";
+        readout.update(`Projiziert: ${fmtDateOnly(pt.date)}`, [null, fairPrice], [null, fairPrice]);
+        const changeEls = readout.el.querySelectorAll(".readout-change");
+        if(changeEls[0]) changeEls[0].textContent = "";
+        if(changeEls[1]) changeEls[1].textContent = "";
+        if(onSigma) onSigma(null);
+        return;
+      }
+      priceDot.style.display = "";
+      const scr = cycScreenPos(t, fixedX, fixed.yOf(pt.price));
+      priceDot.setAttribute("cx",scr.x); priceDot.setAttribute("cy",scr.y);
       const isLatest = pt === fixed.allPoints[fixed.allPoints.length-1];
       const dev = (pt.price-fairPrice)/fairPrice*100;
       readout.update(isLatest ? "Aktuell" : fmtDateOnly(pt.date), [pt.price, fairPrice], [pt.price, fairPrice]);
       const changeEls = readout.el.querySelectorAll(".readout-change");
       if(changeEls[0]) changeEls[0].textContent = "";
       if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
+      if(onSigma) onSigma((Math.log10(pt.price)-Math.log10(fairPrice))/fixed.fit.sigma);
     }
     built.paintCrosshair = paintCrosshair;
 
@@ -3613,6 +3694,14 @@
       const t = built.currentTransform;
       const fixedX = (svgX - t.tx)/t.k;
       const allPts = fixed.allPoints;
+      const lastReal = allPts[allPts.length-1];
+      if(fixedX > fixed.xOf(lastReal.days)){
+        const impliedDays = fixed.xInv(fixedX);
+        cycleChartCrosshairDate = null;
+        const dateStr = new Date(GENESIS_MS + impliedDays*86400000).toISOString().slice(0,10);
+        paintCrosshair({date:dateStr, days:impliedDays, projected:true});
+        return;
+      }
       let lo=0, hi=allPts.length-1;
       while(lo<hi){
         const mid=(lo+hi)>>1;
@@ -3679,12 +3768,15 @@
       });
       panel.appendChild(layerToggleWrap);
 
+      const legendApi = cycleChartLayerVisible.rainbow ? buildRainbowLegend() : null;
+
       const fixed = cycleChartFixedLayout(structKey);
       const targetVB = cycleChartViewBoxFor(fixed);
-      const built = renderCycleChartDOM(fixed, targetVB);
+      const built = renderCycleChartDOM(fixed, targetVB, legendApi ? sigma=> legendApi.setActive(sigma==null ? null : (rainbowZoneForSigma(sigma)||{}).label) : null);
       panel.insertBefore(built.readoutRow, layerToggleWrap);
       panel.appendChild(built.wrap);
       applyCycleChartTransform(built, fixed, targetVB);
+      if(legendApi) panel.appendChild(legendApi.el);
 
       const toolbar = document.createElement("div");
       toolbar.className = "card-toolbar";
