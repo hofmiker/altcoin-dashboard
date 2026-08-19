@@ -21,7 +21,7 @@
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
-    --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c;
+    --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
     --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
     --font-body:"Inter", -apple-system, "Segoe UI", sans-serif;
   }
@@ -36,7 +36,7 @@
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
       --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
       --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
-      --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c;
+      --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
     }
   }
   :root[data-theme="dark"]{
@@ -49,7 +49,7 @@
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
     --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
-    --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c;
+    --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
   }
   :root[data-theme="light"]{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -61,7 +61,7 @@
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
-    --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c;
+    --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
   }
 
   *{box-sizing:border-box}
@@ -332,7 +332,7 @@
 
     <header>
       <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v57 · Deployed 18.08.2026 05:34 UTC</span></p>
+        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v58 · Deployed 19.08.2026 19:08 UTC</span></p>
         <div class="h1-row">
           <h1>MVRV Dashboard</h1>
           <span id="headerInfo"></span>
@@ -377,6 +377,8 @@
     </section>
 
     <section id="metricsHost"></section>
+
+    <section class="panel" id="powerLawPanel"></section>
 
     <details class="panel" id="detailsPanel">
       <summary>Methodik, Formeln &amp; Datenquelle <span class="hint">Details anzeigen</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
@@ -502,6 +504,37 @@
       if(sortedExtremes[k].date <= dateStr) seg = sortedExtremes[k]; else break;
     }
     return seg.dir>0 ? "bear" : "bull";
+  }
+  // The "Bitcoin power law" is the empirical observation that, plotted with both axes logarithmic
+  // (log price against log days-since-genesis), BTC's price has tracked a straight line - i.e.
+  // price ~= A * days^n - across nearly its entire history, spanning several orders of magnitude in
+  // both price and time. Published fits of this (e.g. Giovanni Santostasi's, or the Porkopolis
+  // coefficients) vary somewhat in their exact exponent/constant depending on the data window and
+  // methodology used, so rather than hardcode someone else's numbers - which could be stale or fit
+  // against a different (and unverifiable, from here) dataset - this fits the same model directly
+  // against this dashboard's own FULL price history via ordinary least squares in log-log space. The
+  // fit only needs computing once (FULL never changes after the initial load), so it's cached.
+  const GENESIS_MS = Date.parse("2009-01-03T00:00:00Z");
+  let powerLawFitCache = null;
+  function powerLawFit(){
+    if(powerLawFitCache) return powerLawFitCache;
+    const xs = [], ys = [];
+    for(let i=0;i<FULL.dates.length;i++){
+      const p = FULL.price[i];
+      if(p==null || !isFinite(p) || p<=0) continue;
+      const days = (FULL.t[i]-GENESIS_MS)/86400000;
+      if(days<=0) continue;
+      xs.push(Math.log10(days)); ys.push(Math.log10(p));
+    }
+    const n = xs.length;
+    const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+    let sxx=0, sxy=0;
+    for(let i=0;i<n;i++){ sxx += (xs[i]-mx)**2; sxy += (xs[i]-mx)*(ys[i]-my); }
+    const slope = sxy/sxx, intercept = my - slope*mx;
+    let ssRes=0, ssTot=0;
+    for(let i=0;i<n;i++){ const pred = slope*xs[i]+intercept; ssRes += (ys[i]-pred)**2; ssTot += (ys[i]-my)**2; }
+    powerLawFitCache = {slope, intercept, r2: 1-ssRes/ssTot, sigma: Math.sqrt(ssRes/n), n};
+    return powerLawFitCache;
   }
   // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
   // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
@@ -2507,6 +2540,218 @@
     readoutHost.appendChild(built.readoutEl);
   }
 
+  // A dedicated log-log chart (both axes logarithmic, not just price like every other chart's own
+  // Log/Linear toggle) plotting the whole price history against the fitted power-law trend line (see
+  // powerLawFit above) plus a +-2-sigma corridor. Deliberately NOT built on buildLineChart - that whole
+  // machinery (zoom/pan, range selection, per-index crosshair sync) assumes a linear, evenly-by-day X
+  // axis, which a log-time axis fundamentally isn't (consecutive days are pixels apart near the left
+  // edge and fractions of a pixel apart near the right) - and a power law is inherently a whole-history
+  // relationship anyway, not something that means much zoomed into a recent window. Always shows the
+  // complete history; there's no range toolbar here to match.
+  function renderPowerLaw(){
+    const panel = document.getElementById("powerLawPanel");
+    panel.innerHTML = "";
+    const headRow = document.createElement("div");
+    headRow.className = "panel-head";
+    headRow.innerHTML = `<h3>BTC-Kurs (Power Law, Log-Log)</h3>`;
+    panel.appendChild(headRow);
+    const fit = powerLawFit();
+    attachInfo(headRow, `Die "Bitcoin Power Law"-These: auf einer beidseitig logarithmischen Skala (Kurs UND Tage seit dem Genesis-Block vom 03.01.2009 logarithmisch) folgt der BTC-Kurs über die gesamte Historie annähernd einer Geraden, Kurs ≈ A × Tage^n - hier direkt per linearer Regression im Log-Log-Raum aus den vorliegenden Kursdaten berechnet (keine von extern übernommenen Koeffizienten): Kurs(t) = 10^${fit.intercept.toFixed(2)} × Tage^${fit.slope.toFixed(2)}, R² = ${fit.r2.toFixed(3)} über ${fit.n.toLocaleString("de-DE")} Tage. Das gestrichelte Band zeigt ±2 Standardabweichungen (log-Skala) um diese Gerade. Reine statistische Kurvenanpassung an die Vergangenheit - keine Prognose und keine Anlageempfehlung.`);
+
+    const points = [];
+    for(let i=0;i<FULL.dates.length;i++){
+      const p = FULL.price[i];
+      if(p==null || !isFinite(p) || p<=0) continue;
+      const days = (FULL.t[i]-GENESIS_MS)/86400000;
+      if(days<=0) continue;
+      points.push({date:FULL.dates[i], days, price:p});
+    }
+    if(points.length < 2){
+      const empty = document.createElement("div");
+      empty.className = "chart-empty";
+      empty.textContent = "Keine Daten verfügbar";
+      panel.appendChild(empty);
+      return;
+    }
+
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
+    const logDaysMin = Math.log10(points[0].days), logDaysMax = Math.log10(points[points.length-1].days);
+    const priceLogVals = points.map(p=>Math.log10(p.price));
+    const fitLogAt = logDays => fit.slope*logDays + fit.intercept;
+    const bandPad = 2*fit.sigma;
+    const yMin = Math.min(Math.min(...priceLogVals), fitLogAt(logDaysMin)-bandPad, fitLogAt(logDaysMax)-bandPad) - 0.06;
+    const yMax = Math.max(Math.max(...priceLogVals), fitLogAt(logDaysMin)+bandPad, fitLogAt(logDaysMax)+bandPad) + 0.06;
+
+    function xOf(days){ return padL + (Math.log10(days)-logDaysMin)/(logDaysMax-logDaysMin)*(w-padL-padR); }
+    function logPriceToY(logP){ return padT + (1-(logP-yMin)/(yMax-yMin))*(h-padT-padB); }
+    function priceToY(price){ return logPriceToY(Math.log10(price)); }
+
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.setAttribute("role","img");
+
+    // Y gridlines - one per power of ten within range, the natural tick spacing on a log axis.
+    const decadeLo = Math.floor(yMin), decadeHi = Math.ceil(yMax);
+    for(let d=decadeLo; d<=decadeHi; d++){
+      if(d<yMin || d>yMax) continue;
+      const y = logPriceToY(d);
+      const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
+      gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(gl);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = fmtUSD(Math.pow(10,d));
+      svg.appendChild(lbl);
+    }
+    // X ticks - one per calendar year (every other year once there'd be too many to read), positioned
+    // by that year's own days-since-genesis rather than evenly spaced, since evenly-by-year *is* evenly
+    // spaced only in linear time - on this log-time axis, early years sit far apart and recent ones
+    // crowd together near the right edge, which is the whole point of this chart.
+    const firstYear = Number(points[0].date.slice(0,4)), lastYear = Number(points[points.length-1].date.slice(0,4));
+    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+    for(let y=firstYear; y<=lastYear; y+=yearStep){
+      const days = (Date.parse(`${y}-01-01T00:00:00Z`)-GENESIS_MS)/86400000;
+      if(days < points[0].days || days > points[points.length-1].days) continue;
+      const x = xOf(days);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label axis-label-x");
+      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = String(y);
+      svg.appendChild(lbl);
+    }
+
+    // Halving markers, same convention as every other BTC-price chart on the page.
+    HALVING_DATES.forEach(hv=>{
+      const days = (Date.parse(hv.date+"T00:00:00Z")-GENESIS_MS)/86400000;
+      if(days < points[0].days || days > points[points.length-1].days) return;
+      const x = xOf(days);
+      const line = document.createElementNS(NS,"line");
+      line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
+      line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
+      line.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(line);
+    });
+
+    // +-2-sigma corridor (dashed) and the power-law center line itself, sampled at even steps in
+    // log10(days) - which, on this axis, is simply even steps in pixel-X, so no per-sample inverse
+    // mapping back through days is needed.
+    const SAMPLES = 240;
+    function tracePath(offset){
+      let d = "";
+      for(let i=0;i<=SAMPLES;i++){
+        const logDays = logDaysMin + (i/SAMPLES)*(logDaysMax-logDaysMin);
+        const x = padL + (i/SAMPLES)*(w-padL-padR);
+        const y = logPriceToY(fitLogAt(logDays)+offset);
+        d += (i===0?"M":"L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+      }
+      return d;
+    }
+    [bandPad, -bandPad].forEach(offset=>{
+      const band = document.createElementNS(NS,"path");
+      band.setAttribute("d", tracePath(offset));
+      band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
+      band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
+      band.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(band);
+    });
+    const fitLine = document.createElementNS(NS,"path");
+    fitLine.setAttribute("d", tracePath(0));
+    fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
+    fitLine.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(fitLine);
+
+    // Actual price line.
+    let priceD = "";
+    points.forEach((pt,i)=>{ priceD += (i===0?"M":"L") + xOf(pt.days).toFixed(1) + "," + priceToY(pt.price).toFixed(1) + " "; });
+    const priceLine = document.createElementNS(NS,"path");
+    priceLine.setAttribute("d", priceD);
+    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
+    priceLine.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(priceLine);
+
+    // Crosshair - a simplified version of buildLineChart's own (no zoom/pan to sync with here): a
+    // vertical line plus a dot on each of the two traces, following the pointer via binary search over
+    // points[] (sorted by days, but not evenly spaced in log-day pixel terms, unlike every other chart's
+    // plain by-index lookup).
+    const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
+    cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1"); cross.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(cross);
+    const priceDot = document.createElementNS(NS,"circle");
+    priceDot.setAttribute("class","hover-marker"); priceDot.setAttribute("r","6.5");
+    priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
+    svg.appendChild(priceDot);
+    const fitDot = document.createElementNS(NS,"circle");
+    fitDot.setAttribute("class","hover-marker"); fitDot.setAttribute("r","6.5");
+    fitDot.setAttribute("fill","var(--c-powerlaw)"); fitDot.setAttribute("stroke","var(--card)"); fitDot.setAttribute("stroke-width","1.5");
+    svg.appendChild(fitDot);
+
+    const readout = buildReadout(
+      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}, {key:"fair", label:"Power-Law-Fair-Value", color:"var(--c-powerlaw)", fmt:fmtUSD}],
+      {compact:true}
+    );
+    const readoutRow = document.createElement("div");
+    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
+    readoutRow.appendChild(readout.el);
+    panel.insertBefore(readoutRow, headRow.nextSibling);
+
+    function renderAt(idx){
+      const pt = points[idx];
+      const fairPrice = Math.pow(10, fitLogAt(Math.log10(pt.days)));
+      const x = xOf(pt.days);
+      cross.setAttribute("x1",x); cross.setAttribute("x2",x);
+      priceDot.setAttribute("cx",x); priceDot.setAttribute("cy", priceToY(pt.price));
+      fitDot.setAttribute("cx",x); fitDot.setAttribute("cy", priceToY(fairPrice));
+      const dev = (pt.price-fairPrice)/fairPrice*100;
+      readout.update(idx===points.length-1 ? "Aktuell" : fmtDateOnly(pt.date), [pt.price, fairPrice], [pt.price, fairPrice]);
+      // The readout's own %-change column normally measures drift from the window's first point, which
+      // means nothing here - repurposed instead to show how far today's actual price sits from the
+      // power-law fair value at that same date, the one comparison this whole chart exists to make.
+      const changeEls = readout.el.querySelectorAll(".readout-change");
+      if(changeEls[0]) changeEls[0].textContent = "";
+      if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
+    }
+    renderAt(points.length-1);
+
+    const hitRect = document.createElementNS(NS,"rect");
+    hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
+    hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
+    hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair"; hitRect.style.touchAction = "none";
+    function handleMove(clientX){
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width/w;
+      const svgX = (clientX-rect.left)/scaleX;
+      const frac = Math.max(0, Math.min(1, (svgX-padL)/(w-padL-padR)));
+      const targetDays = Math.pow(10, logDaysMin + frac*(logDaysMax-logDaysMin));
+      // Binary search points[] (ascending by days) for whichever real data point is closest to the
+      // pointer's implied day - the points themselves aren't evenly spaced in pixel terms here, unlike
+      // every index-based chart elsewhere on the page.
+      let lo=0, hi=points.length-1;
+      while(lo<hi){
+        const mid = (lo+hi)>>1;
+        if(points[mid].days < targetDays) lo = mid+1; else hi = mid;
+      }
+      if(lo>0 && Math.abs(points[lo-1].days-targetDays) < Math.abs(points[lo].days-targetDays)) lo -= 1;
+      renderAt(lo);
+    }
+    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
+    svg.appendChild(hitRect);
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+    panel.appendChild(wrap);
+  }
+
   function tileIsAvailable(tile){
     if(!tile.requires) return true;
     if(tile.requires === "hasZScore") return FULL.hasZScore;
@@ -2809,6 +3054,7 @@
     renderGauges();
     renderHero(view);
     renderTiles(view);
+    renderPowerLaw();
     fitChartTypography();
   }
 
