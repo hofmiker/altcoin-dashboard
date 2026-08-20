@@ -568,8 +568,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v2";
-  const EDIT_STAMP = "2026-08-20 19:22 UTC";
+  const EDIT_VERSION = "v3";
+  const EDIT_STAMP = "2026-08-20 19:42 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1642,7 +1642,14 @@
 
   // ---------- generic SVG multi-line chart ----------
   function buildLineChart(cfg){
-    const w = 1000, h = cfg.height || 240, padL = 54, padR = 14, padT = 16, padB = 24;
+    // padB has enough room for the rotated (-45deg, mobile-only) x-axis date labels below the plot - see
+    // the mobileTicks label-y calculation below, which anchors relative to padB rather than a hardcoded
+    // offset from h, specifically so the reserved space and the label's own position can't drift out of
+    // sync the way a fixed "h-6" anchor did (correct at whatever padB happened to be when first tuned,
+    // silently wrong the moment padB or the font size changed) - the rotated glyph's lower corner reaches
+    // measurably further down than a horizontal label's ever would, spilling a few px past the
+    // chart-wrap's own background into the plain card background below it otherwise.
+    const w = 1000, h = cfg.height || 240, padL = 54, padR = 14, padT = 16, padB = 32;
     const n = cfg.dates.length;
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
@@ -2057,10 +2064,16 @@
       const x = xOf(i);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label axis-label-x");
-      lbl.setAttribute("y",h-6);
+      // Rotated (mobile) labels anchor further up than the plain horizontal ones - a -45deg rotation
+      // swings the glyph's lower corner measurably below its own anchor point, and anchoring flush at
+      // h-6 like the unrotated case does left that corner spilling a few px past the chart-wrap's own
+      // background into the plain card background below it. Anchored relative to padB instead of a
+      // second hardcoded offset, so it can't quietly drift out of sync with the actual reserved space.
+      const rotatedLabelY = h - padB + 12;
+      lbl.setAttribute("y", mobileTicks ? rotatedLabelY : h-6);
       if(mobileTicks){
         lbl.setAttribute("x",x); lbl.setAttribute("text-anchor","end");
-        lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+        lbl.setAttribute("transform",`rotate(-45 ${x} ${rotatedLabelY})`);
       } else {
         lbl.setAttribute("x",x);
         lbl.setAttribute("text-anchor", k===0 ? "start" : k===xTicks-1 ? "end" : "middle");
@@ -3034,7 +3047,7 @@
   function computePowerLawLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
     const fit = powerLawFit();
-    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=46;
     const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
 
     // The future projection ("Alles" reaching ~3 average halving cycles past today) only makes sense in
@@ -3156,7 +3169,7 @@
     if(powerLawFixedSpaceCache && powerLawFixedSpaceCache.key === cacheKey) return powerLawFixedSpaceCache.val;
     const allPoints = powerLawPoints();
     const fit = powerLawFit();
-    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=46;
     const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
     const daysMin = allPoints[0].days;
     const daysMax = allPoints[allPoints.length-1].days + 3*avgHalvingCycleDays();
@@ -3313,8 +3326,8 @@
     layout.xTicks.forEach(t=>{
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label axis-label-x");
-      lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
-      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-6})`);
+      lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
       svg.appendChild(lbl);
@@ -3571,8 +3584,8 @@
       if(x < padL-1 || x > w-padR+1) continue;
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label axis-label-x");
-      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
-      lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+      lbl.setAttribute("x",x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = String(y);
       svg.appendChild(lbl);
@@ -4018,7 +4031,7 @@
   // estimate of what's next.
   function computeCycleChartLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
-    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=46;
 
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
     // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
@@ -4184,8 +4197,8 @@
     });
     layout.xTicks.forEach(t=>{
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
-      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-6})`);
+      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
       svg.appendChild(lbl);
