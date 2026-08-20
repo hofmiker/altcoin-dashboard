@@ -17,10 +17,16 @@
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --critical-bg-strong:#c73f394d;
+    /* The site's own brand color - every BTC price line, the ₿ mark, the nav's active-link state and
+       plain text links all draw from this one token (not --accent, which stays the separate teal used for
+       everything else interactive - toggles, focus rings, non-price chart accents). A bit redder than
+       classic Bitcoin orange (#f7931a) by design; light/dark carry their own optimized shade rather than
+       sharing one value, same as every other themed color here. */
+    --bitcoin-accent:#e8511c; --bitcoin-accent-bg:#e8511c1a;
     --sidebar-w:248px;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
-    --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
+    --c-price:var(--bitcoin-accent); --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
     --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
@@ -33,9 +39,10 @@
       --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
       --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
       --critical-bg-strong:#e0655f52;
+      --bitcoin-accent:#ff6f43; --bitcoin-accent-bg:#ff6f4322;
       --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
       --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
-      --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
+      --c-price:var(--bitcoin-accent); --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
       --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
       --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
     }
@@ -46,9 +53,10 @@
     --good:#3db877; --caution:#d99a2e; --critical:#e0655f; --neutral:#8489d1; --accent:#2bb7cf;
     --good-bg:#3db87722; --caution-bg:#d99a2e22; --critical-bg:#e0655f22; --neutral-bg:#8489d122; --accent-bg:#2bb7cf22;
     --critical-bg-strong:#e0655f52;
+    --bitcoin-accent:#ff6f43; --bitcoin-accent-bg:#ff6f4322;
     --fg-neutral:#d9c14a; --fg-neutral-bg:#d9c14a22; --fg-greed:#9bc23f; --fg-greed-bg:#9bc23f22;
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
-    --c-price:#f7931a; --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
+    --c-price:var(--bitcoin-accent); --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
     --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
     --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
   }
@@ -58,9 +66,10 @@
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --critical-bg-strong:#c73f394d;
+    --bitcoin-accent:#e8511c; --bitcoin-accent-bg:#e8511c1a;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
-    --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
+    --c-price:var(--bitcoin-accent); --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
   }
@@ -131,9 +140,9 @@
     transition:background-color .15s ease, color .15s ease;
   }
   .sidebar-links a:hover{background:var(--inset); color:var(--ink);}
-  .sidebar-links a.active{background:var(--accent-bg); color:var(--accent);}
+  .sidebar-links a.active{background:var(--bitcoin-accent-bg); color:var(--bitcoin-accent);}
   .sidebar-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 6px 2px; border-top:1px solid var(--border); margin-top:8px;}
-  .sidebar-foot .backlink{font-size:12px; color:var(--accent); text-decoration:none; font-weight:600;}
+  .sidebar-foot .backlink{font-size:12px; color:var(--bitcoin-accent); text-decoration:none; font-weight:600;}
   .sidebar-foot .backlink:hover{text-decoration:underline;}
 
   /* Only actually dims/blocks anything below 900px (see the media query below) - present in the DOM at
@@ -201,13 +210,13 @@
   .info-pop .eyebrow{margin:0 0 4px;}
   .info-pop-section{padding-top:10px; margin-top:10px; border-top:1px solid var(--border);}
   .info-pop-section:first-child{padding-top:0; margin-top:0; border-top:none;}
-  .info-pop a{color:var(--accent);}
+  .info-pop a{color:var(--bitcoin-accent);}
   .info-pop .retry-btn{border:none; background:var(--critical); color:#fff; padding:6px 12px; border-radius:7px; font-weight:700; cursor:pointer; margin-top:8px;}
   .info-pop.show{display:block;}
   .info-pop.align-right{left:auto; right:0;}
 
   .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 16px; line-height:1.6;}
-  .tab-status a{color:var(--accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
+  .tab-status a{color:var(--bitcoin-accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
   .tab-status.error{color:var(--critical); border-color:var(--critical-bg); background:var(--critical-bg);}
   .tab-status b{color:inherit; font-family:var(--font-display);}
 
@@ -390,7 +399,7 @@
   .zone-legend-item.inactive{opacity:.4;}
 
   footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
-  footer a{color:var(--accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
+  footer a{color:var(--bitcoin-accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
 
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
 
@@ -3775,7 +3784,6 @@
     const priceDot = svg.querySelector(".pl-price-dot");
     const fitDot = svg.querySelector(".pl-fit-dot");
     const cross = svg.querySelector(".pl-crosshair");
-    const isLogLogNow = powerLawLogX && powerLawLogY;
 
     const start = performance.now();
     function frame(now){
@@ -3812,8 +3820,13 @@
         if(fitDot){ fitDot.setAttribute("cx",fx); fitDot.setAttribute("cy",fy); }
         if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
       }
+      // Always rebuild fresh at the end, not only when landing in log-log mode - lerpPts pairs old/new
+      // points by index and just leaves any leftover tail (whichever side has more points, e.g. a wider
+      // old range's point count vs. a narrower new one) sitting unlerped at its stale old position
+      // forever otherwise, which read as a second, wrong price line still traced across the chart after
+      // the animation had supposedly finished.
       if(raw < 1) requestAnimationFrame(frame);
-      else if(isLogLogNow) renderPowerLaw();
+      else renderPowerLaw();
     }
     requestAnimationFrame(frame);
   }
@@ -4319,7 +4332,13 @@
         if(priceDot){ priceDot.setAttribute("cx",px); priceDot.setAttribute("cy",py); }
         if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
       }
+      // Always rebuild fresh at the end - lerpPts pairs old/new points by index and just leaves any
+      // leftover tail (whichever side has more points, e.g. a wider old range's point count vs. a
+      // narrower new one) sitting unlerped at its stale old position forever otherwise, which read as a
+      // second, wrong price line still traced across the chart after the animation had supposedly
+      // finished.
       if(raw < 1) requestAnimationFrame(frame);
+      else renderCycleChart();
     }
     requestAnimationFrame(frame);
   }
