@@ -75,11 +75,15 @@
   }
 
   *{box-sizing:border-box}
-  html{background:var(--bg);}
+  /* overflow-x lives here, not on body - clipping it on body instead of html can make body itself into a
+     nested scrolling element on some engines (notably older iOS Safari), and a position:fixed descendant
+     of a body that's *itself* scrolling has been an unreliable combination there: the sidebar visibly
+     failed to stay pinned while scrolling ("Navi bleibt nicht stehen") until this moved up a level. */
+  html{background:var(--bg); overflow-x:hidden;}
   /* font-family lives here, not on .page, so the sidebar/mobile topbar - both moved outside .page's own
      box when the nav became a fixed-position sibling instead of an in-flow child (see .sidebar below) -
      still inherit it too, instead of falling back to the browser's own serif default. */
-  body{margin:0; background:var(--bg); overflow-x:hidden; font-family:var(--font-body); color:var(--ink);}
+  body{margin:0; background:var(--bg); font-family:var(--font-body); color:var(--ink);}
   .page{
     background:var(--bg); color:var(--ink); min-height:100%;
     /* Plain padding on 3 sides, plus whatever the device's own notch/status-bar/home-indicator reserves
@@ -119,6 +123,10 @@
     background:var(--card); border-right:1px solid var(--border); box-shadow:var(--shadow);
     display:flex; flex-direction:column; padding:calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
     transform:translateX(-100%); transition:transform .28s cubic-bezier(.22,.61,.36,1);
+    /* Forces its own compositing layer - iOS Safari in particular has a long-standing history of letting
+       position:fixed elements drift/scroll away with the page instead of staying pinned unless something
+       gives the engine an explicit reason to composite them independently. */
+    will-change:transform;
   }
   .sidebar.open{transform:translateX(0);}
   .sidebar-brand{display:flex; align-items:center; gap:9px; padding:4px 6px 16px; border-bottom:1px solid var(--border); margin-bottom:8px;}
@@ -157,6 +165,7 @@
     display:flex; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
     padding-top:calc(10px + env(safe-area-inset-top));
     background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
+    will-change:transform;
   }
   .mobile-topbar.hidden{display:none;}
   .nav-burger{
