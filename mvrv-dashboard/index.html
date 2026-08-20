@@ -383,9 +383,56 @@
   .readout.compact .readout-change{font-size:11px;}
   .readout.compact .readout-date{margin-bottom:1px;}
 
-  .hero-panel{gap:16px;}
+  .hero-panel{gap:16px; position:relative;}
   .hero-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;}
   .hero-title-row{display:flex; align-items:center; gap:8px;}
+
+  /* ---- Fullscreen mode (pilot - MVRV Quantile Bands only for now) ---- */
+  /* Both buttons are absolutely positioned corners of the panel itself, not inline with the title row,
+     so they stay in the exact same visual spot (top-right/top-left of the tile) whether the panel is at
+     its normal in-flow size or fullscreen. Only one of the two is ever visible at a time (see
+     .fullscreen-active below), toggled by a class rather than mounting/unmounting so neither button ever
+     needs rebuilding. */
+  .fs-toggle-btn{
+    position:absolute; top:18px; z-index:6; width:34px; height:34px; border-radius:9px;
+    border:1.5px solid var(--border); background:var(--card); color:var(--ink-2);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .fs-toggle-btn svg{width:16px; height:16px;}
+  .fs-enter-btn{right:20px;}
+  .fs-exit-btn{left:20px; display:none;}
+  .hero-panel.fullscreen-active .fs-enter-btn{display:none;}
+  .hero-panel.fullscreen-active .fs-exit-btn{display:inline-flex;}
+  /* The "i" info button explains what the chart shows - redundant the instant that same explanation is
+     already sitting in plain text right under the headline (see .hero-fs-desc), so it hides rather than
+     leaving two ways to read the same sentence on screen at once. */
+  .hero-panel.fullscreen-active #heroInfo{display:none;}
+  .hero-fs-desc{
+    display:none; margin:0; font-size:14px; color:var(--ink-2); line-height:1.6; max-width:800px;
+    opacity:0; transform:translateY(-6px); transition:opacity .28s ease, transform .28s ease;
+  }
+  .hero-panel.fullscreen-active .hero-fs-desc{display:block;}
+  .hero-panel.fullscreen-active .hero-fs-desc.show{opacity:1; transform:translateY(0);}
+  /* Only present while actively entering/leaving - a permanent transition on every .panel would make
+     completely unrelated, JS-driven attribute changes elsewhere (renderAll* rebuilding this same panel's
+     children on every state change) animate too, which is not what's being asked for here. */
+  .hero-panel.fullscreen-transitioning{
+    transition: top .38s cubic-bezier(.22,.61,.36,1), left .38s cubic-bezier(.22,.61,.36,1),
+      width .38s cubic-bezier(.22,.61,.36,1), height .38s cubic-bezier(.22,.61,.36,1),
+      border-radius .38s cubic-bezier(.22,.61,.36,1);
+  }
+  .hero-panel.fullscreen-active{
+    z-index:250; overflow-y:auto; border-radius:0 !important;
+    padding:calc(64px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left));
+  }
+  /* Stretches the chart to fill whatever vertical room is left after the now-taller header/description -
+     safe specifically because buildLineChart already renders with preserveAspectRatio="none" (needed
+     elsewhere for the same non-uniform-stretch reason), so overriding height:auto here doesn't distort
+     anything that wasn't already built to tolerate an independent width/height scale. */
+  .hero-panel.fullscreen-active #heroChart{flex:1 1 auto; display:flex; min-height:0;}
+  .hero-panel.fullscreen-active #heroChart .chart-wrap{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
+  .hero-panel.fullscreen-active #heroChart .chart-wrap svg{flex:1 1 auto; width:100%; height:100%; min-height:0;}
+  .hero-fs-placeholder{flex:none;}
 
   .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
@@ -513,6 +560,12 @@
     <section class="strip gauges" id="gaugeStrip"></section>
 
     <section class="panel hero-panel" id="heroPanel">
+      <button type="button" class="fs-toggle-btn fs-enter-btn" id="heroFsEnter" aria-label="Vollbild" title="Vollbild">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+      <button type="button" class="fs-toggle-btn fs-exit-btn" id="heroFsExit" aria-label="Vollbild verlassen" title="Vollbild verlassen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
       <div class="hero-head">
         <div class="hero-title-row">
           <h2>MVRV Quantile Bands</h2>
@@ -520,6 +573,7 @@
         </div>
         <div id="heroReadout"></div>
       </div>
+      <p class="hero-fs-desc" id="heroFsDesc"></p>
       <div id="heroToggles"></div>
       <div id="heroChart"></div>
       <div class="card-toolbar" id="heroToolbar"></div>
@@ -568,8 +622,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v214";
-  const EDIT_STAMP = "2026-08-20 19:46 UTC";
+  const EDIT_VERSION = "v215";
+  const EDIT_STAMP = "2026-08-20 20:08 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4578,6 +4632,7 @@
     const priceLine = svg.querySelector(".cyc-price-line");
     const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
     const zoneEls = [...svg.querySelectorAll(".cyc-zone")];
+    const flagEls = [...svg.querySelectorAll("g[data-flag-date]")];
     const priceDot = svg.querySelector(".cyc-price-dot");
     const cross = svg.querySelector(".cyc-crosshair");
 
@@ -4614,6 +4669,21 @@
         const yBot = lerp(oz.yBot, nz.yBot);
         el.setAttribute("x", x0); el.setAttribute("width", Math.max(x1-x0,0.01));
         el.setAttribute("y", yTop); el.setAttribute("height", Math.max(yBot-yTop,0));
+      });
+      // Cycle-high/-low flags, matched by date same as halvings/zones above - an axis toggle (unlike a
+      // range/pan change) never adds or drops one, but still moves every one of them (both X, since a
+      // log<->linear X toggle reshapes the whole date axis, and Y). Previously left untouched here
+      // entirely, so they sat frozen at their old spot for the whole animation and only snapped to the
+      // real new position once renderCycleChart() rebuilt the DOM at the very end - exactly the "hüpfen"
+      // (hop) the flags/halving/price line/zones around them never did.
+      flagEls.forEach(el=>{
+        const date = el.dataset.flagDate;
+        const nf = newLayout.flags.find(f=>f.date===date);
+        if(!nf) return;
+        const of = oldLayout.flags.find(f=>f.date===date);
+        const x = lerp(of ? of.x : nf.x, nf.x);
+        const y = lerp(of ? of.y : nf.y, nf.y);
+        el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
       });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
@@ -5797,6 +5867,75 @@
     document.getElementById("navScrim")?.addEventListener("click", closeSidebar);
     document.getElementById("sidebarCollapseBtn")?.addEventListener("click", closeSidebar);
     initSidebarOpenState();
+    initHeroFullscreen();
+  }
+
+  // Fullscreen pilot for the MVRV Quantile Bands tile - see the .hero-panel.fullscreen-* rules in the
+  // stylesheet for what actually changes visually; this just drives the class + the position:fixed
+  // geometry the enter/exit transition animates between. A placeholder div left behind in the panel's
+  // original spot (matching its exact height) is what makes the exit transition land back in the right
+  // place even if the page scrolled or other content above/below reflowed while fullscreen was open -
+  // animating back to a stale, pre-fullscreen rect would otherwise overshoot or undershoot by however
+  // much the page moved underneath it in the meantime.
+  function initHeroFullscreen(){
+    const panel = document.getElementById("heroPanel");
+    const enterBtn = document.getElementById("heroFsEnter");
+    const exitBtn = document.getElementById("heroFsExit");
+    const desc = document.getElementById("heroFsDesc");
+    if(!panel || !enterBtn || !exitBtn || !desc) return;
+    desc.textContent = "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.";
+
+    const DURATION = 380;
+    let placeholder = null;
+    let busy = false;
+
+    function enter(){
+      if(busy || panel.classList.contains("fullscreen-active")) return;
+      busy = true;
+      const rect = panel.getBoundingClientRect();
+      placeholder = document.createElement("div");
+      placeholder.className = "hero-fs-placeholder";
+      placeholder.style.height = rect.height+"px";
+      panel.parentNode.insertBefore(placeholder, panel);
+
+      panel.style.position = "fixed";
+      panel.style.top = rect.top+"px"; panel.style.left = rect.left+"px";
+      panel.style.width = rect.width+"px"; panel.style.height = rect.height+"px";
+      panel.style.margin = "0";
+      panel.classList.add("fullscreen-transitioning");
+      document.body.style.overflow = "hidden";
+      void panel.offsetWidth; // force layout so the fixed start position paints before animating away from it
+      requestAnimationFrame(()=>{
+        panel.classList.add("fullscreen-active");
+        panel.style.top = "0px"; panel.style.left = "0px";
+        panel.style.width = "100vw"; panel.style.height = "100vh";
+        requestAnimationFrame(()=> desc.classList.add("show"));
+      });
+      setTimeout(()=>{ panel.classList.remove("fullscreen-transitioning"); busy = false; }, DURATION+30);
+      document.addEventListener("keydown", onKeydown);
+    }
+    function exit(){
+      if(busy || !panel.classList.contains("fullscreen-active")) return;
+      busy = true;
+      desc.classList.remove("show");
+      const targetRect = placeholder ? placeholder.getBoundingClientRect() : panel.getBoundingClientRect();
+      panel.classList.add("fullscreen-transitioning");
+      panel.classList.remove("fullscreen-active");
+      panel.style.top = targetRect.top+"px"; panel.style.left = targetRect.left+"px";
+      panel.style.width = targetRect.width+"px"; panel.style.height = targetRect.height+"px";
+      document.body.style.overflow = "";
+      setTimeout(()=>{
+        panel.classList.remove("fullscreen-transitioning");
+        panel.style.position = ""; panel.style.top = ""; panel.style.left = "";
+        panel.style.width = ""; panel.style.height = ""; panel.style.margin = "";
+        if(placeholder){ placeholder.remove(); placeholder = null; }
+        busy = false;
+      }, DURATION+30);
+      document.removeEventListener("keydown", onKeydown);
+    }
+    function onKeydown(e){ if(e.key === "Escape") exit(); }
+    enterBtn.addEventListener("click", enter);
+    exitBtn.addEventListener("click", exit);
   }
 
   async function loadAndRender(force){
