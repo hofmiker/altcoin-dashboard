@@ -22,7 +22,7 @@
        everything else interactive - toggles, focus rings, non-price chart accents). A bit redder than
        classic Bitcoin orange (#f7931a) by design; light/dark carry their own optimized shade rather than
        sharing one value, same as every other themed color here. */
-    --bitcoin-accent:#e8511c; --bitcoin-accent-bg:#e8511c1a;
+    --bitcoin-accent:#ff4529; --bitcoin-accent-bg:#ff45291a;
     --sidebar-w:248px;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
@@ -66,7 +66,7 @@
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --critical-bg-strong:#c73f394d;
-    --bitcoin-accent:#e8511c; --bitcoin-accent-bg:#e8511c1a;
+    --bitcoin-accent:#ff4529; --bitcoin-accent-bg:#ff45291a;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:var(--bitcoin-accent); --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
@@ -555,6 +555,13 @@
 <script>
 (function(){
   "use strict";
+  // Manually bumped on every source edit (this number, EDIT_STAMP below) - independent of the
+  // GitHub Pages deploy pipeline's own {{VERSION}}/deploy-info.json (see #deployInfo/loadDeployInfo
+  // further down), which only reflects whether *that* build has actually gone live. This one is baked
+  // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
+  // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
+  const EDIT_VERSION = "v1";
+  const EDIT_STAMP = "2026-08-20 18:35 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5629,6 +5636,7 @@
     attachInfo(document.getElementById("headerInfo"), `
       <div class="info-pop-section">Das Bitcoin Dashboard vereint die wichtigsten On-Chain-Kennzahlen an einem Ort: Marktzyklen mit Bull-/Bärenmarkt-Zonen, das Power-Law-Fair-Value-Modell mit Regenbogen-Bändern und die MVRV-Bewertung (Markt- vs. Realized Price). Jeder Chart ist interaktiv und wird live aus echten On-Chain-Daten berechnet – direkt im Browser, ganz ohne Server im Hintergrund.</div>
       <div class="info-pop-section">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></div>
+      <div class="info-pop-section">Bearbeitungsstand: <b>${EDIT_VERSION}</b> · ${EDIT_STAMP}</div>
       <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
     `, {html:true});
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
