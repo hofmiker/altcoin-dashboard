@@ -93,7 +93,11 @@
        float their own UI (an address/reload pill, tab switcher) over the last bit of page content while
        scrolling, entirely outside what env(safe-area-inset-bottom) accounts for, so the last card's own
        controls need real breathing room below them, not just a notch-sized margin. */
-    padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    /* var(--nav-offset) - the mobile top bar's own real height (see syncNavOffset) - is 0 whenever that
+       bar isn't the thing rendering (desktop with the sidebar open) and its real height otherwise, so this
+       reserves exactly the space a position:fixed .mobile-topbar no longer takes up in flow, the same gap
+       its old position:sticky used to leave automatically. */
+    padding:calc(28px + env(safe-area-inset-top) + var(--nav-offset, 0px)) calc(20px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
     transition:margin-left .28s cubic-bezier(.22,.61,.36,1);
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
@@ -160,11 +164,17 @@
 
   /* Collapsed-state top bar: burger trigger (re-expands the sidebar) + a tappable mini brand (jumps to
      top). Shown whenever the sidebar itself is NOT open, at any viewport width - not just mobile, now
-     that the sidebar is collapsible everywhere rather than permanently forced open past 900px. */
+     that the sidebar is collapsible everywhere rather than permanently forced open past 900px.
+     position:fixed, not sticky - sticky's "stuck" range only ever covers its own containing block, and in
+     practice on iOS Safari it kept losing that lock while scrolling (the same "Navi bleibt nicht stehen"
+     complaint .sidebar's own position:fixed had already been fixed for). Being fixed instead means .page
+     needs its own top padding added back for the space this bar no longer reserves in flow - see
+     var(--nav-offset) on .page below, synced from this bar's real height by syncNavOffset(). */
   .mobile-topbar{
     display:flex; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
     padding-top:calc(10px + env(safe-area-inset-top));
-    background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
+    background:var(--card); border-bottom:1px solid var(--border);
+    position:fixed; top:0; left:0; right:0; z-index:40;
     will-change:transform;
   }
   .mobile-topbar.hidden{display:none;}
@@ -2947,7 +2957,14 @@
     const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
     const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
 
-    const {points, daysMin, daysMax, isProjected} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, 3);
+    // The future projection ("Alles" reaching ~3 average halving cycles past today) only makes sense in
+    // log-log mode, where the power-law fit is a straight line and projecting it further out reads
+    // naturally as "continuing the line". In any other axis combination the same projection, converted to
+    // a linear scale, explodes the Y (and, with linear X, the X too) domain by orders of magnitude beyond
+    // the real data - squashing 15 years of actual price history into an unreadable sliver against a
+    // decade-plus of empty projected corridor. Real history alone already sets a sensible domain there.
+    const extendFuture = logX && logY ? 3 : 0;
+    const {points, daysMin, daysMax, isProjected} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, extendFuture);
 
     function xVal(days){ return logX ? Math.log10(days) : days; }
     const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
@@ -3109,18 +3126,22 @@
   // let the fit line's angle drift between windows again. X is fit exactly (daysMaxW always lands on the
   // plot's right edge, matching every other chart's "today stays on the right" convention, or the pan
   // window's own end date when panned back). Y can't be fit exactly too without breaking the uniform
-  // scale, so instead it's centered on the visible window's own real price extent, clamped so the crop
-  // never shows blank canvas past the fixed content's own top/bottom bounds.
+  // scale, so instead it's centered on the fit line's own value at the window's real (non-projected) end
+  // date - a value that depends only on the window's bounds, not on which real prices happened to land
+  // inside it. Centering on the real price data's own min/max instead (an earlier version of this) meant
+  // two adjacent windows with a different slice of price noise landed on a different center every time,
+  // which read as the whole corridor - rainbow bands included - visibly jumping on every range change,
+  // exactly what the fixed-space crop is supposed to prevent. Clamped so the crop never shows blank
+  // canvas past the fixed content's own top/bottom bounds.
   function powerLawZoomTransformFor(fixed, daysMinW, daysMaxW){
     const {w,h,padL,padR,padT,padB} = fixed;
     const plotW = w-padL-padR, plotH = h-padT-padB;
     const x0 = fixed.xOf(daysMinW), x1 = fixed.xOf(daysMaxW);
     const scale = Math.max(1, plotW/Math.max(1e-6, x1-x0));
     const tx = padL - x0*scale;
-    const windowPts = fixed.allPoints.filter(p=> p.days>=daysMinW && p.days<=daysMaxW);
-    const prices = windowPts.length ? windowPts.map(p=>p.price) : [fixed.allPoints[fixed.allPoints.length-1].price];
-    const yTop = fixed.yOf(Math.max(...prices)), yBot = fixed.yOf(Math.min(...prices));
-    const centerY = (yTop+yBot)/2;
+    const lastRealDays = fixed.allPoints[fixed.allPoints.length-1].days;
+    const refDays = Math.min(daysMaxW, lastRealDays);
+    const centerY = fixed.yOf(Math.pow(10, fixed.fitLogAt(refDays)));
     let ty = plotH/2 + padT - centerY*scale;
     const minTy = h*(1-scale), maxTy = 0;
     ty = Math.max(minTy, Math.min(maxTy, ty));
@@ -4751,6 +4772,11 @@
     document.querySelector(".mobile-topbar")?.classList.toggle("hidden", open);
     document.querySelector(".page")?.classList.toggle("nav-pushed", open);
     try{ localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, open ? "1" : "0"); }catch(e){}
+    // .page's own top padding (see the stylesheet) reserves exactly this bar's height for the
+    // now-fixed .mobile-topbar - toggling .hidden above changes that height to/from 0 immediately, so
+    // this has to be recomputed right here rather than waiting for the next scroll/resize to happen to
+    // call it, or content would sit under the bar (or leave a gap under nothing) until then.
+    syncNavOffset();
   }
   function openSidebar(){ setSidebarOpen(true); }
   function closeSidebar(){ setSidebarOpen(false); }
