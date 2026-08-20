@@ -292,7 +292,7 @@
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
-  .panel h3{font-family:var(--font-display); font-size:16px; margin:0; font-weight:700;}
+  .panel h3{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
   .panel-head{display:flex; align-items:center; gap:8px;}
@@ -585,9 +585,12 @@
   // the flag-drawing block in buildLineChart), explicitly captioned as unconfirmed rather than silently
   // presented as final. Not used for bull/bear phase classification (cycleBullBearPhase) or line
   // coloring - those stay confirmed-only, on purpose.
-  function cycleTentativeExtreme(values){
+  // Same running-extreme scan as cycleTentativeExtreme, just parameterized on an already-computed
+  // confirmed list instead of always deriving it fresh via cycleExtremes() - lets cycleExtremesEffective
+  // below (and anything working off ITS output) ask "what's tentative after this point" without forcing
+  // a second, inconsistent confirmed list back into the picture.
+  function cycleTentativeExtremeAfter(values, confirmed){
     const dates = FULL.dates;
-    const confirmed = cycleExtremes(values);
     const last = confirmed[confirmed.length-1];
     const seekingHigh = !last || last.dir < 0;
     const startIdx = last ? dates.indexOf(last.date) : 0;
@@ -605,6 +608,40 @@
       return {date:dates[extIdx], value:extV, dir:1, sinceDate, sinceLabel, days:daysBetween(sinceDate,dates[extIdx]), confirmed:false};
     }
     return {date:dates[extIdx], value:extV, dir:-1, sinceDate:last.date, sinceLabel:"Zyklus-Hoch", days:daysBetween(last.date,dates[extIdx]), confirmed:false};
+  }
+  function cycleTentativeExtreme(values){
+    return cycleTentativeExtremeAfter(values, cycleExtremes(values));
+  }
+  // A lower bar than CYCLE_EXTREME_CONFIRM_PCT (75%), used ONLY to decide whether the current, still-
+  // technically-"tentative" swing has already reversed far enough to treat as confirmed for practical
+  // purposes (phase coloring, solid flag styling) - raising the *global* 75% threshold instead would
+  // reintroduce a great deal of historical noise (verified: 27 extremes instead of the real 8 at 50%
+  // applied everywhere), so this only ever evaluates the single open swing, never rescans history.
+  const CYCLE_EXTREME_SOFT_CONFIRM_PCT = 50;
+  // cycleExtremes()'s strict, historically-validated confirmed list, with the current open swing folded
+  // in too once it's fallen (or risen) CYCLE_EXTREME_SOFT_CONFIRM_PCT% from its own extreme - e.g. BTC's
+  // 2025-10-06 high, down over 50% since without a new ATH, reads as a genuine cycle top under this
+  // softer bar even though the full 75% reversal cycleExtremes() itself requires hasn't happened (and,
+  // per the reasoning that led here, realistically won't: a 75%-from-peak drawdown has no historical
+  // precedent for this cycle's price levels). Anything BEYOND that promoted point is resolved fresh via
+  // cycleTentativeExtremeAfter, so a genuinely new open swing still reads as tentative, not silently
+  // absorbed into "confirmed" by association.
+  function cycleExtremesEffective(values){
+    const confirmed = cycleExtremes(values);
+    const tentative = cycleTentativeExtremeAfter(values, confirmed);
+    if(!tentative) return confirmed;
+    const dates = FULL.dates;
+    const softBar = tentative.dir>0
+      ? tentative.value*(1-CYCLE_EXTREME_SOFT_CONFIRM_PCT/100)
+      : tentative.value*(1+CYCLE_EXTREME_SOFT_CONFIRM_PCT/100);
+    const startIdx = dates.indexOf(tentative.date);
+    let crossed = false;
+    for(let i=startIdx+1;i<dates.length;i++){
+      const v = values[i];
+      if(v==null || !isFinite(v)) continue;
+      if(tentative.dir>0 ? v<=softBar : v>=softBar){ crossed = true; break; }
+    }
+    return crossed ? confirmed.concat([{...tentative, confirmed:true}]) : confirmed;
   }
   // Which of the two market phases a given date falls into, given cycleExtremes()' own output (already
   // chronologically ordered - each swing low comes after the high it followed). A bull market runs from
@@ -815,20 +852,17 @@
   // separate opt-in layer, a multi-band "rainbow" coloring of the same underlying fit (off by default -
   // secondary/exploratory, not the primary reading).
   const powerLawLayerVisible = {powerlaw:true, rainbow:false};
-  // The "Marktzyklen" chart's own layers - "Zyklus" (halvings, confirmed/tentative cycle flags, bull/
-  // bear background zones) is on by default since that's this chart's whole purpose; Power Law and
-  // Rainbow reuse the exact same self-fitted regression as the power-law chart above (see
-  // cycleChartFixedLayout), just drawn onto this chart's own fixed log-log coordinate space, off by
-  // default to keep the primary cycle reading uncluttered.
-  const cycleChartLayerVisible = {zyklus:true, powerlaw:false, rainbow:false};
+  // The "Marktzyklen" chart's one optional layer - the bull/bear background zones - is on by default
+  // since that's this chart's whole purpose. Purely a history/cycle-phase view: no power-law/rainbow
+  // regression here (that lives on the dedicated Power-Law/Log-Log chart instead) and no future
+  // projection - the axis domain always autoscales to whatever real data the current range/pan shows,
+  // the same flexible-ratio behaviour every other chart in the app already uses.
+  const cycleChartLayerVisible = {zyklus:true};
+  // Independent log/linear state for this chart's own two axes, same pattern as powerLawLogX/Y below.
+  let cycleChartLogX = true, cycleChartLogY = true;
   // Which date the "Marktzyklen" chart's own crosshair sits on - mirrors powerLawCrosshairDate below
   // (own module-level date, not index, for the same reasons).
   let cycleChartCrosshairDate = null;
-  // {structKey, fixed, svg, viewBox, rangeDays, panOffsetDays} of the chart's last render - lets
-  // renderCycleChart() tell "only the shared range/pan changed" (animate the viewBox, the whole point of
-  // this chart - see cycleChartViewBoxFor) apart from "something structural changed" (a layer toggle, the
-  // Zyklen visibility, or a viewport resize - snap-rebuild instead, same as every other toggle in the app).
-  let cycleChartState = null;
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -1758,12 +1792,13 @@
     // showHalvings toggle as the halving lines themselves - both are "Zyklus" markers.
     const flagSeries = cfg.cycleFlagsKey ? cfg.series.find(s=>s.key===cfg.cycleFlagsKey) : null;
     if(showHalvings && flagSeries && FULL && FULL[cfg.cycleFlagsKey]){
-      const confirmedFlags = cycleExtremes(FULL[cfg.cycleFlagsKey]).map(pt=>({...pt, confirmed:true}));
-      // The ongoing swing's own running high/low so far (see cycleTentativeExtreme) - shown alongside
-      // the confirmed set, just visually toned down and explicitly captioned as unconfirmed, rather than
-      // left off the chart entirely until it's finished reversing 75% and "officially" counts. Without
-      // this, a genuine new high sitting right there in the data would otherwise just... not appear.
-      const tentativeFlag = cycleTentativeExtreme(FULL[cfg.cycleFlagsKey]);
+      const confirmedFlags = cycleExtremesEffective(FULL[cfg.cycleFlagsKey]).map(pt=>({...pt, confirmed:true}));
+      // The ongoing swing's own running high/low so far (see cycleTentativeExtremeAfter), evaluated
+      // AFTER whatever cycleExtremesEffective already promoted - shown alongside the confirmed set, just
+      // visually toned down and explicitly captioned as unconfirmed, rather than left off the chart
+      // entirely until it's finished reversing 75% and "officially" counts. Without this, a genuine new
+      // high sitting right there in the data would otherwise just... not appear.
+      const tentativeFlag = cycleTentativeExtremeAfter(FULL[cfg.cycleFlagsKey], confirmedFlags);
       const allFlags = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
       allFlags.forEach(pt=>{
         if(pt.date < cfg.dates[0] || pt.date > cfg.dates[n-1]) return;
@@ -2716,7 +2751,7 @@
     // for "expensive/critical" - tied to the same Zyklen toggle as the flags marking those tops/bottoms
     // in the first place, since without them showing there's no visible reference for what the color is
     // even based on.
-    const heroExtremes = showHalvings ? cycleExtremes(FULL.price) : null;
+    const heroExtremes = showHalvings ? cycleExtremesEffective(FULL.price) : null;
     const heroPriceColorAt = heroExtremes && heroExtremes.length ? (i=>{
       const phase = cycleBullBearPhase(view.dates[i], heroExtremes);
       return phase==="bull" ? "var(--good)" : phase==="bear" ? "var(--critical)" : "var(--c-price)";
@@ -2817,6 +2852,38 @@
     return ticks;
   }
 
+  // Windows the real price data to the same shared range/pan the rest of the page uses (see sliceRange,
+  // which this mirrors against allPoints' own .t instead of FULL's) - "Alles" is the one exception:
+  // besides showing everything, the caller also gets to extend daysMax a further N average halving
+  // cycles past the last real day (see extendFutureCycles), so the corridor/rainbow/halving lines can
+  // visibly project into the future instead of stopping dead at today (the actual price line, of course,
+  // still just ends at today - there's no real data to draw past that, only the model). Factored out of
+  // computePowerLawLayout so the fixed-space log-log zoom architecture (see powerLawFixedSpace) can reuse
+  // the exact same windowing logic to find which slice of the fixed space the current range/pan selects.
+  function resolvePowerLawWindow(allPoints, rangeDaysArg, panOffsetDaysArg, extendFutureCycles){
+    let points, isProjected = false;
+    if(rangeDaysArg === "all"){
+      points = allPoints;
+      isProjected = true;
+    } else {
+      const lastT = allPoints[allPoints.length-1].t;
+      const endT = lastT - (panOffsetDaysArg||0)*86400000;
+      let endIdx = allPoints.length;
+      if(panOffsetDaysArg > 0){
+        endIdx = allPoints.findIndex(p=> p.t > endT);
+        if(endIdx < 0) endIdx = allPoints.length;
+      }
+      const cutoff = endT - rangeDaysArg*86400000;
+      let idx = allPoints.findIndex(p=> p.t >= cutoff);
+      if(idx < 0) idx = 0;
+      if(idx >= endIdx) idx = Math.max(0, endIdx-1);
+      points = allPoints.slice(idx, endIdx);
+    }
+    const daysMin = points[0].days;
+    const daysMax = isProjected ? points[points.length-1].days + (extendFutureCycles||0)*avgHalvingCycleDays() : points[points.length-1].days;
+    return {points, daysMin, daysMax, isProjected};
+  }
+
   // Pure geometry computation - every pixel position anything on the chart needs, for a given choice of
   // log/linear on each axis and which point (if any) the crosshair sits on. Kept entirely separate from
   // DOM building (see renderPowerLawDOM below) so an axis toggle can compute both the "from" and "to"
@@ -2827,32 +2894,7 @@
     const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
     const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
 
-    // Window the real price data to the same shared range/pan the rest of the page uses (see
-    // sliceRange, which this mirrors against allPoints' own .t instead of FULL's) - "Alles" is the one
-    // exception: besides showing everything, it also extends daysMax a further 3 average halving cycles
-    // past the last real day, so the corridor/rainbow/halving lines visibly project into the future
-    // instead of stopping dead at today (the actual price line, of course, still just ends at today -
-    // there's no real data to draw past that, only the model).
-    let points, isProjected = false;
-    if(rangeDays === "all"){
-      points = allPoints;
-      isProjected = true;
-    } else {
-      const lastT = allPoints[allPoints.length-1].t;
-      const endT = lastT - (panOffsetDays||0)*86400000;
-      let endIdx = allPoints.length;
-      if(panOffsetDays > 0){
-        endIdx = allPoints.findIndex(p=> p.t > endT);
-        if(endIdx < 0) endIdx = allPoints.length;
-      }
-      const cutoff = endT - rangeDays*86400000;
-      let idx = allPoints.findIndex(p=> p.t >= cutoff);
-      if(idx < 0) idx = 0;
-      if(idx >= endIdx) idx = Math.max(0, endIdx-1);
-      points = allPoints.slice(idx, endIdx);
-    }
-    const daysMin = points[0].days;
-    const daysMax = isProjected ? points[points.length-1].days + 3*avgHalvingCycleDays() : points[points.length-1].days;
+    const {points, daysMin, daysMax, isProjected} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, 3);
 
     function xVal(days){ return logX ? Math.log10(days) : days; }
     const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
@@ -2867,8 +2909,16 @@
     // axis then just spans the same underlying price range on a different (non-log) scale, rather than
     // needing an entirely separate notion of "how tall should this chart be" per mode.
     const priceLogVals = points.map(p=>Math.log10(p.price));
-    const bandPad = powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
-    const rainbowPad = powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    // Extending the Y-domain to fully contain the corridor/rainbow's outer bands only makes sense in log
+    // mode - in log terms they're a modest, fixed sigma-multiple away from the fit line, but converted to
+    // LINEAR dollars that same offset balloons exponentially at the far (high-days) end of the range,
+    // which previously stretched a linear Y-axis to cover a band that's genuinely orders of magnitude
+    // above the real price, squashing the actual price line into a sliver near the bottom and making the
+    // outer bands themselves look like a solid overflowing mass. In linear mode the bands are left to
+    // extend past the visible plot edge instead (harmless - already clipped there like anything else that
+    // runs off-chart), sized to the real price data's own range exactly like a plain price line would be.
+    const bandPad = logY && powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
+    const rainbowPad = logY && powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
     const extentPad = Math.max(bandPad, rainbowPad);
     const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
     const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
@@ -2938,6 +2988,92 @@
     return {w,h,padL,padR,padT,padB, points, fit, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, crosshair, daysMin, daysMax, xOf, xInv, yOf, fitLogAt};
   }
 
+  // Fixed log-log coordinate space for the power-law chart - computed once across the ENTIRE history
+  // (plus the same future projection "Alles" already uses), completely ignoring the currently selected
+  // time range/pan. Every date/price gets one single fixed pixel position that never moves no matter
+  // which window is selected, unlike computePowerLawLayout's own xOf/yOf, which independently re-fits
+  // its axes to whatever's in view - fine most of the time, but it means the power-law fit line's on-
+  // screen slope visibly changes shape between e.g. "1J" and "Alles" (a straight trend line in log-log
+  // space "un-straightening" itself is exactly the "keine feste Achs-Ratio" complaint). Only used when
+  // both axes are log (the one mode the straight-line fit is actually meaningful in) - see renderPowerLaw.
+  // "Zooming" to a narrower range then just means magnifying a crop of this same fixed mapping (a plain
+  // scale+translate on one content group, computed by powerLawZoomTransformFor below) instead of
+  // recomputing a fresh per-window axis fit, which is what a true camera zoom needs to look and animate
+  // like: the fit line's angle stays constant at every zoom level, only the crop changes.
+  let powerLawFixedSpaceCache = null;
+  function powerLawFixedSpace(){
+    const cacheKey = JSON.stringify([powerLawLayerVisible.powerlaw, powerLawLayerVisible.rainbow, showHalvings]);
+    if(powerLawFixedSpaceCache && powerLawFixedSpaceCache.key === cacheKey) return powerLawFixedSpaceCache.val;
+    const allPoints = powerLawPoints();
+    const fit = powerLawFit();
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
+    const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
+    const daysMin = allPoints[0].days;
+    const daysMax = allPoints[allPoints.length-1].days + 3*avgHalvingCycleDays();
+
+    const xValMin = Math.log10(daysMin), xValMax = Math.log10(daysMax);
+    function xOf(days){ return padL + (Math.log10(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
+    function xInv(screenX){ const xv = xValMin + (screenX-padL)/(w-padL-padR)*(xValMax-xValMin); return Math.pow(10,xv); }
+
+    const priceLogVals = allPoints.map(p=>Math.log10(p.price));
+    const bandPad = powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
+    const rainbowPad = powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    const extentPad = Math.max(bandPad, rainbowPad);
+    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
+    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
+    function yOf(price){ return padT + (1-(Math.log10(price)-yLogMin)/(yLogMax-yLogMin))*(h-padT-padB); }
+    function yInv(screenY){ const yv = yLogMin + (1-(screenY-padT)/(h-padT-padB))*(yLogMax-yLogMin); return Math.pow(10,yv); }
+
+    const pricePts = allPoints.map(p=>({x:xOf(p.days), y:yOf(p.price), days:p.days, date:p.date, price:p.price}));
+    // Same sample count as computePowerLawLayout's own tracePts (not a rounder number) - a mismatch here
+    // would give powerLawEffectiveLayout's old/new fitPts/bandPts arrays different lengths whenever a
+    // transition crosses between this fixed space and that per-window one (e.g. toggling an axis in or
+    // out of full log-log), which the index-based lerp in animatePowerLawFromLayout can only approximate.
+    const SAMPLES = 240;
+    function daysAtSample(i){ const xv = xValMin+(i/SAMPLES)*(xValMax-xValMin); return Math.pow(10,xv); }
+    function tracePts(sigmaOffset){
+      const pts = [];
+      for(let i=0;i<=SAMPLES;i++){ const days = daysAtSample(i); const price = Math.pow(10, fitLogAt(days)+sigmaOffset*fit.sigma); pts.push({x:padL+(i/SAMPLES)*(w-padL-padR), y:yOf(price)}); }
+      return pts;
+    }
+    const fitPts = tracePts(0);
+    const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+    const halvingSource = showHalvings ? HALVING_DATES.concat(projectedHalvings(3)) : [];
+    const halvings = halvingSource
+      .map(hv=>({date:hv.date, projected:!!hv.projected, days:(Date.parse(hv.date+"T00:00:00Z")-GENESIS_MS)/86400000}))
+      .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
+      .map(hv=>({...hv, x:xOf(hv.days)}));
+
+    const val = {w,h,padL,padR,padT,padB, allPoints, fit, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, daysMin, daysMax, xOf, xInv, yOf, yInv, fitLogAt};
+    powerLawFixedSpaceCache = {key:cacheKey, val};
+    return val;
+  }
+
+  // The scale+translate that crops powerLawFixedSpace's fixed content down to whichever [daysMinW,
+  // daysMaxW] window the range/pan selector currently wants shown - a uniform (same factor on both axes)
+  // zoom, which is the whole point: an independent per-axis fit (like computePowerLawLayout's own) would
+  // let the fit line's angle drift between windows again. X is fit exactly (daysMaxW always lands on the
+  // plot's right edge, matching every other chart's "today stays on the right" convention, or the pan
+  // window's own end date when panned back). Y can't be fit exactly too without breaking the uniform
+  // scale, so instead it's centered on the visible window's own real price extent, clamped so the crop
+  // never shows blank canvas past the fixed content's own top/bottom bounds.
+  function powerLawZoomTransformFor(fixed, daysMinW, daysMaxW){
+    const {w,h,padL,padR,padT,padB} = fixed;
+    const plotW = w-padL-padR, plotH = h-padT-padB;
+    const x0 = fixed.xOf(daysMinW), x1 = fixed.xOf(daysMaxW);
+    const scale = Math.max(1, plotW/Math.max(1e-6, x1-x0));
+    const tx = padL - x0*scale;
+    const windowPts = fixed.allPoints.filter(p=> p.days>=daysMinW && p.days<=daysMaxW);
+    const prices = windowPts.length ? windowPts.map(p=>p.price) : [fixed.allPoints[fixed.allPoints.length-1].price];
+    const yTop = fixed.yOf(Math.max(...prices)), yBot = fixed.yOf(Math.min(...prices));
+    const centerY = (yTop+yBot)/2;
+    let ty = plotH/2 + padT - centerY*scale;
+    const minTy = h*(1-scale), maxTy = 0;
+    ty = Math.max(minTy, Math.min(maxTy, ty));
+    return {scale, tx, ty};
+  }
+
   function pathD(pts){
     let d = "";
     pts.forEach((p,i)=>{ d += (i===0?"M":"L") + p.x.toFixed(1) + "," + p.y.toFixed(1) + " "; });
@@ -2959,14 +3095,33 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
+    // Sigma bands/rainbow zones are only kept inside the visible Y-domain in log mode (see
+    // computePowerLawLayout's own bandPad/rainbowPad comment) - in linear mode they're left to run past
+    // it deliberately, which without an explicit clip would bleed out across the rest of the page thanks
+    // to the site's own svg{overflow:visible} rule (needed elsewhere for rotated axis labels/flags that
+    // intentionally poke past their own chart's edge).
+    const clipId = "pl-plot-clip-" + Math.random().toString(36).slice(2,9);
+    const defs = document.createElementNS(NS,"defs");
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id", clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+
     if(powerLawLayerVisible.rainbow){
+      const rainbowGroup = document.createElementNS(NS,"g");
+      rainbowGroup.setAttribute("clip-path", `url(#${clipId})`);
       layout.rainbowZones.forEach(z=>{
         const zone = document.createElementNS(NS,"path");
         zone.setAttribute("class","pl-rainbow-zone");
         zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
         zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.55"); zone.setAttribute("stroke","none");
-        svg.appendChild(zone);
+        rainbowGroup.appendChild(zone);
       });
+      svg.appendChild(rainbowGroup);
     }
 
     layout.yTicks.forEach(t=>{
@@ -3009,6 +3164,8 @@
     });
 
     if(powerLawLayerVisible.powerlaw){
+      const bandGroup = document.createElementNS(NS,"g");
+      bandGroup.setAttribute("clip-path", `url(#${clipId})`);
       [layout.bandHiPts, layout.bandLoPts].forEach((pts,i)=>{
         const band = document.createElementNS(NS,"path");
         band.setAttribute("class", i===0?"pl-band-hi":"pl-band-lo");
@@ -3016,14 +3173,15 @@
         band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
         band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
         band.setAttribute("vector-effect","non-scaling-stroke");
-        svg.appendChild(band);
+        bandGroup.appendChild(band);
       });
       const fitLine = document.createElementNS(NS,"path");
       fitLine.setAttribute("class","pl-fit-line");
       fitLine.setAttribute("d", pathD(layout.fitPts));
       fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
       fitLine.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(fitLine);
+      bandGroup.appendChild(fitLine);
+      svg.appendChild(bandGroup);
     }
 
     const priceLine = document.createElementNS(NS,"path");
@@ -3141,7 +3299,310 @@
     return {svg, wrap, readoutRow};
   }
 
+  // Builds the power-law chart's DOM from the fixed log-log coordinate space (see powerLawFixedSpace) -
+  // only used when both axes are log. The animatable data content (rainbow zones, sigma bands, fit line,
+  // price line) lives inside two <g class="pl-zoom-group"> elements (split so gridlines/halvings can sit
+  // between them in z-order, matching renderPowerLawDOM's own layering) carrying the current crop's own
+  // scale+translate (see powerLawZoomTransformFor) - "zooming" to a narrower range is then just a
+  // transform change on those two groups, never a re-fit of the axes, which is what keeps the fit line's
+  // on-screen slope constant at every zoom level. Ticks, halving lines and the crosshair sit OUTSIDE the
+  // groups, positioned by running the same transform through by hand (sx/sy below) so their text/dots
+  // stay a constant screen size instead of scaling with the zoom.
+  function renderPowerLawZoomDOM(fixed, transform, winInfo, crosshairDate, onSigma){
+    const {w,h,padL,padR,padT,padB} = fixed;
+    const {scale, tx, ty} = transform;
+    const sx = fx => fx*scale+tx;
+    const sy = fy => fy*scale+ty;
+    const points = winInfo.points;
+
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.setAttribute("role","img");
+
+    // The zoomed groups' own content (see powerLawFixedSpace) spans the chart's ENTIRE history at a
+    // single fixed scale - zooming into a narrow window necessarily means most of that content now sits
+    // far outside the visible plot box (a true crop, exactly like zooming into a photo leaves most of
+    // the original frame off-screen). The page's own svg{overflow:visible} rule (needed elsewhere for
+    // rotated axis labels and flag glyphs that intentionally poke past their own chart's edge) would
+    // otherwise let all of that spill out visibly across the rest of the page instead of staying cropped
+    // - a real, easy to miss bug at high zoom levels (a narrow "1J" selection can be an 8-50x scale-up),
+    // so the zoomed groups get their own explicit clip to the plot rectangle here.
+    const clipId = "pl-plot-clip-" + Math.random().toString(36).slice(2,9);
+    const defs = document.createElementNS(NS,"defs");
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id", clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+
+    // clip-path is evaluated in the coordinate system an element establishes for ITSELF, which already
+    // includes that same element's own transform - putting clip-path and the zoom scale/translate on the
+    // same <g> would scale the clip rectangle right along with the content it's supposed to constrain
+    // (in effect not clipping anything at any real zoom level). So each clip lives on its own untransformed
+    // outer <g>, with the actual scaled/translated content group (still class="pl-zoom-group", still what
+    // the animation functions above select and drive) nested one level inside it.
+    const backClip = document.createElementNS(NS,"g");
+    backClip.setAttribute("clip-path", `url(#${clipId})`);
+    const backGroup = document.createElementNS(NS,"g");
+    backGroup.setAttribute("class","pl-zoom-group");
+    backGroup.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
+    backClip.appendChild(backGroup);
+    if(powerLawLayerVisible.rainbow){
+      fixed.rainbowZones.forEach(z=>{
+        const zone = document.createElementNS(NS,"path");
+        zone.setAttribute("class","pl-rainbow-zone");
+        zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
+        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.55"); zone.setAttribute("stroke","none");
+        backGroup.appendChild(zone);
+      });
+    }
+    svg.appendChild(backClip);
+
+    // Visible bounds - inverse-map the plot corners back through the current transform into fixed-space,
+    // then through fixed's own inverse mappings, to know which price/day range is actually on screen
+    // right now (needed for ticks/halvings, which live outside the transformed groups).
+    const visDaysLo = fixed.xInv((padL-tx)/scale);
+    const visDaysHi = fixed.xInv((w-padR-tx)/scale);
+    const visPriceHi = fixed.yInv((padT-ty)/scale);
+    const visPriceLo = fixed.yInv((h-padB-ty)/scale);
+
+    const yTickLo = Math.floor(Math.log10(visPriceLo)), yTickHi = Math.ceil(Math.log10(visPriceHi));
+    for(let d=yTickLo; d<=yTickHi; d++){
+      const price = Math.pow(10,d);
+      const y = sy(fixed.yOf(price));
+      if(y < padT-1 || y > h-padB+1) continue;
+      const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",y); gl.setAttribute("y2",y);
+      gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(gl);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = fmtUSD(price);
+      svg.appendChild(lbl);
+    }
+
+    const firstYear = new Date(GENESIS_MS+visDaysLo*86400000).getUTCFullYear();
+    const lastYear = new Date(GENESIS_MS+visDaysHi*86400000).getUTCFullYear();
+    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+    for(let y=firstYear-1; y<=lastYear+1; y+=yearStep){
+      const days = (Date.parse(`${y}-01-01T00:00:00Z`)-GENESIS_MS)/86400000;
+      if(days < fixed.daysMin || days > fixed.daysMax) continue;
+      const x = sx(fixed.xOf(days));
+      if(x < padL-1 || x > w-padR+1) continue;
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label axis-label-x");
+      lbl.setAttribute("x",x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${x} ${h-6})`);
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = String(y);
+      svg.appendChild(lbl);
+    }
+
+    fixed.halvings.forEach(hv=>{
+      const x = sx(hv.x);
+      if(x < padL-1 || x > w-padR+1) return;
+      const line = document.createElementNS(NS,"line");
+      line.setAttribute("class","pl-halving");
+      line.setAttribute("x1",x); line.setAttribute("x2",x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
+      line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
+      line.setAttribute("vector-effect","non-scaling-stroke");
+      if(hv.projected){
+        line.setAttribute("opacity","0.4");
+        const title = document.createElementNS(NS,"title");
+        title.textContent = `Geschätztes Halving: ${fmtDateOnly(hv.date)} (Ø Zyklusdauer der bisherigen Halvings)`;
+        line.appendChild(title);
+      }
+      svg.appendChild(line);
+    });
+
+    const frontClip = document.createElementNS(NS,"g");
+    frontClip.setAttribute("clip-path", `url(#${clipId})`);
+    const frontGroup = document.createElementNS(NS,"g");
+    frontGroup.setAttribute("class","pl-zoom-group");
+    frontGroup.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
+    frontClip.appendChild(frontGroup);
+    if(powerLawLayerVisible.powerlaw){
+      [fixed.bandHiPts, fixed.bandLoPts].forEach((pts,i)=>{
+        const band = document.createElementNS(NS,"path");
+        band.setAttribute("class", i===0?"pl-band-hi":"pl-band-lo");
+        band.setAttribute("d", pathD(pts));
+        band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
+        band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
+        band.setAttribute("vector-effect","non-scaling-stroke");
+        frontGroup.appendChild(band);
+      });
+      const fitLine = document.createElementNS(NS,"path");
+      fitLine.setAttribute("class","pl-fit-line");
+      fitLine.setAttribute("d", pathD(fixed.fitPts));
+      fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
+      fitLine.setAttribute("vector-effect","non-scaling-stroke");
+      frontGroup.appendChild(fitLine);
+    }
+    const priceLine = document.createElementNS(NS,"path");
+    priceLine.setAttribute("class","pl-price-line");
+    priceLine.setAttribute("d", pathD(fixed.pricePts));
+    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
+    priceLine.setAttribute("vector-effect","non-scaling-stroke");
+    frontGroup.appendChild(priceLine);
+    svg.appendChild(frontClip);
+
+    const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("class","pl-crosshair");
+    cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
+    cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1"); cross.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(cross);
+    const priceDot = document.createElementNS(NS,"circle");
+    priceDot.setAttribute("class","hover-marker pl-price-dot"); priceDot.setAttribute("r","6.5");
+    priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
+    svg.appendChild(priceDot);
+    const fitDot = document.createElementNS(NS,"circle");
+    fitDot.setAttribute("class","hover-marker pl-fit-dot"); fitDot.setAttribute("r","6.5");
+    fitDot.setAttribute("fill","var(--c-powerlaw)"); fitDot.setAttribute("stroke","var(--card)"); fitDot.setAttribute("stroke-width","1.5");
+    if(!powerLawLayerVisible.powerlaw) fitDot.style.display = "none";
+    svg.appendChild(fitDot);
+
+    const readout = buildReadout(
+      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}, {key:"fair", label:"Power-Law-Fair-Value", color:"var(--c-powerlaw)", fmt:fmtUSD}],
+      {compact:true}
+    );
+    function paintCrosshair(cr){
+      cross.setAttribute("x1",cr.fitX); cross.setAttribute("x2",cr.fitX);
+      fitDot.setAttribute("cx",cr.fitX); fitDot.setAttribute("cy",cr.fitY);
+      if(cr.projected){
+        priceDot.style.display = "none";
+        readout.update(`Projiziert: ${fmtDateOnly(cr.date)}`, [null, cr.fairPrice], [null, cr.fairPrice]);
+        const changeEls = readout.el.querySelectorAll(".readout-change");
+        if(changeEls[0]) changeEls[0].textContent = "";
+        if(changeEls[1]) changeEls[1].textContent = "";
+        if(onSigma) onSigma(null);
+        return;
+      }
+      priceDot.style.display = "";
+      priceDot.setAttribute("cx",cr.priceX); priceDot.setAttribute("cy",cr.priceY);
+      const dev = (cr.price-cr.fairPrice)/cr.fairPrice*100;
+      readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price, cr.fairPrice], [cr.price, cr.fairPrice]);
+      const changeEls = readout.el.querySelectorAll(".readout-change");
+      if(changeEls[0]) changeEls[0].textContent = "";
+      if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
+      if(onSigma) onSigma((Math.log10(cr.price)-Math.log10(cr.fairPrice))/fixed.fit.sigma);
+    }
+    let crosshairPtIdx = crosshairDate==null ? -1 : points.findIndex(p=>p.date===crosshairDate);
+    if(crosshairPtIdx<0) crosshairPtIdx = points.length-1;
+    const crosshairPt = points[crosshairPtIdx];
+    const crosshairFair = Math.pow(10, fixed.fitLogAt(crosshairPt.days));
+    paintCrosshair({date:crosshairPt.date, price:crosshairPt.price, fairPrice:crosshairFair, isLatest: crosshairPtIdx===points.length-1,
+      priceX:sx(fixed.xOf(crosshairPt.days)), priceY:sy(fixed.yOf(crosshairPt.price)), fitX:sx(fixed.xOf(crosshairPt.days)), fitY:sy(fixed.yOf(crosshairFair))});
+
+    const hitRect = document.createElementNS(NS,"rect");
+    hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
+    hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
+    hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair"; hitRect.style.touchAction = "none";
+    function handleMove(clientX){
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width/w;
+      const svgX = (clientX-rect.left)/scaleX;
+      const frac = Math.max(0, Math.min(1, (svgX-padL)/(w-padL-padR)));
+      const screenX = padL+frac*(w-padL-padR);
+      const fixedX = (screenX-tx)/scale;
+      const impliedDays = fixed.xInv(fixedX);
+      const lastReal = points[points.length-1];
+      if(impliedDays > lastReal.days){
+        powerLawCrosshairDate = null;
+        const fairPrice = Math.pow(10, fixed.fitLogAt(impliedDays));
+        const dateStr = new Date(GENESIS_MS + impliedDays*86400000).toISOString().slice(0,10);
+        paintCrosshair({date:dateStr, fairPrice, projected:true, fitX:screenX, fitY:sy(fixed.yOf(fairPrice))});
+        return;
+      }
+      let lo=0, hi=points.length-1;
+      while(lo<hi){
+        const mid = (lo+hi)>>1;
+        if(sx(fixed.xOf(points[mid].days)) < screenX) lo = mid+1; else hi = mid;
+      }
+      if(lo>0 && Math.abs(sx(fixed.xOf(points[lo-1].days))-screenX) < Math.abs(sx(fixed.xOf(points[lo].days))-screenX)) lo -= 1;
+      const pt = points[lo];
+      powerLawCrosshairDate = pt.date;
+      const fairPrice = Math.pow(10, fixed.fitLogAt(pt.days));
+      const x = sx(fixed.xOf(pt.days));
+      paintCrosshair({date:pt.date, price:pt.price, fairPrice, isLatest: lo===points.length-1, priceX:x, priceY:sy(fixed.yOf(pt.price)), fitX:x, fitY:sy(fixed.yOf(fairPrice))});
+    }
+    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
+    svg.appendChild(hitRect);
+
+    const readoutRow = document.createElement("div");
+    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
+    readoutRow.appendChild(readout.el);
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    wrap.appendChild(svg);
+
+    return {svg, wrap, readoutRow};
+  }
+
+  // What the power-law chart last rendered with (logX/logY/rangeDays/panOffsetDays) - captured at the
+  // end of every renderPowerLaw() call so the NEXT one can tell what actually changed and, if it was a
+  // range/pan move, animate the transition instead of just snapping (see powerLawAnimatePending below).
+  // Null until the first render.
+  let powerLawPrevState = null;
+  // Set by renderAllZoom() right before it rebuilds everything, for exactly the two kinds of change that
+  // are supposed to animate on this chart: a range/pan move, or (via animatePowerLawAxisChange, which
+  // bypasses this flag entirely - see below) an axis-scale toggle. Consumed (and reset) at the very top
+  // of the next renderPowerLaw() call, so any *other* trigger (layer-visibility checkboxes, a plain
+  // renderAll() snap, resize) never accidentally animates just because this happened to still be true.
+  let powerLawAnimatePending = false;
+
+  // Same shape regardless of which of the two render architectures is actually live - either the fixed
+  // log-log zoom space's own content mapped through its current crop transform into absolute screen
+  // coordinates (see powerLawFixedSpace/powerLawZoomTransformFor), or plain computePowerLawLayout for
+  // every other axis combination. Lets animatePowerLawFromLayout interpolate between "old" and "new"
+  // states without needing to know which architecture either side actually used at rest.
+  function powerLawEffectiveLayout(logX, logY, crosshairDate){
+    if(logX && logY){
+      const fixed = powerLawFixedSpace();
+      const winInfo = resolvePowerLawWindow(fixed.allPoints, rangeDays, panOffsetDays, 3);
+      const transform = powerLawZoomTransformFor(fixed, winInfo.daysMin, winInfo.daysMax);
+      const sx = fx=>fx*transform.scale+transform.tx, sy = fy=>fy*transform.scale+transform.ty;
+      const mapPts = pts => pts.map(p=>({x:sx(p.x), y:sy(p.y)}));
+      const points = winInfo.points;
+      let idx = crosshairDate==null ? -1 : points.findIndex(p=>p.date===crosshairDate);
+      if(idx<0) idx = points.length-1;
+      const cpt = points[idx];
+      const cFair = Math.pow(10, fixed.fitLogAt(cpt.days));
+      return {
+        pricePts: points.map(p=>({x:sx(fixed.xOf(p.days)), y:sy(fixed.yOf(p.price))})),
+        fitPts: mapPts(fixed.fitPts), bandHiPts: mapPts(fixed.bandHiPts), bandLoPts: mapPts(fixed.bandLoPts),
+        rainbowZones: fixed.rainbowZones.map(z=>({...z, hiPts:mapPts(z.hiPts), loPts:mapPts(z.loPts)})),
+        halvings: fixed.halvings.map(hv=>({...hv, x:sx(hv.x)})),
+        crosshair: {priceX:sx(fixed.xOf(cpt.days)), priceY:sy(fixed.yOf(cpt.price)), fitX:sx(fixed.xOf(cpt.days)), fitY:sy(fixed.yOf(cFair))}
+      };
+    }
+    return computePowerLawLayout(logX, logY, crosshairDate);
+  }
+  // Same as above but for an arbitrary PAST range/pan, not the current global state - rangeDays/
+  // panOffsetDays are shared globals that have already been overwritten with the NEW selection by the
+  // time a range-change animation gets to look back at what was previously on screen, so this swaps them
+  // out for the old values just long enough to compute that old layout, then restores them.
+  function powerLawEffectiveLayoutFor(logX, logY, rangeDaysArg, panOffsetDaysArg, crosshairDate){
+    const savedRange = rangeDays, savedPan = panOffsetDays;
+    rangeDays = rangeDaysArg; panOffsetDays = panOffsetDaysArg;
+    try{ return powerLawEffectiveLayout(logX, logY, crosshairDate); }
+    finally{ rangeDays = savedRange; panOffsetDays = savedPan; }
+  }
+
   function renderPowerLaw(){
+    const prevState = powerLawPrevState;
+    const animate = powerLawAnimatePending && !!prevState;
+    powerLawAnimatePending = false;
+
     const panel = document.getElementById("powerLawPanel");
     panel.innerHTML = "";
     const headRow = document.createElement("div");
@@ -3177,9 +3638,22 @@
     panel.appendChild(layerToggleWrap);
 
     const legendApi = powerLawLayerVisible.rainbow ? buildRainbowLegend() : null;
+    const onSigma = legendApi ? sigma=> legendApi.setActive(sigma==null ? null : (rainbowZoneForSigma(sigma)||{}).label) : null;
 
-    const layout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
-    const {wrap, readoutRow} = renderPowerLawDOM(layout, legendApi ? sigma=> legendApi.setActive(sigma==null ? null : (rainbowZoneForSigma(sigma)||{}).label) : null);
+    // Both axes log is the one mode the straight-line power-law fit is actually meaningful in, and the
+    // only one that gets the fixed-ratio zoom treatment (see powerLawFixedSpace) - every other axis
+    // combination keeps using the plain per-window autoscaling path unchanged.
+    const isLogLog = powerLawLogX && powerLawLogY;
+    let wrap, readoutRow;
+    if(isLogLog){
+      const fixed = powerLawFixedSpace();
+      const winInfo = resolvePowerLawWindow(fixed.allPoints, rangeDays, panOffsetDays, 3);
+      const transform = powerLawZoomTransformFor(fixed, winInfo.daysMin, winInfo.daysMax);
+      ({wrap, readoutRow} = renderPowerLawZoomDOM(fixed, transform, winInfo, powerLawCrosshairDate, onSigma));
+    } else {
+      const layout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
+      ({wrap, readoutRow} = renderPowerLawDOM(layout, onSigma));
+    }
     panel.insertBefore(readoutRow, layerToggleWrap);
     panel.appendChild(wrap);
     if(legendApi) panel.appendChild(legendApi.el);
@@ -3190,6 +3664,23 @@
     toolbar.appendChild(buildPowerLawAxisSeg("Y", ()=>powerLawLogY, v=> animatePowerLawAxisChange(powerLawLogX, v)));
     toolbar.appendChild(buildRangeSeg("powerlaw"));
     panel.appendChild(toolbar);
+
+    powerLawPrevState = {logX:powerLawLogX, logY:powerLawLogY, rangeDays, panOffsetDays};
+
+    // A range/pan change (the only thing that reaches here with `animate` true - see
+    // powerLawAnimatePending) never touches logX/logY, so prevState's axis mode always matches the one
+    // just rendered above.
+    if(animate){
+      if(isLogLog){
+        const fixed = powerLawFixedSpace();
+        const oldWin = resolvePowerLawWindow(fixed.allPoints, prevState.rangeDays, prevState.panOffsetDays, 3);
+        const oldTransform = powerLawZoomTransformFor(fixed, oldWin.daysMin, oldWin.daysMax);
+        animatePowerLawZoomTransform(oldTransform);
+      } else {
+        const oldLayout = powerLawEffectiveLayoutFor(prevState.logX, prevState.logY, prevState.rangeDays, prevState.panOffsetDays, powerLawCrosshairDate);
+        animatePowerLawFromLayout(oldLayout);
+      }
+    }
   }
 
   function buildPowerLawAxisSeg(axisLabel, getVal, onChange){
@@ -3219,18 +3710,35 @@
   // system every other chart's Log/Linear toggle already uses: that whole machinery (chartDomains,
   // zoomGen, morphLogLinear's path-point-count matching) is built entirely around buildLineChart's
   // uniform-by-index X axis, which this chart's log-or-linear *time* axis fundamentally isn't. Builds
-  // the true end state up front (via the normal render path), then drives every animatable element's own
-  // attributes directly from interpolated old/new layouts each frame - the same "compute both endpoints,
-  // then interpolate" idea the rest of the app's zoom/morph animations already use, just implemented
-  // locally since the element set and their meaning (price line, fit line, sigma bands, rainbow zones,
-  // halving lines, crosshair) don't match any existing chart's shape.
+  // the true end state up front (via the normal render path), then hands off to
+  // animatePowerLawFromLayout to drive every animatable element from the interpolated old/new layouts.
   function animatePowerLawAxisChange(newLogX, newLogY){
-    const oldLayout = computePowerLawLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
+    const oldLayout = powerLawEffectiveLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
     powerLawLogX = newLogX; powerLawLogY = newLogY;
     renderPowerLaw();
+    animatePowerLawFromLayout(oldLayout);
+  }
+
+  // Shared per-point-lerp animation core, used for every power-law state change EXCEPT a range/pan move
+  // while staying fully log-log (that one gets the cheaper, visually truer animatePowerLawZoomTransform
+  // instead - see renderPowerLaw). Drives every animatable element's own attributes directly from
+  // interpolated old/new layouts each frame - the same "compute both endpoints, then interpolate" idea
+  // the rest of the app's zoom/morph animations already use, just implemented locally since the element
+  // set and their meaning (price line, fit line, sigma bands, rainbow zones, halving lines, crosshair)
+  // don't match any existing chart's shape. oldLayout and the freshly-rendered new state are both
+  // expressed in the same absolute-screen-coordinate shape regardless of which render architecture
+  // either side actually used at rest (see powerLawEffectiveLayout) - so if the new state uses the fixed
+  // log-log zoom group (which carries its own scale+translate transform), that transform is neutralized
+  // for the duration of this animation so it isn't applied a second time on top of the manual lerp, then
+  // restored (along with pixel-perfect final positions for everything, ticks included) by the
+  // renderPowerLaw() re-run this fires once the animation completes.
+  function animatePowerLawFromLayout(oldLayout){
     const svg = document.querySelector("#powerLawPanel svg");
     if(!svg) return;
-    const newLayout = computePowerLawLayout(newLogX, newLogY, powerLawCrosshairDate);
+    const newLayout = powerLawEffectiveLayout(powerLawLogX, powerLawLogY, powerLawCrosshairDate);
+
+    const zoomGroups = [...svg.querySelectorAll(".pl-zoom-group")];
+    zoomGroups.forEach(g=> g.setAttribute("transform",""));
 
     const priceLine = svg.querySelector(".pl-price-line");
     const fitLine = svg.querySelector(".pl-fit-line");
@@ -3241,6 +3749,7 @@
     const priceDot = svg.querySelector(".pl-price-dot");
     const fitDot = svg.querySelector(".pl-fit-dot");
     const cross = svg.querySelector(".pl-crosshair");
+    const isLogLogNow = powerLawLogX && powerLawLogY;
 
     const start = performance.now();
     function frame(now){
@@ -3257,9 +3766,16 @@
         const oz = oldLayout.rainbowZones[i], nz = newLayout.rainbowZones[i];
         if(oz && nz) el.setAttribute("d", zonePathD(lerpPts(oz.hiPts,nz.hiPts), lerpPts(oz.loPts,nz.loPts)));
       });
+      // Matched by date, not index - the old and new halving arrays can genuinely differ in which
+      // events they even contain (the fixed log-log space lists every halving ever, a per-window layout
+      // only the ones inside its own range), so pairing by position alone could lerp one real halving's
+      // line into a completely unrelated one.
       halvingEls.forEach((el,i)=>{
-        const oh = oldLayout.halvings[i], nh = newLayout.halvings[i];
-        if(oh && nh){ const x = lerp(oh.x,nh.x); el.setAttribute("x1",x); el.setAttribute("x2",x); }
+        const nh = newLayout.halvings[i];
+        if(!nh) return;
+        const oh = oldLayout.halvings.find(h=>h.date===nh.date);
+        const x = lerp(oh ? oh.x : nh.x, nh.x);
+        el.setAttribute("x1",x); el.setAttribute("x2",x);
       });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.priceX, newLayout.crosshair.priceX);
@@ -3271,68 +3787,99 @@
         if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
       }
       if(raw < 1) requestAnimationFrame(frame);
+      else if(isLogLogNow) renderPowerLaw();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Animates the fixed-ratio zoom transform itself (see powerLawZoomTransformFor) from an old crop to
+  // the freshly-rendered new one - used when a range/pan change happens while already fully in log-log
+  // mode, so the transition reads as a true camera zoom (the fit line's slope never changes) rather than
+  // animatePowerLawFromLayout's generic per-point morph, which would otherwise have to lerp between two
+  // differently-sized, differently-dated point arrays (the old window's days vs the new one's). Ticks and
+  // the crosshair (built outside the zoomed group, see renderPowerLawZoomDOM) snap straight to their
+  // final position instead of animating too - the data curves inside the transformed groups carry the
+  // transition's main visual weight, and re-deriving every tick/label position each frame for a
+  // comparatively minor extra polish wasn't worth the added complexity here.
+  function animatePowerLawZoomTransform(oldTransform){
+    const svg = document.querySelector("#powerLawPanel svg");
+    if(!svg) return;
+    const groups = [...svg.querySelectorAll(".pl-zoom-group")];
+    if(!groups.length) return;
+    const fixed = powerLawFixedSpace();
+    const winInfo = resolvePowerLawWindow(fixed.allPoints, rangeDays, panOffsetDays, 3);
+    const newTransform = powerLawZoomTransformFor(fixed, winInfo.daysMin, winInfo.daysMax);
+
+    const start = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      const lerp = (a,b)=> a+(b-a)*eased;
+      const scale = lerp(oldTransform.scale, newTransform.scale);
+      const tx = lerp(oldTransform.tx, newTransform.tx);
+      const ty = lerp(oldTransform.ty, newTransform.ty);
+      groups.forEach(g=> g.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`));
+      if(raw < 1) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   }
 
   function daysSinceGenesis(dateStr){ return (Date.parse(dateStr+"T00:00:00Z")-GENESIS_MS)/86400000; }
 
-  // The "Marktzyklen" chart's whole design rests on one idea: unlike every other chart's Y-axis
-  // (autoscaled per selected timeframe), this chart's log-log coordinate mapping (xOf/yOf below) is
-  // computed ONCE, always spanning the complete history plus a 3-cycle future projection - and never
-  // changes again after that, regardless of which timeframe is selected. Picking a shorter timeframe
-  // then isn't a rescale (which would visibly distort the power-law line's apparent slope depending on
-  // the window), it's a pure camera zoom into a sub-rectangle of this one fixed space (see
-  // cycleChartViewBoxFor) - exactly the "the x:y ratio must stay fixed, only a zoom-in happens" behaviour
-  // asked for. Cached per "structural" cache key (see renderCycleChart) - layer toggles/showHalvings
-  // change what's drawn and how much vertical headroom the corridor needs, so those rebuild this; the
-  // shared range/pan selection never does, since it only affects the *viewBox* crop, not this layout.
-  let cycleChartFixedLayoutCache = null, cycleChartFixedLayoutKey = null;
-  function cycleChartFixedLayout(structKey){
-    if(cycleChartFixedLayoutCache && cycleChartFixedLayoutKey === structKey) return cycleChartFixedLayoutCache;
+  // ---------- Marktzyklen chart (BTC-Kurs, Bull-/Bärenmarkt-Zonen) ----------
+  // Unlike the power-law/log-log chart (which fixes its axis ratio while in pure log-log mode - see
+  // computePowerLawLayout/animatePowerLawAxisChange), this chart's Y-domain always autoscales to
+  // whatever's visible in the currently selected range/pan, same as every "normal" chart in the app -
+  // there's no regression line here whose apparent slope a fixed ratio would need to protect, so a
+  // flexible ratio just shows more vertical detail at every zoom level instead of enforcing a look this
+  // chart doesn't need. Never projects past real data either - this chart shows what happened, not an
+  // estimate of what's next.
+  function computeCycleChartLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
-    const fit = powerLawFit();
-    const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
-    const w = 1000, h = chartHeight(), padL = 58, padR = 14, padT = 16, padB = 34;
+    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
 
-    const daysMin = allPoints[0].days;
-    const daysMax = allPoints[allPoints.length-1].days + 3*avgHalvingCycleDays();
-    function xOf(days){ return padL + (Math.log10(days)-Math.log10(daysMin))/(Math.log10(daysMax)-Math.log10(daysMin))*(w-padL-padR); }
-    // Inverse of xOf - fixed-space x back to days-since-genesis - used to resolve a hover position past
-    // the last real data point, into the projected corridor.
-    function xInv(x){ const lv = Math.log10(daysMin) + (x-padL)/(w-padL-padR)*(Math.log10(daysMax)-Math.log10(daysMin)); return Math.pow(10,lv); }
-
-    const priceLogVals = allPoints.map(p=>Math.log10(p.price));
-    const bandPad = cycleChartLayerVisible.powerlaw ? 2*fit.sigma : 0;
-    const rainbowPad = cycleChartLayerVisible.rainbow ? 3.0*fit.sigma : 0;
-    const extentPad = Math.max(bandPad, rainbowPad);
-    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
-    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
-    function yOf(price){ return padT + (1-(Math.log10(price)-yLogMin)/(yLogMax-yLogMin))*(h-padT-padB); }
-
-    const pricePts = allPoints.map(p=>({x:xOf(p.days), y:yOf(p.price), date:p.date}));
-
-    const SAMPLES = 240;
-    function daysAtSample(i){ const lv = Math.log10(daysMin) + (i/SAMPLES)*(Math.log10(daysMax)-Math.log10(daysMin)); return Math.pow(10,lv); }
-    function tracePts(sigmaOffset){
-      const pts = [];
-      for(let i=0;i<=SAMPLES;i++){
-        const days = daysAtSample(i);
-        pts.push({x:xOf(days), y:yOf(Math.pow(10, fitLogAt(days)+sigmaOffset*fit.sigma))});
+    // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
+    // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
+    // extends daysMax past the last real day.
+    let points;
+    if(rangeDays === "all"){
+      points = allPoints;
+    } else {
+      const lastT = allPoints[allPoints.length-1].t;
+      const endT = lastT - (panOffsetDays||0)*86400000;
+      let endIdx = allPoints.length;
+      if(panOffsetDays > 0){
+        endIdx = allPoints.findIndex(p=> p.t > endT);
+        if(endIdx < 0) endIdx = allPoints.length;
       }
-      return pts;
+      const cutoff = endT - rangeDays*86400000;
+      let idx = allPoints.findIndex(p=> p.t >= cutoff);
+      if(idx < 0) idx = 0;
+      if(idx >= endIdx) idx = Math.max(0, endIdx-1);
+      points = allPoints.slice(idx, endIdx);
     }
-    const fitPts = tracePts(0);
-    const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
-    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+    const daysMin = points[0].days, daysMax = points[points.length-1].days;
 
-    const halvingSource = showHalvings ? HALVING_DATES.concat(projectedHalvings(3)) : [];
-    const halvings = halvingSource
-      .map(hv=>({date:hv.date, projected:!!hv.projected, days:daysSinceGenesis(hv.date)}))
+    function xVal(days){ return logX ? Math.log10(days) : days; }
+    const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
+    function xOf(days){ return padL + (xVal(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
+
+    const priceLogVals = points.map(p=>Math.log10(p.price));
+    const yLogMin = Math.min(...priceLogVals) - 0.06, yLogMax = Math.max(...priceLogVals) + 0.06;
+    const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
+    function yVal(price){ return logY ? Math.log10(price) : price; }
+    function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
+
+    const pricePts = points.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
+
+    const halvings = (showHalvings ? HALVING_DATES : [])
+      .map(hv=>({date:hv.date, days:daysSinceGenesis(hv.date)}))
       .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
       .map(hv=>({...hv, x:xOf(hv.days)}));
 
-    const yTicks = (()=>{ const lo=Math.floor(yLogMin), hi=Math.ceil(yLogMax), out=[]; for(let d=lo;d<=hi;d++) if(d>=yLogMin&&d<=yLogMax) out.push({y:yOf(Math.pow(10,d)), label:fmtUSD(Math.pow(10,d))}); return out; })();
+    const yTicks = logY
+      ? (()=>{ const lo=Math.floor(yLogMin), hi=Math.ceil(yLogMax), out=[]; for(let d=lo;d<=hi;d++) if(d>=yLogMin&&d<=yLogMax) out.push({y:yOf(Math.pow(10,d)), label:fmtUSD(Math.pow(10,d))}); return out; })()
+      : niceLinearTicks(yValMin,yValMax,6).map(v=>({y:yOf(v), label:fmtUSD(v)}));
     const firstYear = new Date(GENESIS_MS+daysMin*86400000).getUTCFullYear();
     const lastYear = new Date(GENESIS_MS+daysMax*86400000).getUTCFullYear();
     const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
@@ -3343,365 +3890,168 @@
       xTicks.push({x:xOf(days), label:String(y)});
     }
 
-    // Cycle-high/-low flags (see cycleExtremes/cycleTentativeExtreme) positioned in this same fixed
-    // space, plus the confirmed extremes' own bull(green)/bear(red) background zones - a rectangle per
-    // swing between one confirmed extreme and the next, exactly mirroring the well-known "Bitcoin bull/
-    // bear market cycles" chart style. The most recent swing (last confirmed extreme -> today) hasn't
-    // reversed CYCLE_EXTREME_CONFIRM_PCT% yet, so it's neither - drawn as its own hatched "?" zone
-    // instead of guessing green or red for a call the data itself can't yet make.
-    const flags = showHalvings ? (()=>{
-      const confirmedFlags = cycleExtremes(FULL.price).map(pt=>({...pt, confirmed:true}));
-      const tentativeFlag = cycleTentativeExtreme(FULL.price);
-      const all = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
-      return all.map(pt=>({...pt, x:xOf(daysSinceGenesis(pt.date)), y:yOf(pt.value)}));
-    })() : [];
-    const zones = (()=>{
-      if(!cycleChartLayerVisible.zyklus) return [];
-      const confirmedFlags = cycleExtremes(FULL.price);
-      // The trailing swing since the last CONFIRMED extreme can easily still be running for a long time
-      // (it only "confirms" once price reverses CYCLE_EXTREME_CONFIRM_PCT% - see cycleExtremes) - without
-      // splitting it further, the hatched "uncertain" zone would stretch across the entire multi-year
-      // run, most of which is obviously still one clear trend. Using the tentative running extreme (see
-      // cycleTentativeExtreme) as an interior boundary instead keeps the solid color going right up to
-      // that peak/trough, same as the flag marker for it already does, and confines the genuine "?" to
-      // just the still-moving edge beyond it - matching the standard bull/bear cycle chart's own reading.
-      const tentative = cycleTentativeExtreme(FULL.price);
-      const lastRealDays = allPoints[allPoints.length-1].days;
+    // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter), plus their bull
+    // (green)/bear(red) background zones - a rectangle per swing between one confirmed extreme and the
+    // next, mirroring the well-known "Bitcoin bull/bear market cycles" chart style. Per explicit feedback,
+    // each zone's own height is capped at the price of whichever extreme it leads to (not the full chart
+    // height) - a taller cycle then visibly reads as taller than a smaller one, instead of every zone
+    // looking identical regardless of how big that swing actually was.
+    const confirmedFlags = cycleExtremesEffective(FULL.price).map(pt=>({...pt, confirmed:true}));
+    const tentativeFlag = cycleTentativeExtremeAfter(FULL.price, confirmedFlags);
+    const allFlagsRaw = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
+    const flags = allFlagsRaw
+      .filter(pt=> pt.date>=points[0].date && pt.date<=points[points.length-1].date)
+      .map(pt=>({...pt, x:xOf(daysSinceGenesis(pt.date)), y:yOf(pt.value)}));
+
+    const zones = cycleChartLayerVisible.zyklus ? (()=>{
       const out = [];
-      const pushRun = (fromDays, toDate, bull)=> out.push({x0:xOf(fromDays), x1:xOf(daysSinceGenesis(toDate)), bull, tentative:false});
+      // Clamped to the visible plot area - a swing that started well before the current window (e.g. a
+      // multi-year-old cycle still visible at "Alles") would otherwise compute a wildly out-of-bounds x,
+      // and with the SVG's own overflow:visible (needed elsewhere for rotated axis labels/flag glyphs
+      // that legitimately overhang the plot edge a little), that rendered as a huge, bleeding-off-the-
+      // page rectangle instead of just quietly starting at the left edge like it should.
+      const pushRun = (fromDays, toDate, toPrice, bull)=> out.push({
+        x0: Math.max(padL, Math.min(w-padR, xOf(fromDays))),
+        x1: Math.max(padL, Math.min(w-padR, xOf(daysSinceGenesis(toDate)))),
+        yTop:yOf(toPrice), bull
+      });
       if(confirmedFlags.length){
         const first = confirmedFlags[0];
-        pushRun(daysMin, first.date, first.dir>0);
+        pushRun(daysMin, first.date, first.value, first.dir>0);
         for(let i=0;i<confirmedFlags.length-1;i++){
           const a=confirmedFlags[i], b=confirmedFlags[i+1];
-          pushRun(daysSinceGenesis(a.date), b.date, b.dir>0);
+          pushRun(daysSinceGenesis(a.date), b.date, b.value, b.dir>0);
         }
         const last = confirmedFlags[confirmedFlags.length-1];
-        if(tentative) pushRun(daysSinceGenesis(last.date), tentative.date, tentative.dir>0);
-        out.push({x0: xOf(daysSinceGenesis(tentative ? tentative.date : last.date)), x1:xOf(lastRealDays), bull:null, tentative:true});
-      } else if(tentative){
-        pushRun(daysMin, tentative.date, tentative.dir>0);
-        out.push({x0:xOf(daysSinceGenesis(tentative.date)), x1:xOf(lastRealDays), bull:null, tentative:true});
-      } else {
-        out.push({x0:xOf(daysMin), x1:xOf(lastRealDays), bull:null, tentative:true});
+        if(tentativeFlag) pushRun(daysSinceGenesis(last.date), tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
+      } else if(tentativeFlag){
+        pushRun(daysMin, tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
       }
-      return out;
-    })();
+      return out.filter(z => (Math.max(z.x0,z.x1)>=padL-1 && Math.min(z.x0,z.x1)<=w-padR+1));
+    })() : [];
 
-    cycleChartFixedLayoutCache = {w,h,padL,padR,padT,padB, daysMin,daysMax, xOf,xInv,yOf, fit, fitLogAt,
-      allPoints, pricePts, fitPts, bandHiPts, bandLoPts, rainbowZones, halvings, yTicks, xTicks, flags, zones};
-    cycleChartFixedLayoutKey = structKey;
-    return cycleChartFixedLayoutCache;
+    let crosshairPtIdx = crosshairDate==null ? -1 : points.findIndex(p=>p.date===crosshairDate);
+    if(crosshairPtIdx<0) crosshairPtIdx = points.length-1;
+    const crosshairPt = points[crosshairPtIdx];
+    const crosshair = {date:crosshairPt.date, price:crosshairPt.price, isLatest: crosshairPtIdx===points.length-1,
+      x:xOf(crosshairPt.days), y:yOf(crosshairPt.price)};
+
+    return {w,h,padL,padR,padT,padB, points, pricePts, halvings, yTicks, xTicks, flags, zones, crosshair, xOf, yOf};
   }
 
-  // The crop window implementing the "pure zoom, fixed ratio" behaviour: a sub-rectangle of the fixed
-  // 1000xh space above, sized/positioned from the SAME shared rangeDays/panOffsetDays every other chart's
-  // range selector already drives. Expressed in terms of the PLOT AREA (padL..w-padR, padT..h-padB) -
-  // where the actual data lives, xOf/yOf already bake those margins in - not the raw 0..w/0..h canvas, so
-  // that the "Alles" case (the full plot area, unzoomed) round-trips to an identity transform (see
-  // cycleChartTransformFor) instead of silently shrinking everything by the margin's width on top of
-  // whatever zoom is applied. vh is always vw*(plotH/plotW) - the exact same aspect ratio as the plot
-  // area itself - so the x:y ratio genuinely never changes, only how much of the fixed space is visible does.
-  // The same date-window slicing every other chart's sliceRange applies, mirrored here against
-  // fixed.allPoints' own .t field instead of FULL's - shared by cycleChartViewBoxFor (below) and the
-  // crosshair resolution in applyCycleChartTransform/animateCycleChartTransform, so both agree on exactly
-  // which real data points the currently-selected range/pan actually shows.
-  function cycleChartWindowPoints(fixed){
-    const {allPoints} = fixed;
-    if(rangeDays === "all") return allPoints;
-    const lastT = allPoints[allPoints.length-1].t;
-    const endT = lastT - (panOffsetDays||0)*86400000;
-    let endIdx = allPoints.length;
-    if(panOffsetDays > 0){
-      endIdx = allPoints.findIndex(p=> p.t > endT);
-      if(endIdx < 0) endIdx = allPoints.length;
-    }
-    const cutoff = endT - rangeDays*86400000;
-    let idx = allPoints.findIndex(p=> p.t >= cutoff);
-    if(idx < 0) idx = 0;
-    if(idx >= endIdx) idx = Math.max(0, endIdx-1);
-    return allPoints.slice(idx, endIdx);
-  }
-
-  function cycleChartViewBoxFor(fixed){
-    const {w,h,padL,padR,padT,padB,xOf,yOf} = fixed;
-    const plotW = w-padL-padR, plotH = h-padT-padB;
-    if(rangeDays === "all") return {vx:padL, vy:padT, vw:plotW, vh:plotH};
-    const windowPts = cycleChartWindowPoints(fixed);
-    if(!windowPts.length) return {vx:padL, vy:padT, vw:plotW, vh:plotH};
-    const x0 = xOf(windowPts[0].days), x1 = xOf(windowPts[windowPts.length-1].days);
-    // A floor on vw guards against a degenerate (near-zero-width) crop in extreme edge cases - anchored
-    // to x1 (not x0) so the window's own latest point always lands exactly on the plot's right edge
-    // regardless of whether the floor kicked in, rather than leaving unexplained empty space there. On a
-    // log-day X-axis a short recent range genuinely can span only a sliver of the fixed space (the same
-    // number of calendar days represents a shrinking fraction of log10(days) as days-since-genesis grows)
-    // - the floor only ever matters for these very short/very recent windows, never for wide ones.
-    const vw = Math.max(x1-x0, 20);
-    const x0Anchored = x1-vw;
-    const vh = vw*(plotH/plotW);
-    // Vertical centering: the fixed aspect ratio means vh's height is dictated purely by vw (how much
-    // TIME is showing), not by how much this particular window's own price actually moved - a very
-    // volatile short window can easily need more vertical room than that allows. Centering on the whole
-    // window's own min/max would then clip whichever end sits furthest from the middle, which could just
-    // as easily be the *latest* price - the one point every one of these ranges should always keep in
-    // view. Anchoring on the window's last point instead guarantees "today" (or wherever panOffsetDays
-    // has shifted "today" to) is always visible, at the cost of possibly cropping older/more extreme
-    // excursions within the same window off the top or bottom - an accepted trade-off of a true fixed-
-    // ratio zoom (see the module comment on cycleChartFixedLayout for why this chart doesn't autoscale).
-    const anchorY = yOf(windowPts[windowPts.length-1].price);
-    return {vx:x0Anchored, vy: anchorY-vh/2, vw, vh};
-  }
-
-  // Converts a crop window (see cycleChartViewBoxFor, itself expressed in plot-area terms) into a
-  // scale+translate transform for the chart's own zoom-content group, mapping vx/vy to the plot area's
-  // own top-left (padL,padT) rather than the canvas origin - k is the same magnification on both axes
-  // (never independently stretched), which is exactly what keeps the log-log ratio fixed across a
-  // timeframe change. At vb = the full plot area (the "Alles" case) this correctly comes out to the
-  // identity transform, since the fixed content's own xOf/yOf already position everything with padL/padT
-  // baked in - see cycleChartViewBoxFor's own comment for why the two must agree on that convention.
-  function cycleChartTransformFor(fixed, vb){
-    const plotW = fixed.w-fixed.padL-fixed.padR;
-    const k = plotW/vb.vw;
-    return {k, tx: fixed.padL - vb.vx*k, ty: fixed.padT - vb.vy*k};
-  }
-  function cycScreenPos(t, fixedX, fixedY){ return {x: t.k*fixedX+t.tx, y: t.k*fixedY+t.ty}; }
-
-  // Repositions everything deliberately kept OUTSIDE the zoomed/clipped content group - axis tick
-  // gridlines/labels, cycle flags - from the fixed coordinates they were built with, using the current
-  // transform. None of these live inside the scaled group itself (a scale transform must never visually
-  // stretch text or a flag glyph - see buildLineChart's own zoom system for the same reasoning), so their
-  // position has to be recomputed by hand on every frame of a zoom instead of just inheriting a CSS
-  // transform for free. Ticks fade out (display:none) once their position leaves the plot area - they's
-  // pre-built for the ENTIRE fixed history+projection up front, so at any given zoom level most of them
-  // are simply not relevant yet.
-  function applyCycleChartTicksAndFlags(built, fixed, t){
-    const {padL,padR,padT,padB,w,h} = fixed;
-    built.yTickEls.forEach(({tick,gl,lbl})=>{
-      const y = t.k*tick.y+t.ty;
-      const visible = y>=padT-1 && y<=h-padB+1;
-      gl.style.display = lbl.style.display = visible ? "" : "none";
-      if(visible){ gl.setAttribute("y1",y); gl.setAttribute("y2",y); lbl.setAttribute("y", y+3); }
-    });
-    built.xTickEls.forEach(({tick,lbl})=>{
-      const x = t.k*tick.x+t.tx;
-      const visible = x>=padL-1 && x<=w-padR+1;
-      lbl.style.display = visible ? "" : "none";
-      if(visible){ lbl.setAttribute("x",x); lbl.setAttribute("transform", `rotate(-45 ${x} ${h-6})`); }
-    });
-    built.flagEls.forEach(({pt,g})=>{
-      const scr = cycScreenPos(t, pt.x, pt.y);
-      const visible = scr.x>=padL-20 && scr.x<=w-padR+20 && scr.y>=padT-20 && scr.y<=h-padB+20;
-      g.style.display = visible ? "" : "none";
-      if(visible) g.setAttribute("transform", `translate(${scr.x.toFixed(1)},${scr.y.toFixed(1)})`);
-    });
-  }
-
-  // Resolves the persisted crosshair date against whatever the CURRENTLY selected range/pan actually
-  // shows (via cycleChartWindowPoints), not the full history - a date that's since scrolled outside the
-  // visible window (or was never touched at all) falls back to the window's own latest point, the same
-  // "persist by date, fall back to latest-in-window" rule every other chart's crosshair already follows.
-  function cycleChartResolveCrosshair(fixed){
-    const windowPts = cycleChartWindowPoints(fixed);
-    const cpt = cycleChartCrosshairDate==null ? null : windowPts.find(p=>p.date===cycleChartCrosshairDate);
-    return cpt || windowPts[windowPts.length-1];
-  }
-
-  // Snaps the chart straight to a target crop window, no animation - used for the initial paint and for
-  // any re-render where the shared range/pan genuinely didn't change (a harmless idempotent no-op then).
-  function applyCycleChartTransform(built, fixed, vb){
-    const t = cycleChartTransformFor(fixed, vb);
-    built.currentTransform = t;
-    built.zoomG.style.transform = `matrix(${t.k},0,0,${t.k},${t.tx},${t.ty})`;
-    applyCycleChartTicksAndFlags(built, fixed, t);
-    built.paintCrosshair(cycleChartResolveCrosshair(fixed));
-  }
-
-  // The actual "pure zoom-in on timeframe change" animation: interpolates k/tx/ty (not the underlying
-  // path data - none of that needs to change at all, only how much of the fixed space is on screen does)
-  // over the same shared ZOOM_DURATION_MS/zoomEase every other zoom/range animation in the app uses.
-  function animateCycleChartTransform(built, fixed, fromVB, toVB){
-    const from = cycleChartTransformFor(fixed, fromVB);
-    const to = cycleChartTransformFor(fixed, toVB);
-    const myGen = ++cycleChartZoomGen;
-    const start = performance.now();
-    function frame(now){
-      if(myGen !== cycleChartZoomGen) return;
-      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
-      const eased = zoomEase(raw);
-      const t = {k: from.k+(to.k-from.k)*eased, tx: from.tx+(to.tx-from.tx)*eased, ty: from.ty+(to.ty-from.ty)*eased};
-      built.currentTransform = t;
-      built.zoomG.style.transform = `matrix(${t.k},0,0,${t.k},${t.tx},${t.ty})`;
-      applyCycleChartTicksAndFlags(built, fixed, t);
-      built.paintCrosshair(cycleChartResolveCrosshair(fixed));
-      if(raw < 1) requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
-  let cycleChartZoomGen = 0;
-
-  // Builds the chart's DOM once - the price line, fitted corridor/rainbow, halving lines and bull/bear
-  // zone bands all live inside one clipped, transformable group (zoomG) built from fixed.xOf/yOf and
-  // never touched again by a range/pan change (only the group's own transform retargets - see
-  // applyCycleChartTransform/animateCycleChartTransform above). Zone bands and halving lines are drawn
-  // hugely over-tall (way past the visible plot) so they keep spanning the full height no matter how far
-  // the current crop window's own vertical center has drifted from the middle of the fixed space.
-  function renderCycleChartDOM(fixed, initialVB, onSigma){
-    const {w,h,padL,padR,padT,padB} = fixed;
-    const OVER = 1e5;
+  function renderCycleChartDOM(layout){
+    const {w,h,padL,padR,padT,padB, points} = layout;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    const defs = document.createElementNS(NS,"defs");
-    svg.appendChild(defs);
-    const hatchId = "cycHatch" + (++clipIdCounter);
-    const pattern = document.createElementNS(NS,"pattern");
-    pattern.setAttribute("id",hatchId); pattern.setAttribute("width","8"); pattern.setAttribute("height","8");
-    pattern.setAttribute("patternTransform","rotate(45)"); pattern.setAttribute("patternUnits","userSpaceOnUse");
-    const hatchLine = document.createElementNS(NS,"line");
-    hatchLine.setAttribute("x1","0"); hatchLine.setAttribute("y1","0"); hatchLine.setAttribute("x2","0"); hatchLine.setAttribute("y2","8");
-    hatchLine.setAttribute("stroke","var(--ink-3)"); hatchLine.setAttribute("stroke-width","2");
-    pattern.appendChild(hatchLine);
-    defs.appendChild(pattern);
-
-    const clipId = "cycClip" + (++clipIdCounter);
-    const clipPath = document.createElementNS(NS,"clipPath");
-    clipPath.setAttribute("id",clipId);
-    const clipRect = document.createElementNS(NS,"rect");
-    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
-    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
-    clipPath.appendChild(clipRect);
-    defs.appendChild(clipPath);
-
-    const clipG = document.createElementNS(NS,"g");
-    clipG.setAttribute("clip-path", `url(#${clipId})`);
-    const zoomG = document.createElementNS(NS,"g");
-    zoomG.setAttribute("class","cyc-zoom-content");
-    clipG.appendChild(zoomG);
-
     if(cycleChartLayerVisible.zyklus){
-      fixed.zones.forEach(z=>{
+      layout.zones.forEach(z=>{
         const rect = document.createElementNS(NS,"rect");
-        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", -OVER);
-        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", 2*OVER);
-        if(z.tentative){ rect.setAttribute("fill", `url(#${hatchId})`); rect.setAttribute("opacity","0.5"); }
-        else { rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.12"); }
-        zoomG.appendChild(rect);
+        rect.setAttribute("class","cyc-zone");
+        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", z.yTop);
+        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(h-padB-z.yTop,0));
+        rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.14");
+        svg.appendChild(rect);
       });
     }
 
-    if(cycleChartLayerVisible.rainbow){
-      fixed.rainbowZones.forEach(z=>{
-        const zone = document.createElementNS(NS,"path");
-        zone.setAttribute("d", zonePathD(z.hiPts, z.loPts));
-        zone.setAttribute("fill", z.color); zone.setAttribute("opacity","0.55"); zone.setAttribute("stroke","none");
-        zoomG.appendChild(zone);
-      });
-    }
-
-    if(showHalvings){
-      fixed.halvings.forEach(hv=>{
-        const line = document.createElementNS(NS,"line");
-        line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",-OVER); line.setAttribute("y2",OVER);
-        line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
-        line.setAttribute("vector-effect","non-scaling-stroke");
-        if(hv.projected){
-          line.setAttribute("opacity","0.4");
-          const title = document.createElementNS(NS,"title");
-          title.textContent = `Geschätztes Halving: ${fmtDateOnly(hv.date)} (Ø Zyklusdauer der bisherigen Halvings)`;
-          line.appendChild(title);
-        }
-        zoomG.appendChild(line);
-      });
-    }
-
-    if(cycleChartLayerVisible.powerlaw){
-      [fixed.bandHiPts, fixed.bandLoPts].forEach(pts=>{
-        const band = document.createElementNS(NS,"path");
-        band.setAttribute("d", pathD(pts));
-        band.setAttribute("fill","none"); band.setAttribute("stroke","var(--c-powerlaw)"); band.setAttribute("stroke-width","1");
-        band.setAttribute("stroke-dasharray","4 4"); band.setAttribute("opacity","0.45");
-        band.setAttribute("vector-effect","non-scaling-stroke");
-        zoomG.appendChild(band);
-      });
-      const fitLine = document.createElementNS(NS,"path");
-      fitLine.setAttribute("d", pathD(fixed.fitPts));
-      fitLine.setAttribute("fill","none"); fitLine.setAttribute("stroke","var(--c-powerlaw)"); fitLine.setAttribute("stroke-width","1.8");
-      fitLine.setAttribute("vector-effect","non-scaling-stroke");
-      zoomG.appendChild(fitLine);
-    }
-
-    const priceLine = document.createElementNS(NS,"path");
-    priceLine.setAttribute("d", pathD(fixed.pricePts));
-    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
-    priceLine.setAttribute("vector-effect","non-scaling-stroke");
-    zoomG.appendChild(priceLine);
-
-    svg.appendChild(clipG);
-
-    const yTickEls = fixed.yTicks.map(t=>{
+    layout.yTicks.forEach(t=>{
       const gl = document.createElementNS(NS,"line");
-      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR);
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label"); lbl.setAttribute("x",padL-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("class","axis-label"); lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
       svg.appendChild(lbl);
-      return {tick:t, gl, lbl};
     });
-    const xTickEls = fixed.xTicks.map(t=>{
+    layout.xTicks.forEach(t=>{
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-6); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-6})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
       svg.appendChild(lbl);
-      return {tick:t, lbl};
     });
 
-    const flagEls = fixed.flags.map(pt=>{
+    layout.halvings.forEach(hv=>{
+      const line = document.createElementNS(NS,"line");
+      line.setAttribute("class","cyc-halving");
+      line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
+      line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
+      line.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(line);
+    });
+
+    const priceLine = document.createElementNS(NS,"path");
+    priceLine.setAttribute("class","cyc-price-line");
+    priceLine.setAttribute("d", pathD(layout.pricePts));
+    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
+    priceLine.setAttribute("vector-effect","non-scaling-stroke");
+    svg.appendChild(priceLine);
+
+    layout.flags.forEach(pt=>{
       const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
+      g.setAttribute("transform", `translate(${pt.x.toFixed(1)},${pt.y.toFixed(1)})`);
+      g.dataset.flagDate = pt.date;
       if(!pt.confirmed){ g.style.opacity = "0.65"; g.setAttribute("stroke-dasharray","2 2"); }
       const title = document.createElementNS(NS,"title");
       const kindLabel = pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief";
       const sincePart = pt.days!=null ? ` · ${pt.days} Tage seit ${pt.sinceLabel} (${fmtDateOnly(pt.sinceDate)})` : "";
-      const unconfirmedPart = pt.confirmed ? "" : ` · noch nicht bestätigt (keine ${CYCLE_EXTREME_CONFIRM_PCT}%-Umkehr seither) - könnte noch von einem neuen ${pt.dir>0?"Hoch":"Tief"} übertroffen werden`;
+      const unconfirmedPart = pt.confirmed ? "" : ` · noch nicht endgültig bestätigt - könnte noch von einem neuen ${pt.dir>0?"Hoch":"Tief"} übertroffen werden`;
       title.textContent = `${pt.confirmed?"":"Bisheriges "}${kindLabel}: ${fmtUSD(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}${unconfirmedPart}`;
       g.appendChild(title);
-      g.dataset.flagDate = pt.date;
       svg.appendChild(g);
-      return {pt, g};
     });
 
     const cross = document.createElementNS(NS,"line");
+    cross.setAttribute("class","cyc-crosshair");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
     cross.setAttribute("stroke","var(--ink-3)"); cross.setAttribute("stroke-width","1"); cross.setAttribute("vector-effect","non-scaling-stroke");
     svg.appendChild(cross);
     const priceDot = document.createElementNS(NS,"circle");
-    priceDot.setAttribute("class","hover-marker"); priceDot.setAttribute("r","6.5");
+    priceDot.setAttribute("class","hover-marker cyc-price-dot"); priceDot.setAttribute("r","6.5");
     priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
     svg.appendChild(priceDot);
-    const fitDot = document.createElementNS(NS,"circle");
-    fitDot.setAttribute("class","hover-marker"); fitDot.setAttribute("r","6.5");
-    fitDot.setAttribute("fill","var(--c-powerlaw)"); fitDot.setAttribute("stroke","var(--card)"); fitDot.setAttribute("stroke-width","1.5");
-    if(!cycleChartLayerVisible.powerlaw) fitDot.style.display = "none";
-    svg.appendChild(fitDot);
 
     const readout = buildReadout(
-      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}, {key:"fair", label:"Power-Law-Fair-Value", color:"var(--c-powerlaw)", fmt:fmtUSD}],
+      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}],
       {compact:true}
     );
-    if(!cycleChartLayerVisible.powerlaw){
-      const items = readout.el.querySelectorAll(".readout-item");
-      if(items[1]) items[1].style.display = "none";
+    function paintCrosshair(cr){
+      cross.setAttribute("x1",cr.x); cross.setAttribute("x2",cr.x);
+      priceDot.setAttribute("cx",cr.x); priceDot.setAttribute("cy",cr.y);
+      readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price], [cr.price]);
     }
+    paintCrosshair(layout.crosshair);
 
     const hitRect = document.createElementNS(NS,"rect");
     hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
     hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
     hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair"; hitRect.style.touchAction = "none";
+    function handleMove(clientX){
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const scaleX = rect.width/w;
+      const svgX = (clientX-rect.left)/scaleX;
+      const frac = Math.max(0, Math.min(1, (svgX-padL)/(w-padL-padR)));
+      const targetX = padL+frac*(w-padL-padR);
+      let lo=0, hi=points.length-1;
+      while(lo<hi){
+        const mid=(lo+hi)>>1;
+        if(layout.xOf(points[mid].days) < targetX) lo=mid+1; else hi=mid;
+      }
+      if(lo>0 && Math.abs(layout.xOf(points[lo-1].days)-targetX) < Math.abs(layout.xOf(points[lo].days)-targetX)) lo -= 1;
+      const pt = points[lo];
+      cycleChartCrosshairDate = pt.date;
+      paintCrosshair({date:pt.date, price:pt.price, isLatest: lo===points.length-1, x:layout.xOf(pt.days), y:layout.yOf(pt.price)});
+    }
+    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
     svg.appendChild(hitRect);
 
     const wrap = document.createElement("div");
@@ -3711,160 +4061,105 @@
     readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
     readoutRow.appendChild(readout.el);
 
-    const built = {svg, wrap, readoutRow, zoomG, yTickEls, xTickEls, flagEls, cross, priceDot, fitDot, readout, currentTransform:{k:1,tx:0,ty:0}};
-
-    function paintCrosshair(pt){
-      const t = built.currentTransform;
-      const fixedX = fixed.xOf(pt.days);
-      const fairPrice = Math.pow(10, fixed.fitLogAt(pt.days));
-      const fairScr = cycScreenPos(t, fixedX, fixed.yOf(fairPrice));
-      cross.setAttribute("x1",fairScr.x); cross.setAttribute("x2",fairScr.x);
-      fitDot.setAttribute("cx",fairScr.x); fitDot.setAttribute("cy",fairScr.y);
-      if(pt.projected){
-        // Past the last real data point, into the projected corridor - no real price exists out here,
-        // so the price dot/row are blanked rather than left showing a stale value, and the rainbow
-        // legend (if any) has nothing real to classify either. Only reachable at "Alles" range, where
-        // the fixed space's daysMax extends 3 cycles past today.
-        priceDot.style.display = "none";
-        readout.update(`Projiziert: ${fmtDateOnly(pt.date)}`, [null, fairPrice], [null, fairPrice]);
-        const changeEls = readout.el.querySelectorAll(".readout-change");
-        if(changeEls[0]) changeEls[0].textContent = "";
-        if(changeEls[1]) changeEls[1].textContent = "";
-        if(onSigma) onSigma(null);
-        return;
-      }
-      priceDot.style.display = "";
-      const scr = cycScreenPos(t, fixedX, fixed.yOf(pt.price));
-      priceDot.setAttribute("cx",scr.x); priceDot.setAttribute("cy",scr.y);
-      const isLatest = pt === fixed.allPoints[fixed.allPoints.length-1];
-      const dev = (pt.price-fairPrice)/fairPrice*100;
-      readout.update(isLatest ? "Aktuell" : fmtDateOnly(pt.date), [pt.price, fairPrice], [pt.price, fairPrice]);
-      const changeEls = readout.el.querySelectorAll(".readout-change");
-      if(changeEls[0]) changeEls[0].textContent = "";
-      if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
-      if(onSigma) onSigma((Math.log10(pt.price)-Math.log10(fairPrice))/fixed.fit.sigma);
-    }
-    built.paintCrosshair = paintCrosshair;
-
-    function handleMove(clientX){
-      const rect = svg.getBoundingClientRect();
-      if(rect.width===0) return;
-      const scaleX = rect.width/w; // viewBox stays fixed at w=1000 always, so this stays valid at any zoom
-      const svgX = (clientX-rect.left)/scaleX;
-      const t = built.currentTransform;
-      const fixedX = (svgX - t.tx)/t.k;
-      const allPts = fixed.allPoints;
-      const lastReal = allPts[allPts.length-1];
-      if(fixedX > fixed.xOf(lastReal.days)){
-        const impliedDays = fixed.xInv(fixedX);
-        cycleChartCrosshairDate = null;
-        const dateStr = new Date(GENESIS_MS + impliedDays*86400000).toISOString().slice(0,10);
-        paintCrosshair({date:dateStr, days:impliedDays, projected:true});
-        return;
-      }
-      let lo=0, hi=allPts.length-1;
-      while(lo<hi){
-        const mid=(lo+hi)>>1;
-        if(fixed.xOf(allPts[mid].days) < fixedX) lo=mid+1; else hi=mid;
-      }
-      if(lo>0 && Math.abs(fixed.xOf(allPts[lo-1].days)-fixedX) < Math.abs(fixed.xOf(allPts[lo].days)-fixedX)) lo -= 1;
-      cycleChartCrosshairDate = allPts[lo].date;
-      paintCrosshair(allPts[lo]);
-    }
-    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
-    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
-
-    return built;
+    return {svg, wrap, readoutRow};
   }
 
-  function cycleChartStructKey(){
-    return JSON.stringify([cycleChartLayerVisible.zyklus, cycleChartLayerVisible.powerlaw, cycleChartLayerVisible.rainbow, showHalvings, chartHeight()]);
-  }
-
-  // Entry point, called from renderAllImmediate() alongside every other chart. Splits into two very
-  // different paths: a genuine structural change (first paint, a layer toggle, the shared Zyklen
-  // visibility, or a viewport resize) tears down and rebuilds the whole SVG same as any other chart's
-  // toggle would; a shared range/pan-only change reuses the exact same SVG and just retargets (and, if it
-  // actually moved, animates) its zoom transform instead - see the module comment on cycleChartFixedLayout
-  // for why this chart can't just rebuild-with-new-domain the way every other chart's range selector does.
   function renderCycleChart(){
     const panel = document.getElementById("cycleChartPanel");
     if(!panel) return;
+    panel.innerHTML = "";
+    const headRow = document.createElement("div");
+    headRow.className = "panel-head";
+    headRow.innerHTML = `<h3>BTC-Kurs (Marktzyklen)</h3>`;
+    panel.appendChild(headRow);
+    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone reicht nur bis zur Höhe ihres eigenen Hochs bzw. Tiefs, nicht über die volle Charthöhe. Zeigt ausschließlich die echte Kurshistorie, keine Projektion in die Zukunft.`);
+
     const points = powerLawPoints();
-    const structKey = cycleChartStructKey();
-    const prev = cycleChartState;
-    const reuse = !!(prev && prev.structKey === structKey && prev.built && points.length >= 2 && panel.contains(prev.built.wrap));
-
-    if(!reuse){
-      panel.innerHTML = "";
-      const headRow = document.createElement("div");
-      headRow.className = "panel-head";
-      headRow.innerHTML = `<h3>BTC-Kurs (Marktzyklen)</h3>`;
-      panel.appendChild(headRow);
-      attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter), plus optional dieselbe Power-Law-Regression und Regenbogen-Bänder wie im Log-Log-Chart oben. Die technische Besonderheit hier: Preis UND Zeit sind fest logarithmisch, mit einem festen Seitenverhältnis - ein Wechsel des Zeitraums ist deshalb bewusst nur ein reiner Zoom in denselben Koordinatenraum, keine Neuskalierung, damit die sichtbare Steigung der Kurve nicht je nach gewähltem Zeitraum unterschiedlich aussieht. Die schraffierte Zone am rechten Rand markiert die laufende, noch nicht bestätigte Marktphase.`);
-      if(points.length < 2){
-        const empty = document.createElement("div");
-        empty.className = "chart-empty";
-        empty.textContent = "Keine Daten verfügbar";
-        panel.appendChild(empty);
-        cycleChartState = null;
-        return;
-      }
-
-      const layerToggleWrap = document.createElement("div");
-      layerToggleWrap.className = "overlay-toggles";
-      [{key:"zyklus", label:"Zyklus", color:"var(--good)"}, {key:"powerlaw", label:"Power Law", color:"var(--c-powerlaw)"}, {key:"rainbow", label:"Regenbogen", color:"#e67e22"}].forEach(layer=>{
-        const visible = cycleChartLayerVisible[layer.key];
-        const lab = document.createElement("label");
-        lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
-        lab.style.setProperty("--chip-color", layer.color);
-        lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${layer.label}`;
-        lab.querySelector("input").addEventListener("change", e=>{
-          cycleChartLayerVisible[layer.key] = e.target.checked;
-          renderCycleChart();
-        });
-        layerToggleWrap.appendChild(lab);
-      });
-      panel.appendChild(layerToggleWrap);
-
-      const legendApi = cycleChartLayerVisible.rainbow ? buildRainbowLegend() : null;
-
-      const fixed = cycleChartFixedLayout(structKey);
-      const targetVB = cycleChartViewBoxFor(fixed);
-      const built = renderCycleChartDOM(fixed, targetVB, legendApi ? sigma=> legendApi.setActive(sigma==null ? null : (rainbowZoneForSigma(sigma)||{}).label) : null);
-      panel.insertBefore(built.readoutRow, layerToggleWrap);
-      panel.appendChild(built.wrap);
-      applyCycleChartTransform(built, fixed, targetVB);
-      if(legendApi) panel.appendChild(legendApi.el);
-
-      const toolbar = document.createElement("div");
-      toolbar.className = "card-toolbar";
-      toolbar.appendChild(buildRangeSeg("cyclechart"));
-      panel.appendChild(toolbar);
-
-      cycleChartState = {structKey, fixed, built, viewBox: targetVB, rangeDays, panOffsetDays};
+    if(points.length < 2){
+      const empty = document.createElement("div");
+      empty.className = "chart-empty";
+      empty.textContent = "Keine Daten verfügbar";
+      panel.appendChild(empty);
       return;
     }
 
-    // Reuse path: nothing structural changed, so the existing SVG (price line, corridor, zones,
-    // halvings, flags) stays exactly as it is - only the shared range/pan may have moved, which just
-    // retargets (and animates) the zoom-content group's transform.
-    const {fixed, built} = prev;
-    const targetVB = cycleChartViewBoxFor(fixed);
-    if(prev.rangeDays !== rangeDays || prev.panOffsetDays !== panOffsetDays){
-      animateCycleChartTransform(built, fixed, prev.viewBox, targetVB);
-    } else {
-      applyCycleChartTransform(built, fixed, targetVB);
+    const layerToggleWrap = document.createElement("div");
+    layerToggleWrap.className = "overlay-toggles";
+    const zVisible = cycleChartLayerVisible.zyklus;
+    const zLab = document.createElement("label");
+    zLab.className = "overlay-toggle-chip" + (zVisible ? " active" : "");
+    zLab.style.setProperty("--chip-color", "var(--good)");
+    zLab.innerHTML = `<input type="checkbox" ${zVisible ? "checked" : ""}><i></i>Zyklus-Zonen`;
+    zLab.querySelector("input").addEventListener("change", e=>{
+      cycleChartLayerVisible.zyklus = e.target.checked;
+      renderCycleChart();
+    });
+    layerToggleWrap.appendChild(zLab);
+    panel.appendChild(layerToggleWrap);
+
+    const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
+    const {wrap, readoutRow} = renderCycleChartDOM(layout);
+    panel.insertBefore(readoutRow, layerToggleWrap);
+    panel.appendChild(wrap);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildPowerLawAxisSeg("X", ()=>cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY)));
+    toolbar.appendChild(buildPowerLawAxisSeg("Y", ()=>cycleChartLogY, v=> animateCycleChartAxisChange(cycleChartLogX, v)));
+    toolbar.appendChild(buildRangeSeg("cyclechart"));
+    panel.appendChild(toolbar);
+  }
+
+  // Animates this chart's own axis-scale change (X, Y, or both), mirroring animatePowerLawAxisChange's
+  // approach exactly - build the true end state once, then drive every animatable element's attributes
+  // directly from interpolated old/new layouts each frame. Range/pan changes, by contrast, just snap
+  // (renderCycleChart() rebuilds fresh) - this chart autoscales its Y-domain per range already, so there's
+  // no fixed coordinate space for a range change to zoom within the way the power-law chart's does.
+  function animateCycleChartAxisChange(newLogX, newLogY){
+    const oldLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
+    cycleChartLogX = newLogX; cycleChartLogY = newLogY;
+    renderCycleChart();
+    const svg = document.querySelector("#cycleChartPanel svg");
+    if(!svg) return;
+    const newLayout = computeCycleChartLayout(newLogX, newLogY, cycleChartCrosshairDate);
+
+    const priceLine = svg.querySelector(".cyc-price-line");
+    const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
+    const zoneEls = [...svg.querySelectorAll(".cyc-zone")];
+    const priceDot = svg.querySelector(".cyc-price-dot");
+    const cross = svg.querySelector(".cyc-crosshair");
+
+    const start = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
+      const eased = zoomEase(raw);
+      const lerp = (a,b)=> a+(b-a)*eased;
+      const lerpPts = (A,B)=> A.map((p,i)=> B[i] ? ({x:lerp(p.x,B[i].x), y:lerp(p.y,B[i].y)}) : p);
+
+      if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
+      halvingEls.forEach((el,i)=>{
+        const oh = oldLayout.halvings[i], nh = newLayout.halvings[i];
+        if(oh && nh){ const x = lerp(oh.x,nh.x); el.setAttribute("x1",x); el.setAttribute("x2",x); }
+      });
+      zoneEls.forEach((el,i)=>{
+        const oz = oldLayout.zones[i], nz = newLayout.zones[i];
+        if(oz && nz){
+          const x0 = lerp(Math.min(oz.x0,oz.x1), Math.min(nz.x0,nz.x1));
+          const x1 = lerp(Math.max(oz.x0,oz.x1), Math.max(nz.x0,nz.x1));
+          const yTop = lerp(oz.yTop, nz.yTop);
+          el.setAttribute("x", x0); el.setAttribute("width", Math.max(x1-x0,0.01));
+          el.setAttribute("y", yTop); el.setAttribute("height", Math.max(newLayout.h-newLayout.padB-yTop,0));
+        }
+      });
+      if(oldLayout.crosshair && newLayout.crosshair){
+        const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
+        const py = lerp(oldLayout.crosshair.y, newLayout.crosshair.y);
+        if(priceDot){ priceDot.setAttribute("cx",px); priceDot.setAttribute("cy",py); }
+        if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
+      }
+      if(raw < 1) requestAnimationFrame(frame);
     }
-    const oldToolbar = panel.querySelector(".card-toolbar");
-    if(oldToolbar){
-      const toolbar = document.createElement("div");
-      toolbar.className = "card-toolbar";
-      toolbar.appendChild(buildRangeSeg("cyclechart"));
-      oldToolbar.replaceWith(toolbar);
-    }
-    cycleChartState = {structKey, fixed, built, viewBox: targetVB, rangeDays, panOffsetDays};
+    requestAnimationFrame(frame);
   }
 
   function tileIsAvailable(tile){
@@ -4683,6 +4978,11 @@
       return;
     }
     const myGen = ++zoomGen;
+    // The power-law chart isn't part of the [data-zoom-key]/chartDomains system below (its axes aren't
+    // a uniform-by-index domain that machinery assumes - see animatePowerLawAxisChange) but a range/pan
+    // change reaching renderAllZoom() should still animate it, same as everything else here - consumed
+    // by the very next renderPowerLaw() call (via renderAllImmediate() below).
+    powerLawAnimatePending = true;
     // Shallow copy - chartDomains itself gets mutated in place by registerZoomChart() during the
     // renderAllImmediate() call right below, so without copying, prevDomains would end up pointing at
     // the same object and "the old state" would already have been overwritten with the new one.
