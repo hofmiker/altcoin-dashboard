@@ -17,6 +17,7 @@
     --good:#22935a; --caution:#b87b16; --critical:#c73f39; --neutral:#5a5fa6; --accent:#0d93ae;
     --good-bg:#22935a1a; --caution-bg:#b87b161a; --critical-bg:#c73f391a; --neutral-bg:#5a5fa61a; --accent-bg:#0d93ae1a;
     --critical-bg-strong:#c73f394d;
+    --sidebar-w:248px;
     --fg-neutral:#c9a227; --fg-neutral-bg:#c9a2271a; --fg-greed:#7a9c1f; --fg-greed-bg:#7a9c1f1a;
     --shadow:0 1px 2px rgba(20,24,34,.04), 0 8px 24px rgba(20,24,34,.06);
     --c-price:#f7931a; --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
@@ -78,19 +79,11 @@
        scrolling, entirely outside what env(safe-area-inset-bottom) accounts for, so the last card's own
        controls need real breathing room below them, not just a notch-sized margin. */
     padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    transition:margin-left .28s cubic-bezier(.22,.61,.36,1);
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
   .mono{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
-
-  /* Plain top row, own line, above everything else - a return path should be the very first thing on
-     the page, not sharing a row with the brand. */
-  .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600; align-self:flex-start;}
-  .backlink:hover{text-decoration:underline;}
-
-  .brand-row{display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:18px;}
-  .brand-id{display:flex; align-items:center; gap:10px; min-width:0;}
   .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin:0;}
-  h1{font-family:var(--font-display); font-size:30px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
   /* Simple circular ₿ mark instead of a hand-drawn glyph - same brand color BTC-Kurs already uses
      everywhere else on the page, so it reads as "this page" rather than a generic crypto icon. */
   .brand-icon{
@@ -98,68 +91,81 @@
     display:inline-flex; align-items:center; justify-content:center;
     font-family:var(--font-display); font-weight:700; font-size:17px; line-height:1;
   }
-
-  /* Sticky nav: one bar on every viewport. Desktop shows every link inline (scrolling horizontally only
-     once they overflow); mobile collapses the link list behind a burger button instead, since a dozen+
-     chart names never fit a phone-width row even with scrolling. Sits directly under the brand row,
-     sticks to the very top of the viewport once scrolled past, above every chart/card (z-index) so it
-     never gets covered - except the info popover, which must still be able to cover *it* (higher z-index)
-     when open, since it can be triggered from content that now sits right next to/under the nav. */
-  .section-nav{
-    position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:4px;
-    padding:8px 2px; margin:0 -2px; background:var(--bg); border-bottom:1px solid var(--border);
-  }
-  /* Mini brand mark, mirroring the real one above - hidden until the real brand row has scrolled out of
-     view (see the "scrolled" class, toggled by the scroll listener in wireControls), so the reader is
-     never left without any page identity/way back to the top once they've scrolled past it. */
-  .nav-brand{
-    display:none; align-items:center; gap:7px; flex:none; background:none; border:none; cursor:pointer;
-    padding:4px 6px 4px 2px; margin-right:2px; font-family:var(--font-display); font-weight:700;
-    font-size:12.5px; color:var(--ink); white-space:nowrap;
-  }
-  .section-nav.scrolled .nav-brand{display:inline-flex;}
   .brand-icon-sm{
-    width:22px; height:22px; border-radius:50%; background:var(--c-price); color:#fff; flex:none;
+    width:24px; height:24px; border-radius:50%; background:var(--c-price); color:#fff; flex:none;
     display:inline-flex; align-items:center; justify-content:center;
-    font-family:var(--font-display); font-weight:700; font-size:12px; line-height:1;
+    font-family:var(--font-display); font-weight:700; font-size:12.5px; line-height:1;
   }
-  .nav-links{display:flex; align-items:center; gap:2px; overflow-x:auto; overflow-y:hidden; flex:1 1 auto; min-width:0; scrollbar-width:none;}
-  .nav-links::-webkit-scrollbar{display:none;}
-  /* Plain text tabs, no pill background/border - an underline carries the active/hover state instead. */
-  .nav-links a{
-    flex:none; font-family:var(--font-display); font-size:12px; font-weight:600; white-space:nowrap;
-    color:var(--ink-2); text-decoration:none; padding:8px 10px; border-bottom:2px solid transparent;
-    transition:border-color .15s ease, color .15s ease;
-  }
-  .nav-links a:hover{color:var(--ink);}
-  .nav-links a.active{color:var(--accent); border-bottom-color:var(--accent);}
-  .nav-burger{
-    display:none; width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border); background:var(--card);
-    align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none; margin-right:4px;
-  }
-  .nav-burger svg{width:16px; height:16px;}
-  /* Keeps a scrolled-to section's heading from landing flush under the sticky nav bar - kept in sync
-     with the nav's own real height via --nav-offset (see syncNavOffset), since a fixed guess drifts out
-     of sync the moment the nav's content/height actually changes (e.g. the mini-brand toggling on). */
-  .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:var(--nav-offset, 56px);}
 
-  @media (max-width:700px){
-    .nav-burger{display:inline-flex;}
-    .nav-links{
-      display:none; position:absolute; left:0; right:0; top:100%; flex-direction:column; align-items:stretch;
-      background:var(--card); border-bottom:1px solid var(--border); box-shadow:var(--shadow); padding:6px 4px;
-      max-height:calc(100vh - 60px); overflow-y:auto;
-    }
-    .section-nav{position:sticky; flex-wrap:wrap;}
-    .nav-links.open{display:flex;}
-    .nav-links a{padding:11px 12px; border-bottom:1px solid var(--border); border-radius:0;}
-    .nav-links a.active{background:var(--accent-bg); border-bottom-color:var(--border);}
+  /* ---- Vertical sidebar nav ---- */
+  /* A permanent left rail on desktop, a slide-in white band on mobile (per explicit preference for this
+     over the earlier horizontal pill-less bar) - one list of every chart section, always fully visible
+     rather than scroll-collapsing/overflow-scrolling like the horizontal version had to. Off-canvas
+     (translateX(-100%)) by default at every width; .open slides it in; the desktop media query below
+     just removes the transform entirely so it's permanently docked instead of toggled. */
+  .sidebar{
+    position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); z-index:60;
+    background:var(--card); border-right:1px solid var(--border); box-shadow:var(--shadow);
+    display:flex; flex-direction:column; padding:calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    transform:translateX(-100%); transition:transform .28s cubic-bezier(.22,.61,.36,1);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-brand{display:flex; align-items:center; gap:9px; padding:4px 6px 16px; border-bottom:1px solid var(--border); margin-bottom:8px;}
+  .sidebar-brand h1{font-family:var(--font-display); font-size:17px; margin:0; font-weight:700; letter-spacing:-.01em; flex:1 1 auto; min-width:0;}
+  .sidebar-links{flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:1px; min-height:0;}
+  /* Plain rows, no pill/border chrome - a tinted background + accent text carries the active state,
+     matching how .overlay-toggle-chip's own active state already reads elsewhere on the page. */
+  .sidebar-links a{
+    display:block; padding:9px 10px; border-radius:8px; color:var(--ink-2); text-decoration:none;
+    font-size:13px; font-weight:600; font-family:var(--font-display); white-space:normal; line-height:1.3;
+    transition:background-color .15s ease, color .15s ease;
+  }
+  .sidebar-links a:hover{background:var(--inset); color:var(--ink);}
+  .sidebar-links a.active{background:var(--accent-bg); color:var(--accent);}
+  .sidebar-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 6px 2px; border-top:1px solid var(--border); margin-top:8px;}
+  .sidebar-foot .backlink{font-size:12px; color:var(--accent); text-decoration:none; font-weight:600;}
+  .sidebar-foot .backlink:hover{text-decoration:underline;}
+
+  .nav-scrim{position:fixed; inset:0; background:rgba(10,12,16,.4); z-index:55; opacity:0; pointer-events:none; transition:opacity .28s ease;}
+  .nav-scrim.show{opacity:1; pointer-events:auto;}
+
+  /* Mobile-only top bar: burger trigger + a tappable mini brand (jumps to top), always visible rather
+     than scroll-collapsing since the real brand now lives off-canvas in the sidebar, not in the page's
+     own scrolling content. Hidden entirely on desktop, where the sidebar is permanently docked instead. */
+  .mobile-topbar{
+    display:none; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    padding-top:calc(10px + env(safe-area-inset-top));
+    background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
+  }
+  .nav-burger{
+    width:34px; height:34px; border-radius:9px; border:1.5px solid var(--border); background:var(--card);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
+  }
+  .nav-burger svg{width:17px; height:17px;}
+  .nav-brand{
+    display:inline-flex; align-items:center; gap:7px; flex:none; background:none; border:none; cursor:pointer;
+    padding:2px; font-family:var(--font-display); font-weight:700; font-size:14.5px; color:var(--ink);
+  }
+
+  /* Keeps a scrolled-to section's heading from landing flush under the mobile top bar - kept in sync
+     with that bar's own real height via --nav-offset (see syncNavOffset); 0 on desktop, where nothing
+     sticky overlaps the top of the viewport any more (the nav lives in the left rail, not up top). */
+  .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:var(--nav-offset, 0px);}
+
+  @media (max-width:899.98px){
+    .mobile-topbar{display:flex;}
+    .page.nav-pushed{margin-left:var(--sidebar-w);}
+  }
+  @media (min-width:900px){
+    .sidebar{transform:none; box-shadow:none;}
+    .nav-scrim{display:none;}
+    .page{margin-left:var(--sidebar-w);}
   }
 
   .theme-toggle{
     width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:var(--card);
     display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
-    transition:border-color .15s ease, color .15s ease; margin-left:6px;
+    transition:border-color .15s ease, color .15s ease;
   }
   .theme-toggle:hover{border-color:var(--accent); color:var(--accent);}
   .theme-toggle svg{width:16px; height:16px;}
@@ -175,9 +181,9 @@
   }
   .info-btn:hover, .info-btn[aria-expanded="true"]{border-color:var(--accent); color:var(--accent);}
   .info-pop{
-    /* Above .section-nav's own z-index:40 - the header's own info button sits right next to the nav
-       (and, once collapsed-into-nav, effectively inside its row), so its popover must be able to cover
-       the nav rather than render underneath it. */
+    /* The header's own info button now lives inside the sidebar's brand row (see .sidebar-brand) - its
+       popover flies out to the right into the main content area rather than being clipped to the
+       sidebar's own ~248px width, which is narrower than the popover itself. */
     position:absolute; top:26px; left:0; z-index:50; width:280px; max-width:min(80vw,320px);
     background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 15px;
     box-shadow:var(--shadow); font-size:12.5px; color:var(--ink-2); line-height:1.55; display:none;
@@ -401,33 +407,36 @@
 </style>
 </head>
 <body>
+<div class="nav-scrim" id="navScrim"></div>
+
+<nav class="sidebar" id="sectionNav" aria-label="Chart-Navigation">
+  <div class="sidebar-brand">
+    <span class="brand-icon" aria-hidden="true">₿</span>
+    <h1>Bitcoin Dashboard</h1>
+    <span id="headerInfo"></span>
+  </div>
+  <div class="sidebar-links" id="navLinks"></div>
+  <div class="sidebar-foot">
+    <a class="backlink" href="../index.html">← Alle Dashboards</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-topbar" id="mobileTopbar">
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Menü öffnen" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <button type="button" class="nav-brand" id="navBrand" aria-label="Nach oben" title="Nach oben">
+    <span class="brand-icon-sm" aria-hidden="true">₿</span>
+    <span>Bitcoin Dashboard</span>
+  </button>
+</div>
+
 <div class="page">
   <div class="wrap">
-
-    <a class="backlink" href="../index.html">← Alle Dashboards</a>
-
-    <div class="brand-row" id="brandRow">
-      <div class="brand-id">
-        <span class="brand-icon" aria-hidden="true">₿</span>
-        <h1>Bitcoin Dashboard</h1>
-      </div>
-      <span id="headerInfo"></span>
-    </div>
-
-    <nav class="section-nav" id="sectionNav" aria-label="Chart-Navigation">
-      <button type="button" class="nav-brand" id="navBrand" aria-label="Nach oben" title="Nach oben">
-        <span class="brand-icon-sm" aria-hidden="true">₿</span>
-        <span>Bitcoin Dashboard</span>
-      </button>
-      <button type="button" class="nav-burger" id="navBurger" aria-label="Menü öffnen" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
-      <div class="nav-links" id="navLinks"></div>
-      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
-        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
-      </button>
-    </nav>
 
     <div class="tab-status" id="statusBanner" style="display:none;"></div>
 
@@ -4269,6 +4278,18 @@
   // One flat, horizontally-scrollable chip row lists every chart section - power-law/overlay/hero plus
   // one entry per currently-available tile - and works identically on desktop and mobile (it just
   // overflows into horizontal scroll on narrow viewports rather than needing a separate sidebar layout).
+  // Mobile-only open/close for the sidebar (permanently docked on desktop instead - see the .sidebar
+  // media query in the stylesheet, which removes the transform entirely there, making these a no-op in
+  // practice on wide viewports since .open never gets checked/rendered against anything visible).
+  function setSidebarOpen(open){
+    document.getElementById("sectionNav")?.classList.toggle("open", open);
+    document.getElementById("navScrim")?.classList.toggle("show", open);
+    document.getElementById("navBurger")?.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  function openSidebar(){ setSidebarOpen(true); }
+  function closeSidebar(){ setSidebarOpen(false); }
+  function toggleSidebar(){ setSidebarOpen(!document.getElementById("sectionNav")?.classList.contains("open")); }
+
   function renderSectionNav(){
     const nav = document.getElementById("sectionNav");
     const list = document.getElementById("navLinks");
@@ -4284,8 +4305,7 @@
     list.querySelectorAll("a").forEach(a=>{
       a.addEventListener("click", e=>{
         e.preventDefault();
-        list.classList.remove("open");
-        document.getElementById("navBurger")?.setAttribute("aria-expanded","false");
+        closeSidebar();
         document.getElementById(a.dataset.navTarget)?.scrollIntoView({behavior:"smooth", block:"start"});
       });
     });
@@ -4294,20 +4314,24 @@
 
   // Keeps --nav-offset (the CSS scroll-margin-top every section target uses - see the stylesheet) and
   // this function's own "is this section now current" threshold reading the exact same number, always
-  // measured fresh from the nav's real current height. Before this the two were computed separately (a
-  // hardcoded scroll-margin-top vs. a live-measured nav height), which only agreed by coincidence - the
-  // mismatch is exactly what made the wrong (previous) chip stay highlighted right after a click, since
-  // scrollIntoView had already landed the target exactly at the CSS value while this comparison was still
-  // checking against a slightly different number.
+  // measured fresh from the mobile top bar's real current height - 0 whenever that bar isn't the thing
+  // rendering (desktop, where the nav lives in the permanently-docked left sidebar instead and nothing
+  // sticky overlaps the top of the viewport). Before this the two were computed separately (a hardcoded
+  // scroll-margin-top vs. a live-measured bar height), which only agreed by coincidence - the mismatch is
+  // exactly what made the wrong (previous) chip stay highlighted right after a click, since scrollIntoView
+  // had already landed the target exactly at the CSS value while this comparison was still checking
+  // against a slightly different number.
   function currentNavOffset(){
-    const nav = document.getElementById("sectionNav");
-    return (nav ? nav.getBoundingClientRect().height : 48) + 8;
+    const bar = document.getElementById("mobileTopbar");
+    if(!bar || getComputedStyle(bar).display === "none") return 0;
+    return bar.getBoundingClientRect().height + 8;
   }
   function syncNavOffset(){
     document.documentElement.style.setProperty("--nav-offset", currentNavOffset()+"px");
   }
 
-  // Highlights whichever chip corresponds to the section currently scrolled just under the sticky bar.
+  // Highlights whichever chip corresponds to the section currently scrolled just under the mobile top
+  // bar (or, on desktop, just whichever is nearest the top of the viewport - see currentNavOffset).
   // Re-queries target elements by id fresh on every call instead of caching them once, since
   // renderAllImmediate() tears down and rebuilds practically every section's DOM on most state changes.
   let lastActiveNavId = null;
@@ -4328,12 +4352,6 @@
       if(el && el.getBoundingClientRect().top <= threshold+1.5) activeId = a.dataset.navTarget;
     }
     links.forEach(a=> a.classList.toggle("active", a.dataset.navTarget === activeId));
-    // The brand row (real headline) having scrolled out of view is exactly the point past which the
-    // reader has lost sight of any page identity/way back to the top - the same threshold used for
-    // "which section is current" works here too, since brandRow sits right above the nav's own sticky
-    // position.
-    const brandRow = document.getElementById("brandRow");
-    if(brandRow) nav.classList.toggle("scrolled", brandRow.getBoundingClientRect().bottom <= 0);
     if(activeId !== lastActiveNavId){
       lastActiveNavId = activeId;
       nav.querySelector("a.active")?.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"});
@@ -5106,7 +5124,7 @@
       <div class="info-pop-section">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.</div>
       <div class="info-pop-section"><p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p></div>
       <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
-    `, {html:true, alignRight:true});
+    `, {html:true});
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
     attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung. Der kleine Chart zeigt den MVRV-Perzentil-Verlauf mit dem aktuellen Stand sowie, falls vorhanden, dem historischen Vergleichszeitpunkt.", {alignRight:true});
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
@@ -5131,27 +5149,16 @@
       requestAnimationFrame(()=>{ updateSectionNavActive(); navScrollTicking = false; });
     }, {passive:true});
 
-    // navBrand/navBurger are static (outside #navLinks, so renderSectionNav() never touches them) -
-    // wired once here, not per-render.
+    // navBrand/navBurger/navScrim are static (outside the sidebar's own #navLinks, so renderSectionNav()
+    // never touches them) - wired once here, not per-render.
     document.getElementById("navBrand")?.addEventListener("click", ()=>{
       window.scrollTo({top:0, behavior:"smooth"});
     });
-    const burger = document.getElementById("navBurger");
-    const navLinks = document.getElementById("navLinks");
-    if(burger && navLinks){
-      burger.addEventListener("click", e=>{
-        e.stopPropagation();
-        const willOpen = !navLinks.classList.contains("open");
-        navLinks.classList.toggle("open", willOpen);
-        burger.setAttribute("aria-expanded", willOpen ? "true" : "false");
-      });
-      document.addEventListener("click", e=>{
-        if(navLinks.classList.contains("open") && !navLinks.contains(e.target) && e.target!==burger){
-          navLinks.classList.remove("open");
-          burger.setAttribute("aria-expanded","false");
-        }
-      });
-    }
+    document.getElementById("navBurger")?.addEventListener("click", e=>{
+      e.stopPropagation();
+      toggleSidebar();
+    });
+    document.getElementById("navScrim")?.addEventListener("click", closeSidebar);
   }
 
   async function loadAndRender(force){
