@@ -313,19 +313,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$61.500–64.000</div>
-          <div class="ctx">Pendelt seitwärts bei ~$64,3k (+0,2% heute), ETH etwas fester (+1,1%)</div>
+          <div class="value mono">$64.000–70.000</div>
+          <div class="ctx">Springt auf ~$69,6k (+8,8% heute) — $1 Mrd. Short-Squeeze, ETH sogar +18,5% auf ~$2.252</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">30 / 100</div>
-          <div class="ctx">Weiterhin bei 30 (keine neue verlässlich datierte Messung gefunden) — klar in der Bitcoin-Season-Zone, weit unter der Schwelle von 75</div>
+          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — ETH deutlich stärker als BTC, tendenziell Richtung Altcoin-Rotation, aber noch keine bestätigte Messung über 30 hinaus</div>
           <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~56,1%</div>
-          <div class="ctx">Weiterhin bei ~56,1% (keine neue verlässlich datierte Messung gefunden)</div>
+          <div class="value mono">~57%</div>
+          <div class="ctx">Eigene Berechnung aus BTC-Marktkap. ($1,40 Bio.) vs. Gesamtmarkt (~$2,45 Bio.) — trotz ETH-Outperformance kaum verändert, da BTC selbst stark zulegt</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–19.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–20.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "20.08.2026", text: "Massiver Rallye-Tag: Bitcoin springt um 8,8% auf ~$69,6k, Ethereum sogar um 18,5% auf ~$2.252 — ausgelöst durch einen $1-Mrd.-Short-Squeeze (über $1,9 Mrd. Liquidationen binnen 24h), gestützt von ausgeweiteten US-Treasury-Anleihenrückkäufen, fallenden Renditen und positiveren Regulierungs-Erwartungen. Unter den Large-Caps stach HYPE mit +19% besonders hervor, auch SOL (+10%) und XRP (+10%) liefen deutlich mit — insgesamt aber ein breiter, marktweiter Squeeze statt eines Einzeltitel-Katalysators. Kein Small-Cap-Kandidat erfüllte unser Frische-Kriterium: Cashcat (CASHCAT) und der Bitget-Fusionist-Kurssprung stammen bereits aus der Vorwoche, Pepecoin (PEP, +117%) blieb ein extrem dünn gehandelter Mikro-Cap-Ausreißer ohne erkennbaren Katalysator." },
     { date: "19.08.2026", text: "Bitcoin pendelt seitwärts bei ~$64,3k (+0,2%), Ethereum legt etwas stärker zu (+1,1%) — ein ruhiger Handelstag ohne klare Richtung. Altcoin Season Index und BTC-Dominanz bleiben mangels neuer verlässlicher Messung unverändert bei 30 bzw. ~56,1%. Auffällig: Arthur Hayes kündigte mit Flop Labs/FLOP-Token ein neues AI-Agenten-Zahlungsnetzwerk an — spannend als Narrativ, aber ohne handelbaren Token, Whitepaper oder Tokenomics (Genesis erst Q1 2027) für die Watchlist noch nicht qualifiziert." },
     { date: "18.08.2026", text: "Bitcoin klettert weiter auf ~$64,3k (+1,2%), Ethereum bewegt sich kaum (+0,2%) — ein ruhiger, leicht positiver Handelstag. Altcoin Season Index und BTC-Dominanz bleiben mangels neuer verlässlicher Messung unverändert bei 30 bzw. ~56,1%. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — GoPlus Security (GPS, +47–63% je nach Quelle) lief bereits mit RSI 84,97 im überkauften Bereich und einem 8 Tage alten Hack-Analyse-Katalysator, Starpower (STAR) wurde nur auf KuCoin/MEXC gelistet, keine Tier-1-Börse." },
     { date: "17.08.2026", text: "Bitcoin klettert leicht auf ~$63,5k (+0,9%), Ethereum legt stärker zu (+1,4%) — ein ruhiger, moderat positiver Handelstag. Der Altcoin Season Index fällt weiter von 37 auf 30, BTC-Dominanz sinkt dagegen leicht von ~58% auf ~56,1% — kein einheitliches Rotationssignal, Kapital bleibt insgesamt vorsichtig verteilt. Auffällig: keine frischen Tier-1-Listings oder neuen Einzeltitel-Katalysatoren gefunden — Arthur Hayes' fortgesetzte Käufe über mehrere DeFi-Large-Caps (ENA, ETHFI, PENDLE, LDO) bleiben das einzige wiederkehrende Whale-Signal, ein AI-Memory-Token (Unibase, $345 Mio. Market Cap) legte 11% zu, ist aber bereits etabliert und ohne fresh-Katalysator." },
