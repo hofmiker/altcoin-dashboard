@@ -3119,6 +3119,26 @@
     for(let i=loPts.length-1;i>=0;i--) d += "L"+loPts[i].x.toFixed(1)+","+loPts[i].y.toFixed(1)+" ";
     return d + "Z";
   }
+  // Resamples a polyline to exactly n points, evenly spaced by FRACTIONAL POSITION along its own existing
+  // points (not by x-coordinate or date) - linearly interpolating between whichever two original points
+  // straddle each new fraction. Used to make animatePowerLawFromLayout/animateCycleChartFromLayout's own
+  // lerpPts pair up old vs. new price lines correctly when the two windows have very different point
+  // counts (e.g. "Alles" vs. "1J" - thousands of days vs. a few hundred): lerping mismatched arrays
+  // index-by-index leaves whichever side has more points with a stale, unlerped tail dragging along
+  // behind the ones that ran out on the other side, which reads as a second, wrong line traced across the
+  // chart mid-animation (and, without a fresh re-render at the very end, even after it). Resampling BOTH
+  // sides to the same length first means every paired point genuinely corresponds to "the same place
+  // along the curve" on both ends, so the whole line morphs smoothly instead.
+  function resamplePtsToLength(pts, n){
+    if(pts.length === n || pts.length < 2) return pts;
+    const out = [];
+    for(let i=0;i<n;i++){
+      const pos = (i/(n-1))*(pts.length-1);
+      const lo = Math.floor(pos), hi = Math.min(pts.length-1, lo+1), t = pos-lo;
+      out.push({x: pts[lo].x+(pts[hi].x-pts[lo].x)*t, y: pts[lo].y+(pts[hi].y-pts[lo].y)*t});
+    }
+    return out;
+  }
 
   // Builds the actual SVG/DOM from an already-computed layout (see computePowerLawLayout) - kept
   // separate so an axis-toggle animation can build the true end state once, then drive its elements'
@@ -3790,7 +3810,11 @@
       const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
       const eased = zoomEase(raw);
       const lerp = (a,b)=> a+(b-a)*eased;
-      const lerpPts = (A,B)=> A.map((p,i)=> B[i] ? ({x:lerp(p.x,B[i].x), y:lerp(p.y,B[i].y)}) : p);
+      const lerpPts = (A,B)=>{
+        const n = Math.max(A.length,B.length);
+        const AA = resamplePtsToLength(A,n), BB = resamplePtsToLength(B,n);
+        return AA.map((p,i)=> ({x:lerp(p.x,BB[i].x), y:lerp(p.y,BB[i].y)}));
+      };
 
       if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
       if(fitLine) fitLine.setAttribute("d", pathD(lerpPts(oldLayout.fitPts, newLayout.fitPts)));
@@ -4216,7 +4240,7 @@
     panel.innerHTML = "";
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
-    headRow.innerHTML = `<h3>BTC-Kurs (Marktzyklen)</h3>`;
+    headRow.innerHTML = `<h3>Marktzyklen</h3>`;
     panel.appendChild(headRow);
     attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Zeigt ausschließlich die echte Kurshistorie, keine Projektion in die Zukunft.`);
 
@@ -4301,7 +4325,11 @@
       const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
       const eased = zoomEase(raw);
       const lerp = (a,b)=> a+(b-a)*eased;
-      const lerpPts = (A,B)=> A.map((p,i)=> B[i] ? ({x:lerp(p.x,B[i].x), y:lerp(p.y,B[i].y)}) : p);
+      const lerpPts = (A,B)=>{
+        const n = Math.max(A.length,B.length);
+        const AA = resamplePtsToLength(A,n), BB = resamplePtsToLength(B,n);
+        return AA.map((p,i)=> ({x:lerp(p.x,BB[i].x), y:lerp(p.y,BB[i].y)}));
+      };
 
       if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
       // Halvings/zones matched by date, not index - a range/pan change (unlike an axis toggle) can add
@@ -4525,7 +4553,13 @@
   // bar (or, on desktop, just whichever is nearest the top of the viewport - see currentNavOffset).
   // Re-queries target elements by id fresh on every call instead of caching them once, since
   // renderAllImmediate() tears down and rebuilds practically every section's DOM on most state changes.
-  let lastActiveNavId = null;
+  // Deliberately does NOT scrollIntoView() the active link to keep it visible within the sidebar's own
+  // scrollable list (this used to, on every scroll-triggered highlight change) - scrollIntoView on an
+  // element inside a position:fixed ancestor is a known source of the *whole page* jumping/scrolling
+  // instead of just the intended nearest scroll container, especially on iOS Safari, which is exactly
+  // what "die Navi rutscht beim Scrollen nach oben" turned out to be. The sidebar normally has enough
+  // room to show every link without needing to scroll itself in the first place, so losing this was an
+  // easy trade.
   function updateSectionNavActive(){
     const nav = document.getElementById("sectionNav");
     const list = document.getElementById("navLinks");
@@ -4543,10 +4577,6 @@
       if(el && el.getBoundingClientRect().top <= threshold+1.5) activeId = a.dataset.navTarget;
     }
     links.forEach(a=> a.classList.toggle("active", a.dataset.navTarget === activeId));
-    if(activeId !== lastActiveNavId){
-      lastActiveNavId = activeId;
-      nav.querySelector("a.active")?.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"});
-    }
   }
 
   function renderOverlay(view){
@@ -5314,8 +5344,8 @@
     // see loadDeployInfo - #deployInfo keeps working unchanged, it's just relocated here now), and the
     // data source/freshness line setStatus() updates on every load (see #statusInfoContent there).
     attachInfo(document.getElementById("headerInfo"), `
-      <div class="info-pop-section">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.</div>
-      <div class="info-pop-section"><p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p></div>
+      <div class="info-pop-section">Das Bitcoin Dashboard vereint die wichtigsten On-Chain-Kennzahlen an einem Ort: Marktzyklen mit Bull-/Bärenmarkt-Zonen, das Power-Law-Fair-Value-Modell mit Regenbogen-Bändern und die MVRV-Bewertung (Markt- vs. Realized Price). Jeder Chart ist interaktiv und wird live aus echten On-Chain-Daten berechnet – direkt im Browser, ganz ohne Server im Hintergrund.</div>
+      <div class="info-pop-section">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></div>
       <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
     `, {html:true});
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
