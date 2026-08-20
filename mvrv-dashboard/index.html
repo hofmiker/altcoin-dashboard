@@ -67,10 +67,12 @@
 
   *{box-sizing:border-box}
   html{background:var(--bg);}
-  body{margin:0; background:var(--bg); overflow-x:hidden;}
+  /* font-family lives here, not on .page, so the sidebar/mobile topbar - both moved outside .page's own
+     box when the nav became a fixed-position sibling instead of an in-flow child (see .sidebar below) -
+     still inherit it too, instead of falling back to the browser's own serif default. */
+  body{margin:0; background:var(--bg); overflow-x:hidden; font-family:var(--font-body); color:var(--ink);}
   .page{
     background:var(--bg); color:var(--ink); min-height:100%;
-    font-family:var(--font-body);
     /* Plain padding on 3 sides, plus whatever the device's own notch/status-bar/home-indicator reserves
        (0 on any normal browser tab - env() only resolves to something nonzero in a fullscreen/notched
        context such as an installed PWA or an in-app webview), so content never renders underneath it.
@@ -98,11 +100,11 @@
   }
 
   /* ---- Vertical sidebar nav ---- */
-  /* A permanent left rail on desktop, a slide-in white band on mobile (per explicit preference for this
-     over the earlier horizontal pill-less bar) - one list of every chart section, always fully visible
-     rather than scroll-collapsing/overflow-scrolling like the horizontal version had to. Off-canvas
-     (translateX(-100%)) by default at every width; .open slides it in; the desktop media query below
-     just removes the transform entirely so it's permanently docked instead of toggled. */
+  /* A collapsible left rail - permanently pushes the content over when open on wide viewports, slides in
+     as an overlay band above a dimming scrim on narrow ones. Always governed by the single .open class
+     (toggled in JS - see setSidebarOpen), never automatically forced open by a media query alone, so the
+     same collapse/expand affordance (the topbar's burger button) works at every width. Off-canvas
+     (translateX(-100%)) whenever not .open. */
   .sidebar{
     position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); z-index:60;
     background:var(--card); border-right:1px solid var(--border); box-shadow:var(--shadow);
@@ -112,6 +114,14 @@
   .sidebar.open{transform:translateX(0);}
   .sidebar-brand{display:flex; align-items:center; gap:9px; padding:4px 6px 16px; border-bottom:1px solid var(--border); margin-bottom:8px;}
   .sidebar-brand h1{font-family:var(--font-display); font-size:17px; margin:0; font-weight:700; letter-spacing:-.01em; flex:1 1 auto; min-width:0;}
+  /* Collapse trigger, lives right in the sidebar itself (mirrors the topbar's burger, which is the
+     matching expand trigger once collapsed) - a plain chevron rather than a second burger icon, since a
+     burger reads as "open a menu" and this one's already open. */
+  .sidebar-collapse-btn{
+    width:26px; height:26px; border-radius:7px; border:1.5px solid var(--border); background:var(--card);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
+  }
+  .sidebar-collapse-btn svg{width:14px; height:14px;}
   .sidebar-links{flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:1px; min-height:0;}
   /* Plain rows, no pill/border chrome - a tinted background + accent text carries the active state,
      matching how .overlay-toggle-chip's own active state already reads elsewhere on the page. */
@@ -126,17 +136,20 @@
   .sidebar-foot .backlink{font-size:12px; color:var(--accent); text-decoration:none; font-weight:600;}
   .sidebar-foot .backlink:hover{text-decoration:underline;}
 
+  /* Only actually dims/blocks anything below 900px (see the media query below) - present in the DOM at
+     every width regardless, simplest to always toggle the same "show" class in JS either way. */
   .nav-scrim{position:fixed; inset:0; background:rgba(10,12,16,.4); z-index:55; opacity:0; pointer-events:none; transition:opacity .28s ease;}
   .nav-scrim.show{opacity:1; pointer-events:auto;}
 
-  /* Mobile-only top bar: burger trigger + a tappable mini brand (jumps to top), always visible rather
-     than scroll-collapsing since the real brand now lives off-canvas in the sidebar, not in the page's
-     own scrolling content. Hidden entirely on desktop, where the sidebar is permanently docked instead. */
+  /* Collapsed-state top bar: burger trigger (re-expands the sidebar) + a tappable mini brand (jumps to
+     top). Shown whenever the sidebar itself is NOT open, at any viewport width - not just mobile, now
+     that the sidebar is collapsible everywhere rather than permanently forced open past 900px. */
   .mobile-topbar{
-    display:none; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    display:flex; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
     padding-top:calc(10px + env(safe-area-inset-top));
     background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
   }
+  .mobile-topbar.hidden{display:none;}
   .nav-burger{
     width:34px; height:34px; border-radius:9px; border:1.5px solid var(--border); background:var(--card);
     display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
@@ -147,19 +160,16 @@
     padding:2px; font-family:var(--font-display); font-weight:700; font-size:14.5px; color:var(--ink);
   }
 
-  /* Keeps a scrolled-to section's heading from landing flush under the mobile top bar - kept in sync
-     with that bar's own real height via --nav-offset (see syncNavOffset); 0 on desktop, where nothing
-     sticky overlaps the top of the viewport any more (the nav lives in the left rail, not up top). */
+  /* Keeps a scrolled-to section's heading from landing flush under the collapsed-state top bar - kept in
+     sync with that bar's own real height via --nav-offset (see syncNavOffset); 0 whenever that bar isn't
+     rendering (the sidebar is open, so nothing sticky overlaps the top of the viewport any more). */
   .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:var(--nav-offset, 0px);}
 
-  @media (max-width:899.98px){
-    .mobile-topbar{display:flex;}
-    .page.nav-pushed{margin-left:var(--sidebar-w);}
-  }
+  /* Past 900px an open sidebar pushes the content over (room enough that overlaying it would waste
+     space); below that it always overlays above the dimming scrim instead, regardless of open state. */
   @media (min-width:900px){
-    .sidebar{transform:none; box-shadow:none;}
+    .page.nav-pushed{margin-left:var(--sidebar-w);}
     .nav-scrim{display:none;}
-    .page{margin-left:var(--sidebar-w);}
   }
 
   .theme-toggle{
@@ -414,6 +424,9 @@
     <span class="brand-icon" aria-hidden="true">₿</span>
     <h1>Bitcoin Dashboard</h1>
     <span id="headerInfo"></span>
+    <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Navigation einklappen" title="Navigation einklappen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4 9 12l6 8"/></svg>
+    </button>
   </div>
   <div class="sidebar-links" id="navLinks"></div>
   <div class="sidebar-foot">
@@ -872,6 +885,10 @@
   // Which date the "Marktzyklen" chart's own crosshair sits on - mirrors powerLawCrosshairDate below
   // (own module-level date, not index, for the same reasons).
   let cycleChartCrosshairDate = null;
+  // Which bull/bear zone (if any) currently has its tap-to-annotate label pinned open - keyed by the
+  // zone's own toDate (see computeCycleChartLayout's pushRun), not an array index, since that index's
+  // meaning can shift between renders (a range/pan change adds or drops zones ahead of it).
+  let cycleChartActiveZoneKey = null;
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -3902,9 +3919,10 @@
     // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter), plus their bull
     // (green)/bear(red) background zones - a rectangle per swing between one confirmed extreme and the
     // next, mirroring the well-known "Bitcoin bull/bear market cycles" chart style. Per explicit feedback,
-    // each zone's own height is capped at the price of whichever extreme it leads to (not the full chart
-    // height) - a taller cycle then visibly reads as taller than a smaller one, instead of every zone
-    // looking identical regardless of how big that swing actually was.
+    // each zone's box connects its own two bounding extremes exactly (top-left at the top's price,
+    // bottom-right at the bottom's price for a bear zone; the mirror image for a bull one) rather than
+    // reaching down to the full chart floor - a taller cycle then visibly reads as taller than a smaller
+    // one, instead of every zone looking identical regardless of how big that swing actually was.
     const confirmedFlags = cycleExtremesEffective(FULL.price).map(pt=>({...pt, confirmed:true}));
     const tentativeFlag = cycleTentativeExtremeAfter(FULL.price, confirmedFlags);
     const allFlagsRaw = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
@@ -3914,27 +3932,44 @@
 
     const zones = cycleChartLayerVisible.zyklus ? (()=>{
       const out = [];
-      // Clamped to the visible plot area - a swing that started well before the current window (e.g. a
-      // multi-year-old cycle still visible at "Alles") would otherwise compute a wildly out-of-bounds x,
-      // and with the SVG's own overflow:visible (needed elsewhere for rotated axis labels/flag glyphs
-      // that legitimately overhang the plot edge a little), that rendered as a huge, bleeding-off-the-
-      // page rectangle instead of just quietly starting at the left edge like it should.
-      const pushRun = (fromDays, toDate, toPrice, bull)=> out.push({
-        x0: Math.max(padL, Math.min(w-padR, xOf(fromDays))),
-        x1: Math.max(padL, Math.min(w-padR, xOf(daysSinceGenesis(toDate)))),
-        yTop:yOf(toPrice), bull
-      });
+      // Skips (rather than just x-clamps) any run whose real, unclamped span doesn't overlap the visible
+      // window at all - a swing that started well before the current window (e.g. a multi-year-old cycle
+      // still visible at "Alles") would otherwise still get its y geometry computed from real but
+      // completely out-of-range prices, and with the SVG's own overflow:visible (needed elsewhere for
+      // rotated axis labels/flag glyphs that legitimately overhang the plot edge a little), that rendered
+      // as a huge, bleeding-off-the-page rectangle instead of just quietly not existing. Runs that DO
+      // overlap still get x0/x1 clamped to the plot edges for rendering, while fromDays/toDate keep the
+      // box's own real (unclamped) day span and both endpoint prices around too - not just for the y
+      // geometry above, but so a tap on the box (see renderCycleChartDOM) can report its true width in
+      // days and height in price, not whatever got clamped to the visible edge.
+      const pushRun = (fromDays, fromPrice, toDate, toPrice, bull)=>{
+        const toDays = daysSinceGenesis(toDate);
+        const xRaw0 = xOf(fromDays), xRaw1 = xOf(toDays);
+        if(Math.max(xRaw0,xRaw1) < padL || Math.min(xRaw0,xRaw1) > w-padR) return;
+        out.push({
+          x0: Math.max(padL, Math.min(w-padR, xRaw0)),
+          x1: Math.max(padL, Math.min(w-padR, xRaw1)),
+          yTop: yOf(Math.max(fromPrice,toPrice)), yBot: yOf(Math.min(fromPrice,toPrice)),
+          bull, fromDays, toDays, fromPrice, toPrice, toDate
+        });
+      };
       if(confirmedFlags.length){
         const first = confirmedFlags[0];
-        pushRun(daysMin, first.date, first.value, first.dir>0);
+        // Only meaningful when the window genuinely starts before any extreme has ever been recorded
+        // (essentially just "Alles") - for any window starting later, the pairwise loop below already
+        // covers "whichever zone is in progress when the window opens" using two real, contextually
+        // appropriate prices, so this synthetic pairing (window start vs. the very first-ever extreme,
+        // however far apart the two actually are) would otherwise be both redundant AND liable to pair a
+        // recent window edge with a wildly out-of-range historical price.
+        if(daysMin < daysSinceGenesis(first.date)) pushRun(daysMin, allPoints[0].price, first.date, first.value, first.dir>0);
         for(let i=0;i<confirmedFlags.length-1;i++){
           const a=confirmedFlags[i], b=confirmedFlags[i+1];
-          pushRun(daysSinceGenesis(a.date), b.date, b.value, b.dir>0);
+          pushRun(daysSinceGenesis(a.date), a.value, b.date, b.value, b.dir>0);
         }
         const last = confirmedFlags[confirmedFlags.length-1];
-        if(tentativeFlag) pushRun(daysSinceGenesis(last.date), tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
+        if(tentativeFlag) pushRun(daysSinceGenesis(last.date), last.value, tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
       } else if(tentativeFlag){
-        pushRun(daysMin, tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
+        pushRun(daysMin, allPoints[0].price, tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
       }
       return out.filter(z => (Math.max(z.x0,z.x1)>=padL-1 && Math.min(z.x0,z.x1)<=w-padR+1));
     })() : [];
@@ -3956,14 +3991,34 @@
     svg.setAttribute("role","img");
 
     if(cycleChartLayerVisible.zyklus){
+      // A zone's own box connects its two REAL bounding prices exactly (see computeCycleChartLayout) -
+      // when one of those prices belongs to an extreme from well outside the current window (a swing
+      // that started years before a narrow "1J"/"6M" range, say), that price can map to a y-position far
+      // past the visible plot's own top/bottom, and without an explicit clip the site's own
+      // svg{overflow:visible} rule (needed elsewhere for rotated axis labels/flag glyphs that
+      // legitimately overhang the plot edge a little) would let it bleed out across the rest of the page
+      // instead of just quietly running past the card's own edge.
+      const clipId = "cyc-plot-clip-" + Math.random().toString(36).slice(2,9);
+      const defs = document.createElementNS(NS,"defs");
+      const clipPath = document.createElementNS(NS,"clipPath");
+      clipPath.setAttribute("id", clipId);
+      const clipRect = document.createElementNS(NS,"rect");
+      clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+      clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+      clipPath.appendChild(clipRect);
+      defs.appendChild(clipPath);
+      svg.appendChild(defs);
+      const zoneGroup = document.createElementNS(NS,"g");
+      zoneGroup.setAttribute("clip-path", `url(#${clipId})`);
       layout.zones.forEach(z=>{
         const rect = document.createElementNS(NS,"rect");
         rect.setAttribute("class","cyc-zone");
         rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", z.yTop);
-        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(h-padB-z.yTop,0));
+        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(z.yBot-z.yTop,0));
         rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.14");
-        svg.appendChild(rect);
+        zoneGroup.appendChild(rect);
       });
+      svg.appendChild(zoneGroup);
     }
 
     layout.yTicks.forEach(t=>{
@@ -4016,6 +4071,59 @@
       svg.appendChild(g);
     });
 
+    // Tap-to-annotate for the bull/bear zones - reports the box's own width in days and height in price
+    // (absolute and %), in the same color as the box itself. Only one label shown at a time, keyed by the
+    // zone's own toDate (stable across re-renders, unlike an array index - a range/pan change can add or
+    // drop zones ahead of the one that was tapped) rather than array position; tapping the same zone
+    // again hides it, matching the flag markers' own tap-to-pin toggle behavior elsewhere on this chart.
+    const zoneLabelLayer = document.createElementNS(NS,"g");
+    zoneLabelLayer.setAttribute("class","cyc-zone-label-layer");
+    // The label renders on top of hitRect (so it's visible over the crosshair/zones) but must never
+    // intercept pointer events itself - otherwise a second tap landing back on the label's own background
+    // (centered right over the zone it annotates) would miss hitRect underneath and fail to toggle it
+    // back off.
+    zoneLabelLayer.style.pointerEvents = "none";
+    function paintZoneLabel(){
+      zoneLabelLayer.innerHTML = "";
+      const z = layout.zones.find(zz=> zz.toDate === cycleChartActiveZoneKey);
+      if(!z) return;
+      const color = z.bull ? "var(--good)" : "var(--critical)";
+      const cx = (Math.min(z.x0,z.x1)+Math.max(z.x0,z.x1))/2;
+      const cy = (z.yTop+z.yBot)/2;
+      const days = Math.round(z.toDays-z.fromDays);
+      const priceDiff = Math.abs(z.toPrice-z.fromPrice);
+      const pct = (z.toPrice/z.fromPrice - 1)*100;
+      const line1 = `${days.toLocaleString("de-DE")} Tage`;
+      const line2 = `${fmtUSD(priceDiff)} (${pct>=0?"+":""}${pct.toFixed(1)}%)`;
+      const boxW = Math.max(line1.length, line2.length)*6.3 + 18;
+      const bg = document.createElementNS(NS,"rect");
+      bg.setAttribute("x", (cx-boxW/2).toFixed(1)); bg.setAttribute("y", (cy-18).toFixed(1));
+      bg.setAttribute("width", boxW.toFixed(1)); bg.setAttribute("height","36"); bg.setAttribute("rx","7");
+      bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke",color); bg.setAttribute("stroke-width","1.3");
+      zoneLabelLayer.appendChild(bg);
+      [[line1,cy-3],[line2,cy+11]].forEach(([txt,y])=>{
+        const t = document.createElementNS(NS,"text");
+        t.setAttribute("x",cx.toFixed(1)); t.setAttribute("y",y.toFixed(1)); t.setAttribute("text-anchor","middle");
+        t.setAttribute("font-size","10.5"); t.setAttribute("font-weight","700"); t.setAttribute("fill",color);
+        t.textContent = txt;
+        zoneLabelLayer.appendChild(t);
+      });
+    }
+    // Hit-tested against click/tap coordinates directly rather than a per-rect listener - the hitRect
+    // below sits on top of the zone rects (needed for its own crosshair drag/hover), which would
+    // otherwise swallow every pointer event before it ever reached them.
+    function checkZoneTap(clientX, clientY){
+      if(!cycleChartLayerVisible.zyklus) return;
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const svgX = (clientX-rect.left)/(rect.width/w), svgY = (clientY-rect.top)/(rect.height/h);
+      const hit = layout.zones.find(z=> svgX>=Math.min(z.x0,z.x1) && svgX<=Math.max(z.x0,z.x1) && svgY>=z.yTop && svgY<=z.yBot);
+      if(!hit) return;
+      cycleChartActiveZoneKey = cycleChartActiveZoneKey===hit.toDate ? null : hit.toDate;
+      paintZoneLabel();
+    }
+    paintZoneLabel();
+
     const cross = document.createElementNS(NS,"line");
     cross.setAttribute("class","cyc-crosshair");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
@@ -4059,9 +4167,14 @@
       paintCrosshair({date:pt.date, price:pt.price, isLatest: lo===points.length-1, x:layout.xOf(pt.days), y:layout.yOf(pt.price)});
     }
     hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("click", e=> checkZoneTap(e.clientX, e.clientY));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-    hitRect.addEventListener("touchstart", e=>{ e.preventDefault(); if(e.touches.length===1) handleMove(e.touches[0].clientX); }, {passive:false});
+    hitRect.addEventListener("touchstart", e=>{
+      e.preventDefault();
+      if(e.touches.length===1){ handleMove(e.touches[0].clientX); checkZoneTap(e.touches[0].clientX, e.touches[0].clientY); }
+    }, {passive:false});
     svg.appendChild(hitRect);
+    svg.appendChild(zoneLabelLayer);
 
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
@@ -4073,7 +4186,18 @@
     return {svg, wrap, readoutRow};
   }
 
+  // What renderCycleChart() last rendered with - captured at the end of every call so the NEXT one can
+  // tell whether a range/pan move happened and, if so, animate the transition (see
+  // cycleChartAnimatePending) instead of just snapping. Mirrors powerLawPrevState/powerLawAnimatePending
+  // exactly - see there for the fuller rationale.
+  let cycleChartPrevState = null;
+  let cycleChartAnimatePending = false;
+
   function renderCycleChart(){
+    const prevState = cycleChartPrevState;
+    const animate = cycleChartAnimatePending && !!prevState;
+    cycleChartAnimatePending = false;
+
     const panel = document.getElementById("cycleChartPanel");
     if(!panel) return;
     panel.innerHTML = "";
@@ -4081,7 +4205,7 @@
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>BTC-Kurs (Marktzyklen)</h3>`;
     panel.appendChild(headRow);
-    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone reicht nur bis zur Höhe ihres eigenen Hochs bzw. Tiefs, nicht über die volle Charthöhe. Zeigt ausschließlich die echte Kurshistorie, keine Projektion in die Zukunft.`);
+    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Zeigt ausschließlich die echte Kurshistorie, keine Projektion in die Zukunft.`);
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -4117,20 +4241,41 @@
     toolbar.appendChild(buildPowerLawAxisSeg("Y", ()=>cycleChartLogY, v=> animateCycleChartAxisChange(cycleChartLogX, v)));
     toolbar.appendChild(buildRangeSeg("cyclechart"));
     panel.appendChild(toolbar);
+
+    cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
+    if(animate){
+      const oldLayout = computeCycleChartLayoutFor(prevState.logX, prevState.logY, prevState.rangeDays, prevState.panOffsetDays, cycleChartCrosshairDate);
+      animateCycleChartFromLayout(oldLayout);
+    }
   }
 
-  // Animates this chart's own axis-scale change (X, Y, or both), mirroring animatePowerLawAxisChange's
-  // approach exactly - build the true end state once, then drive every animatable element's attributes
-  // directly from interpolated old/new layouts each frame. Range/pan changes, by contrast, just snap
-  // (renderCycleChart() rebuilds fresh) - this chart autoscales its Y-domain per range already, so there's
-  // no fixed coordinate space for a range change to zoom within the way the power-law chart's does.
+  // Same swap-globals-temporarily trick as powerLawEffectiveLayoutFor - rangeDays/panOffsetDays are
+  // shared globals already overwritten with the NEW selection by the time a range-change animation goes
+  // looking for what was previously on screen.
+  function computeCycleChartLayoutFor(logX, logY, rangeDaysArg, panOffsetDaysArg, crosshairDate){
+    const savedRange = rangeDays, savedPan = panOffsetDays;
+    rangeDays = rangeDaysArg; panOffsetDays = panOffsetDaysArg;
+    try{ return computeCycleChartLayout(logX, logY, crosshairDate); }
+    finally{ rangeDays = savedRange; panOffsetDays = savedPan; }
+  }
+
+  // Animates this chart's own state changes - axis-scale toggles (mirroring animatePowerLawAxisChange's
+  // approach) and, via renderCycleChart's own cycleChartAnimatePending flag, range/pan moves too: build
+  // the true end state once, then drive every animatable element's attributes directly from interpolated
+  // old/new layouts each frame. This chart always autoscales its Y-domain to whatever's in the current
+  // window (per explicit feedback that it should, unlike the power-law chart's fixed-ratio zoom) so there
+  // is no fixed coordinate space to animate a "camera zoom" within - a plain per-point/per-box morph is
+  // the whole animation here, for every kind of change alike.
   function animateCycleChartAxisChange(newLogX, newLogY){
     const oldLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
     cycleChartLogX = newLogX; cycleChartLogY = newLogY;
     renderCycleChart();
+    animateCycleChartFromLayout(oldLayout);
+  }
+  function animateCycleChartFromLayout(oldLayout){
     const svg = document.querySelector("#cycleChartPanel svg");
     if(!svg) return;
-    const newLayout = computeCycleChartLayout(newLogX, newLogY, cycleChartCrosshairDate);
+    const newLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
 
     const priceLine = svg.querySelector(".cyc-price-line");
     const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
@@ -4146,19 +4291,27 @@
       const lerpPts = (A,B)=> A.map((p,i)=> B[i] ? ({x:lerp(p.x,B[i].x), y:lerp(p.y,B[i].y)}) : p);
 
       if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
+      // Halvings/zones matched by date, not index - a range/pan change (unlike an axis toggle) can add
+      // or drop entries on either side, so pairing by position alone could morph one real halving/zone
+      // into a completely unrelated one. Anything with no match on the old side just snaps in at its
+      // final position instead of animating from nowhere.
       halvingEls.forEach((el,i)=>{
-        const oh = oldLayout.halvings[i], nh = newLayout.halvings[i];
-        if(oh && nh){ const x = lerp(oh.x,nh.x); el.setAttribute("x1",x); el.setAttribute("x2",x); }
+        const nh = newLayout.halvings[i];
+        if(!nh) return;
+        const oh = oldLayout.halvings.find(h=>h.date===nh.date);
+        const x = lerp(oh ? oh.x : nh.x, nh.x);
+        el.setAttribute("x1",x); el.setAttribute("x2",x);
       });
       zoneEls.forEach((el,i)=>{
-        const oz = oldLayout.zones[i], nz = newLayout.zones[i];
-        if(oz && nz){
-          const x0 = lerp(Math.min(oz.x0,oz.x1), Math.min(nz.x0,nz.x1));
-          const x1 = lerp(Math.max(oz.x0,oz.x1), Math.max(nz.x0,nz.x1));
-          const yTop = lerp(oz.yTop, nz.yTop);
-          el.setAttribute("x", x0); el.setAttribute("width", Math.max(x1-x0,0.01));
-          el.setAttribute("y", yTop); el.setAttribute("height", Math.max(newLayout.h-newLayout.padB-yTop,0));
-        }
+        const nz = newLayout.zones[i];
+        if(!nz) return;
+        const oz = oldLayout.zones.find(z=>z.toDate===nz.toDate) || nz;
+        const x0 = lerp(Math.min(oz.x0,oz.x1), Math.min(nz.x0,nz.x1));
+        const x1 = lerp(Math.max(oz.x0,oz.x1), Math.max(nz.x0,nz.x1));
+        const yTop = lerp(oz.yTop, nz.yTop);
+        const yBot = lerp(oz.yBot, nz.yBot);
+        el.setAttribute("x", x0); el.setAttribute("width", Math.max(x1-x0,0.01));
+        el.setAttribute("y", yTop); el.setAttribute("height", Math.max(yBot-yTop,0));
       });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
@@ -4275,20 +4428,34 @@
     host.appendChild(grid);
   }
 
-  // One flat, horizontally-scrollable chip row lists every chart section - power-law/overlay/hero plus
-  // one entry per currently-available tile - and works identically on desktop and mobile (it just
-  // overflows into horizontal scroll on narrow viewports rather than needing a separate sidebar layout).
-  // Mobile-only open/close for the sidebar (permanently docked on desktop instead - see the .sidebar
-  // media query in the stylesheet, which removes the transform entirely there, making these a no-op in
-  // practice on wide viewports since .open never gets checked/rendered against anything visible).
+  // Open/close for the collapsible sidebar - works the same way at every viewport width now (see the
+  // stylesheet's .sidebar/.mobile-topbar rules): past 900px an open sidebar pushes the page content over
+  // via .nav-pushed, below that it overlays above a dimming scrim instead, but either way the same single
+  // .open class (and the same topbar burger / in-sidebar collapse button) drive it. The choice persists
+  // across reloads via localStorage, falling back to a width-based default (collapsed below
+  // SIDEBAR_AUTO_OPEN_MIN_WIDTH - phones and tablets, where the rail would otherwise eat a big chunk of a
+  // narrower screen - open at or above it) only the very first time, before any explicit choice exists.
+  const SIDEBAR_OPEN_STORAGE_KEY = "btcDashSidebarOpen";
+  // 1440, not 900 - the .wrap content column alone (max-width:1180px) already wants roughly that much
+  // room; pushing it over by the sidebar's own 248px too past a merely-900px-ish viewport (an iPad Pro's
+  // 1366pt landscape included) would leave it visibly cramped, not just "a bit narrower".
+  const SIDEBAR_AUTO_OPEN_MIN_WIDTH = 1440;
   function setSidebarOpen(open){
     document.getElementById("sectionNav")?.classList.toggle("open", open);
     document.getElementById("navScrim")?.classList.toggle("show", open);
     document.getElementById("navBurger")?.setAttribute("aria-expanded", open ? "true" : "false");
+    document.querySelector(".mobile-topbar")?.classList.toggle("hidden", open);
+    document.querySelector(".page")?.classList.toggle("nav-pushed", open);
+    try{ localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, open ? "1" : "0"); }catch(e){}
   }
   function openSidebar(){ setSidebarOpen(true); }
   function closeSidebar(){ setSidebarOpen(false); }
   function toggleSidebar(){ setSidebarOpen(!document.getElementById("sectionNav")?.classList.contains("open")); }
+  function initSidebarOpenState(){
+    let stored = null;
+    try{ stored = localStorage.getItem(SIDEBAR_OPEN_STORAGE_KEY); }catch(e){}
+    setSidebarOpen(stored !== null ? stored === "1" : window.innerWidth >= SIDEBAR_AUTO_OPEN_MIN_WIDTH);
+  }
 
   function renderSectionNav(){
     const nav = document.getElementById("sectionNav");
@@ -4305,7 +4472,12 @@
     list.querySelectorAll("a").forEach(a=>{
       a.addEventListener("click", e=>{
         e.preventDefault();
-        closeSidebar();
+        // Only dismiss on the narrow (<900px) overlay layout, where an open sidebar sits on top of the
+        // content and would otherwise keep covering whatever was just scrolled to - past that width an
+        // open sidebar pushes the content over instead of covering it, so there's nothing to dismiss for
+        // (closing it here used to happen unconditionally, which meant simply clicking a link collapsed
+        // the whole nav out from under the reader on tablet/desktop too).
+        if(window.matchMedia("(max-width:899.98px)").matches) closeSidebar();
         document.getElementById(a.dataset.navTarget)?.scrollIntoView({behavior:"smooth", block:"start"});
       });
     });
@@ -4996,11 +5168,13 @@
       return;
     }
     const myGen = ++zoomGen;
-    // The power-law chart isn't part of the [data-zoom-key]/chartDomains system below (its axes aren't
-    // a uniform-by-index domain that machinery assumes - see animatePowerLawAxisChange) but a range/pan
-    // change reaching renderAllZoom() should still animate it, same as everything else here - consumed
-    // by the very next renderPowerLaw() call (via renderAllImmediate() below).
+    // Neither the power-law nor the Marktzyklen chart is part of the [data-zoom-key]/chartDomains system
+    // below (their axes aren't a uniform-by-index domain that machinery assumes - see
+    // animatePowerLawAxisChange/animateCycleChartAxisChange) but a range/pan change reaching
+    // renderAllZoom() should still animate them, same as everything else here - consumed by the very next
+    // renderPowerLaw()/renderCycleChart() call (via renderAllImmediate() below).
     powerLawAnimatePending = true;
+    cycleChartAnimatePending = true;
     // Shallow copy - chartDomains itself gets mutated in place by registerZoomChart() during the
     // renderAllImmediate() call right below, so without copying, prevDomains would end up pointing at
     // the same object and "the old state" would already have been overwritten with the new one.
@@ -5159,6 +5333,8 @@
       toggleSidebar();
     });
     document.getElementById("navScrim")?.addEventListener("click", closeSidebar);
+    document.getElementById("sidebarCollapseBtn")?.addEventListener("click", closeSidebar);
+    initSidebarOpenState();
   }
 
   async function loadAndRender(force){
