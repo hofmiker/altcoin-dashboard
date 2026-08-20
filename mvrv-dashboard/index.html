@@ -340,8 +340,11 @@
   .cyc-zone-dim{ transition: opacity .15s ease; }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
-  .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
-  .panel h3{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
+  /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, with a smaller
+     (+50%, not +100%) bump on narrow screens (see the media query below) where a full doubling would eat
+     too much of the card's own width relative to everything else on it. */
+  .panel h2{font-family:var(--font-display); font-size:38px; margin:0; font-weight:700;}
+  .panel h3{font-family:var(--font-display); font-size:38px; margin:0; font-weight:700;}
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
   .panel-head{display:flex; align-items:center; gap:8px;}
@@ -366,7 +369,7 @@
   .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
   .card-title-block{display:flex; flex-direction:column; gap:8px;}
   .ticker-row{display:flex; align-items:center; gap:7px;}
-  .card-title-block .ticker{font-family:var(--font-display); font-size:26px; font-weight:700; letter-spacing:.01em;}
+  .card-title-block .ticker{font-family:var(--font-display); font-size:52px; font-weight:700; letter-spacing:.01em;}
 
   .readout{display:flex; flex-direction:column; gap:5px; align-items:flex-end; margin-left:auto;}
   .readout-date{font-size:10.5px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
@@ -433,6 +436,11 @@
     .readout{align-items:flex-start; margin-left:0;}
     .readout-row{justify-content:flex-start;}
     h1{font-size:26px;}
+    /* A full +100% (see .panel h2/h3, .card-title-block .ticker above) reads fine on a wide desktop card
+       but eats a disproportionate share of a narrow phone card's own width - +50% instead keeps the
+       headline clearly bigger without crowding out everything else on the card-head row. */
+    .panel h2, .panel h3{font-size:28px;}
+    .card-title-block .ticker{font-size:39px;}
     /* On narrow screens the x-axis date labels rotate -45deg to fit (see buildLineChart's mobileTicks
        branch), which lets their lower corner extend visibly below the chart's own nominal bottom edge -
        svg{overflow:visible} means nothing clips that away. Without extra clearance here, whatever comes
@@ -2115,6 +2123,65 @@
       return dot;
     });
 
+    // Opt-in per-series value labels (cfg.perSeriesLabels) - a small neutral card-styled pill stuck next
+    // to each series' own hover-marker dot, rather than (or alongside) the single shared readout row
+    // above the chart. Built once here, then only ever repositioned/re-texted, never rebuilt - both
+    // renderAt() (hover/rest) and the live zoom-transform sync (applyCrosshairSync) call the same
+    // reposition() closure, the latter passing it nothing but the crosshair's current live x, since a
+    // pan/zoom never changes which date's values are showing, only where they land on screen.
+    let perSeriesLabels = null;
+    if(cfg.perSeriesLabels){
+      const layer = document.createElementNS(NS,"g");
+      layer.setAttribute("class","per-series-label-layer");
+      layer.style.pointerEvents = "none";
+      const rows = cfg.series.map(s=>{
+        const bg = document.createElementNS(NS,"rect");
+        bg.setAttribute("rx","5"); bg.setAttribute("fill","var(--card)");
+        bg.setAttribute("stroke","var(--border)"); bg.setAttribute("stroke-width","1");
+        const swatch = document.createElementNS(NS,"circle");
+        swatch.setAttribute("r","3"); swatch.setAttribute("fill", s.color);
+        const text = document.createElementNS(NS,"text");
+        text.setAttribute("font-size","10.5"); text.setAttribute("font-weight","700");
+        text.setAttribute("fill","var(--ink)"); text.setAttribute("dominant-baseline","middle");
+        layer.appendChild(bg); layer.appendChild(swatch); layer.appendChild(text);
+        return {bg, swatch, text, cy:0};
+      });
+      svg.appendChild(layer);
+      // Vertical collision avoidance - the same handful of enforced-minimum-gap passes used for
+      // Marktzyklen's zone dimension labels, just applied to N dots instead of 2 box edges - close
+      // together whenever the bands themselves are (a compressed/narrow-Y window), which without this
+      // would otherwise print several pills right on top of each other.
+      function reposition(crosshairX){
+        const active = [];
+        rows.forEach((row,si)=>{
+          const dot = markers[si];
+          if(!dot || dot.style.display==="none"){ row.bg.style.display="none"; row.swatch.style.display="none"; row.text.style.display="none"; return; }
+          row.cy = parseFloat(dot.getAttribute("cy"));
+          active.push(row);
+        });
+        active.sort((a,b)=>a.cy-b.cy);
+        const MIN_GAP = 16;
+        for(let pass=0; pass<6; pass++){
+          for(let i=1;i<active.length;i++){
+            const gap = active[i].cy - active[i-1].cy;
+            if(gap < MIN_GAP){ const push=(MIN_GAP-gap)/2; active[i-1].cy -= push; active[i].cy += push; }
+          }
+        }
+        const anchorRight = crosshairX < padL + (w-padL-padR)*0.55;
+        active.forEach(row=>{
+          row.bg.style.display=""; row.swatch.style.display=""; row.text.style.display="";
+          const textW = (row.text.textContent||"").length*6.2 + 16;
+          const boxX = anchorRight ? crosshairX+12 : crosshairX-12-textW;
+          row.bg.setAttribute("x", boxX.toFixed(1)); row.bg.setAttribute("y",(row.cy-9).toFixed(1));
+          row.bg.setAttribute("width", textW.toFixed(1)); row.bg.setAttribute("height","18");
+          row.swatch.setAttribute("cx",(boxX+9).toFixed(1)); row.swatch.setAttribute("cy",row.cy.toFixed(1));
+          row.text.setAttribute("x",(boxX+16).toFixed(1)); row.text.setAttribute("y",(row.cy+0.5).toFixed(1));
+        });
+      }
+      layer.__reposition = reposition;
+      perSeriesLabels = {rows, reposition};
+    }
+
     const hitRect = document.createElementNS(NS,"rect");
     hitRect.setAttribute("x",padL); hitRect.setAttribute("y",padT);
     hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
@@ -2173,6 +2240,12 @@
           dot.dataset.crosshairValue = v;
         }
       });
+      if(perSeriesLabels){
+        cfg.series.forEach((s,si)=>{
+          perSeriesLabels.rows[si].text.textContent = values[si]==null ? "–" : (s.fmt||fmtCompact)(values[si]);
+        });
+        perSeriesLabels.reposition(x);
+      }
       // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
       // currently looking at, not just today's value - crosshair moves are the whole point of exploring
       // the history, so the zone highlight should follow along instead of staying frozen on "now".
@@ -2869,7 +2942,7 @@
     });
     togglesHost.appendChild(toggleWrap);
 
-    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price"});
+    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price", perSeriesLabels:true});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -4126,9 +4199,20 @@
     // (unlike the flags below), so unlike those they're safe to live INSIDE the transformed group - a
     // uniform scale+translate can never tilt a vertical line off-vertical, and their non-scaling-stroke
     // keeps the dash weight constant regardless of the group's current scale.
+    // The clip lives on its own OUTER, never-transformed <g> - not on .cyc-zoom-group itself - because a
+    // clip-path referencing userSpaceOnUse coordinates shares whatever transform is applied to the SAME
+    // element: putting both on one element would scale/translate the "fixed" crop window right along with
+    // the content it's supposed to be cropping against, so mid-animation (when the group is briefly at a
+    // large scale, looking like the old view) the crop boundary drifted far past the card's own edges
+    // instead of staying pinned there - exactly the "Flächen schieben über das Chart hinaus" bug. Nesting
+    // the clip on an outer, untransformed wrapper (mirroring buildLineChart's own clipG/zoomG split)
+    // keeps the crop window fixed in real screen space regardless of what the inner group's own transform
+    // is doing at any given frame.
+    const clipG = document.createElementNS(NS,"g");
+    clipG.setAttribute("clip-path", `url(#${clipId})`);
     const zoomGroup = document.createElementNS(NS,"g");
     zoomGroup.setAttribute("class","cyc-zoom-group");
-    zoomGroup.setAttribute("clip-path", `url(#${clipId})`);
+    clipG.appendChild(zoomGroup);
     if(cycleChartLayerVisible.zyklus){
       layout.zones.forEach(z=>{
         const rect = document.createElementNS(NS,"rect");
@@ -4154,7 +4238,7 @@
     priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
     priceLine.setAttribute("vector-effect","non-scaling-stroke");
     zoomGroup.appendChild(priceLine);
-    svg.appendChild(zoomGroup);
+    svg.appendChild(clipG);
 
     // Flags stay OUTSIDE the zoom group (mirroring buildLineChart's own vLines/flags) so their glyph is
     // only ever repositioned, never visually stretched, by the group's live transform - see
@@ -4163,7 +4247,10 @@
     // without having to re-search layout.flags for it.
     layout.flags.forEach(pt=>{
       const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
-      g.setAttribute("transform", `translate(${pt.x.toFixed(1)},${pt.y.toFixed(1)})`);
+      // Set via the CSS transform property, not the attribute - see applyCycleFlagSync, which drives
+      // this same property during a zoom animation; setting the resting position through the same
+      // mechanism avoids any chance of the two fighting or handing off out of step.
+      g.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
       g.dataset.flagDate = pt.date;
       g.dataset.flagValue = pt.value;
       if(!pt.confirmed){ g.style.opacity = "0.65"; g.setAttribute("stroke-dasharray","2 2"); }
@@ -4217,7 +4304,10 @@
       const activeKey = cycleChartHoverZoneKey || cycleChartActiveZoneKey;
       const z = layout.zones.find(zz=> zz.toDate === activeKey);
       if(!z) return;
-      const color = z.bull ? "var(--good)" : "var(--critical)";
+      // Neutral, not matched to the zone's own green/red - the dimensioning is a measurement overlay,
+      // not part of the bull/bear color-coding itself, so it reads clearly over either zone color instead
+      // of half-blending into whichever one it happens to sit on.
+      const lineColor = "var(--ink-2)", textColor = "var(--ink)";
       const x0 = Math.min(z.x0,z.x1), x1 = Math.max(z.x0,z.x1);
       const days = Math.round(z.toDays-z.fromDays);
       const priceDiff = Math.abs(z.toPrice-z.fromPrice);
@@ -4233,7 +4323,7 @@
         const l = document.createElementNS(NS,"line");
         l.setAttribute("x1",x1_.toFixed(1)); l.setAttribute("y1",y1_.toFixed(1));
         l.setAttribute("x2",x2_.toFixed(1)); l.setAttribute("y2",y2_.toFixed(1));
-        l.setAttribute("stroke",color); l.setAttribute("stroke-width","1");
+        l.setAttribute("stroke",lineColor); l.setAttribute("stroke-width","1");
         if(dash) l.setAttribute("stroke-dasharray",dash);
         l.setAttribute("vector-effect","non-scaling-stroke");
         g.appendChild(l);
@@ -4245,14 +4335,14 @@
         const bx = x_-dirX*ARR, by = y_-dirY*ARR;
         const p = document.createElementNS(NS,"polygon");
         p.setAttribute("points", `${x_.toFixed(1)},${y_.toFixed(1)} ${(bx+nx*ARR*0.55).toFixed(1)},${(by+ny*ARR*0.55).toFixed(1)} ${(bx-nx*ARR*0.55).toFixed(1)},${(by-ny*ARR*0.55).toFixed(1)}`);
-        p.setAttribute("fill",color);
+        p.setAttribute("fill",lineColor);
         g.appendChild(p);
       };
 
-      // Width (days), a horizontal dimension line below the box - or above it, if there isn't room below
-      // before the x-axis labels.
-      const belowSign = (z.yBot+RUN+14 <= h-padB) ? 1 : -1;
-      const hEdgeY = belowSign>0 ? z.yBot : z.yTop;
+      // Width (days), a horizontal dimension line always below the box - a fixed, predictable spot to
+      // look for it rather than one that hops to the top edge for some zones and the bottom for others.
+      const belowSign = 1;
+      const hEdgeY = z.yBot;
       const hDimY = hEdgeY + belowSign*RUN;
       mkLine(x0, hEdgeY+belowSign*GAP, x0, hDimY, "2 2");
       mkLine(x1, hEdgeY+belowSign*GAP, x1, hDimY, "2 2");
@@ -4260,9 +4350,9 @@
       mkArrow(x0, hDimY, -1, 0);
       mkArrow(x1, hDimY, 1, 0);
       const wLbl = document.createElementNS(NS,"text");
-      wLbl.setAttribute("x",((x0+x1)/2).toFixed(1)); wLbl.setAttribute("y",(hDimY+belowSign*11).toFixed(1));
-      wLbl.setAttribute("text-anchor","middle"); wLbl.setAttribute("font-size","10"); wLbl.setAttribute("font-weight","700");
-      wLbl.setAttribute("fill",color); wLbl.textContent = widthLabel;
+      wLbl.setAttribute("x",((x0+x1)/2).toFixed(1)); wLbl.setAttribute("y",(hDimY+belowSign*14).toFixed(1));
+      wLbl.setAttribute("text-anchor","middle"); wLbl.setAttribute("font-size","13"); wLbl.setAttribute("font-weight","700");
+      wLbl.setAttribute("fill",textColor); wLbl.textContent = widthLabel;
       g.appendChild(wLbl);
 
       // Height (price diff + %), a vertical dimension line right of the box - or left, if there isn't room
@@ -4276,10 +4366,10 @@
       mkArrow(vDimX, z.yTop, 0, -1);
       mkArrow(vDimX, z.yBot, 0, 1);
       const hLbl = document.createElementNS(NS,"text");
-      hLbl.setAttribute("x",(vDimX+rightSign*4).toFixed(1)); hLbl.setAttribute("y",((z.yTop+z.yBot)/2+3.5).toFixed(1));
+      hLbl.setAttribute("x",(vDimX+rightSign*5).toFixed(1)); hLbl.setAttribute("y",((z.yTop+z.yBot)/2+4.5).toFixed(1));
       hLbl.setAttribute("text-anchor", rightSign>0 ? "start" : "end");
-      hLbl.setAttribute("font-size","10"); hLbl.setAttribute("font-weight","700");
-      hLbl.setAttribute("fill",color); hLbl.textContent = heightLabel;
+      hLbl.setAttribute("font-size","13"); hLbl.setAttribute("font-weight","700");
+      hLbl.setAttribute("fill",textColor); hLbl.textContent = heightLabel;
       g.appendChild(hLbl);
 
       zoneLabelLayer.appendChild(g);
@@ -4577,10 +4667,17 @@
     });
     return targets;
   }
+  // Driven via the CSS transform property, not the transform XML attribute - the .cyc-zoom-group these
+  // flags are tracking is itself animated the same way (see animateMatrix), and setAttribute forces a
+  // synchronous main-thread style recalc on every call, while a CSS transform change on an element that's
+  // already establishing its own layer can be picked up by the compositor directly. Mixing the two
+  // (flags on the attribute path, geometry on the CSS path) risked the two updates landing in different
+  // paint frames even though the numbers themselves are computed in perfect lockstep every frame - which
+  // is exactly what read as the flags visibly stuttering/lagging a beat behind the smooth camera zoom.
   function applyCycleFlagSync(targets, a, d, e, f){
     targets.forEach(t=>{
       const x = t.rawX*a + e, y = t.rawY*d + f;
-      t.g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+      t.g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     });
   }
   function collectCycleCrosshairSyncTarget(wrap, layout){
@@ -4631,16 +4728,23 @@
     // raw coordinates) forward instead, then swap to the already-built new content the instant it lines up.
     const oldGroupSrc = oldSvgClone && oldSvgClone.querySelector(".cyc-zoom-group");
     if(oldGroupSrc && newLayout.points.length < oldLayout.points.length){
+      // oldGroupSrc needs the exact same "clip on an outer, untransformed wrapper" structure the real
+      // .cyc-zoom-group gets (see renderCycleChartDOM) - putting clip-path directly on the element that
+      // is ALSO about to receive the live animated transform would scale the crop window right along
+      // with the content again, the same bug that was just fixed for the generic path.
       const clipId = svg.querySelector("defs clipPath")?.id;
-      if(clipId) oldGroupSrc.setAttribute("clip-path", `url(#${clipId})`);
-      group.style.display = "none";
-      svg.insertBefore(oldGroupSrc, group);
+      const oldClipWrap = document.createElementNS(NS,"g");
+      if(clipId) oldClipWrap.setAttribute("clip-path", `url(#${clipId})`);
+      oldClipWrap.appendChild(oldGroupSrc);
+      const realClipG = group.parentNode;
+      realClipG.style.display = "none";
+      realClipG.parentNode.insertBefore(oldClipWrap, realClipG);
       const endMatrix = computeCycleChartZoomMatrix(newLayout, oldLayout);
       const flagTargets = collectCycleFlagSyncTargets(wrap, oldLayout);
       const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, oldLayout);
       animateMatrix(oldGroupSrc, identity, endMatrix, myGen, ()=>{
-        oldGroupSrc.remove();
-        group.style.display = "";
+        oldClipWrap.remove();
+        realClipG.style.display = "";
         settle();
       }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); });
       return;
@@ -5269,7 +5373,8 @@
       const rawY = isFinite(v) ? domainYOf(rawDomain, v) : null;
       if(rawY!=null) dots.push({el, rawY});
     });
-    return {cross, label, veil, dots, rawX, plotRight: rawDomain.w - rawDomain.padR};
+    const boxLayer = wrap.querySelector(".per-series-label-layer");
+    return {cross, label, veil, dots, rawX, plotRight: rawDomain.w - rawDomain.padR, boxLayer};
   }
   function applyCrosshairSync(target, a, d, e, f){
     if(!target) return;
@@ -5284,6 +5389,10 @@
       dt.el.setAttribute("cx", x.toFixed(1));
       dt.el.setAttribute("cy", (dt.rawY*d + f).toFixed(1));
     });
+    // Per-series label pills (see buildLineChart's cfg.perSeriesLabels) track the dots' own cy, already
+    // updated just above - a pan/zoom never changes which date's values are showing, only where they
+    // land, so this just repositions the existing pills rather than re-texting them.
+    if(target.boxLayer && target.boxLayer.__reposition) target.boxLayer.__reposition(x);
   }
 
   // Solves for the 2D affine transform (scaleX/translateX for the date window, scaleY/translateY for
