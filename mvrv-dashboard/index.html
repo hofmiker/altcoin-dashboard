@@ -93,7 +93,11 @@
        float their own UI (an address/reload pill, tab switcher) over the last bit of page content while
        scrolling, entirely outside what env(safe-area-inset-bottom) accounts for, so the last card's own
        controls need real breathing room below them, not just a notch-sized margin. */
-    padding:calc(28px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
+    /* var(--nav-offset) - the mobile top bar's own real height (see syncNavOffset) - is 0 whenever that
+       bar isn't the thing rendering (desktop with the sidebar open) and its real height otherwise, so this
+       reserves exactly the space a position:fixed .mobile-topbar no longer takes up in flow, the same gap
+       its old position:sticky used to leave automatically. */
+    padding:calc(28px + env(safe-area-inset-top) + var(--nav-offset, 0px)) calc(20px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
     transition:margin-left .28s cubic-bezier(.22,.61,.36,1);
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
@@ -160,11 +164,17 @@
 
   /* Collapsed-state top bar: burger trigger (re-expands the sidebar) + a tappable mini brand (jumps to
      top). Shown whenever the sidebar itself is NOT open, at any viewport width - not just mobile, now
-     that the sidebar is collapsible everywhere rather than permanently forced open past 900px. */
+     that the sidebar is collapsible everywhere rather than permanently forced open past 900px.
+     position:fixed, not sticky - sticky's "stuck" range only ever covers its own containing block, and in
+     practice on iOS Safari it kept losing that lock while scrolling (the same "Navi bleibt nicht stehen"
+     complaint .sidebar's own position:fixed had already been fixed for). Being fixed instead means .page
+     needs its own top padding added back for the space this bar no longer reserves in flow - see
+     var(--nav-offset) on .page below, synced from this bar's real height by syncNavOffset(). */
   .mobile-topbar{
     display:flex; align-items:center; gap:10px; padding:10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
     padding-top:calc(10px + env(safe-area-inset-top));
-    background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
+    background:var(--card); border-bottom:1px solid var(--border);
+    position:fixed; top:0; left:0; right:0; z-index:40;
     will-change:transform;
   }
   .mobile-topbar.hidden{display:none;}
@@ -323,6 +333,11 @@
      curve must match the JS ZOOM_DURATION_MS/zoomEase constants (the axis label value-counting
      animation is JS-driven since CSS can't animate text content, so it's kept in sync by hand). */
   .zoom-content{ transition: transform .57s cubic-bezier(.22,.61,.36,1); }
+  /* Zone tile highlight-on-hover (see updateCycleZoneHighlight) and its dimension-line annotation's
+     fade-in (see paintZoneLabel) - both simple attribute/opacity changes, so a plain CSS transition is
+     enough, no JS-driven animation loop needed for either. */
+  .cyc-zone{ transition: opacity .15s ease; }
+  .cyc-zone-dim{ transition: opacity .15s ease; }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   .panel h2{font-family:var(--font-display); font-size:19px; margin:0; font-weight:700;}
@@ -907,6 +922,10 @@
   // zone's own toDate (see computeCycleChartLayout's pushRun), not an array index, since that index's
   // meaning can shift between renders (a range/pan change adds or drops zones ahead of it).
   let cycleChartActiveZoneKey = null;
+  // Which zone the pointer is currently hovering (desktop mouse only, not touch - a tap already toggles
+  // cycleChartActiveZoneKey above) - takes display priority over the pinned zone while the pointer is over
+  // it, then reverts back to the pinned one (if any) the instant it leaves. Not persisted across renders.
+  let cycleChartHoverZoneKey = null;
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -2938,7 +2957,14 @@
     const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=34;
     const fitLogAt = days => fit.slope*Math.log10(days) + fit.intercept;
 
-    const {points, daysMin, daysMax, isProjected} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, 3);
+    // The future projection ("Alles" reaching ~3 average halving cycles past today) only makes sense in
+    // log-log mode, where the power-law fit is a straight line and projecting it further out reads
+    // naturally as "continuing the line". In any other axis combination the same projection, converted to
+    // a linear scale, explodes the Y (and, with linear X, the X too) domain by orders of magnitude beyond
+    // the real data - squashing 15 years of actual price history into an unreadable sliver against a
+    // decade-plus of empty projected corridor. Real history alone already sets a sensible domain there.
+    const extendFuture = logX && logY ? 3 : 0;
+    const {points, daysMin, daysMax, isProjected} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, extendFuture);
 
     function xVal(days){ return logX ? Math.log10(days) : days; }
     const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
@@ -3100,18 +3126,22 @@
   // let the fit line's angle drift between windows again. X is fit exactly (daysMaxW always lands on the
   // plot's right edge, matching every other chart's "today stays on the right" convention, or the pan
   // window's own end date when panned back). Y can't be fit exactly too without breaking the uniform
-  // scale, so instead it's centered on the visible window's own real price extent, clamped so the crop
-  // never shows blank canvas past the fixed content's own top/bottom bounds.
+  // scale, so instead it's centered on the fit line's own value at the window's real (non-projected) end
+  // date - a value that depends only on the window's bounds, not on which real prices happened to land
+  // inside it. Centering on the real price data's own min/max instead (an earlier version of this) meant
+  // two adjacent windows with a different slice of price noise landed on a different center every time,
+  // which read as the whole corridor - rainbow bands included - visibly jumping on every range change,
+  // exactly what the fixed-space crop is supposed to prevent. Clamped so the crop never shows blank
+  // canvas past the fixed content's own top/bottom bounds.
   function powerLawZoomTransformFor(fixed, daysMinW, daysMaxW){
     const {w,h,padL,padR,padT,padB} = fixed;
     const plotW = w-padL-padR, plotH = h-padT-padB;
     const x0 = fixed.xOf(daysMinW), x1 = fixed.xOf(daysMaxW);
     const scale = Math.max(1, plotW/Math.max(1e-6, x1-x0));
     const tx = padL - x0*scale;
-    const windowPts = fixed.allPoints.filter(p=> p.days>=daysMinW && p.days<=daysMaxW);
-    const prices = windowPts.length ? windowPts.map(p=>p.price) : [fixed.allPoints[fixed.allPoints.length-1].price];
-    const yTop = fixed.yOf(Math.max(...prices)), yBot = fixed.yOf(Math.min(...prices));
-    const centerY = (yTop+yBot)/2;
+    const lastRealDays = fixed.allPoints[fixed.allPoints.length-1].days;
+    const refDays = Math.min(daysMaxW, lastRealDays);
+    const centerY = fixed.yOf(Math.pow(10, fixed.fitLogAt(refDays)));
     let ty = plotH/2 + padT - centerY*scale;
     const minTy = h*(1-scale), maxTy = 0;
     ty = Math.max(minTy, Math.min(maxTy, ty));
@@ -4026,7 +4056,13 @@
     const crosshair = {date:crosshairPt.date, price:crosshairPt.price, isLatest: crosshairPtIdx===points.length-1,
       x:xOf(crosshairPt.days), y:yOf(crosshairPt.price)};
 
-    return {w,h,padL,padR,padT,padB, points, pricePts, halvings, yTicks, xTicks, flags, zones, crosshair, xOf, yOf};
+    // priceMin/priceMax (real, non-log price bounds of this window's own y-domain) and logX/logY are
+    // exposed so a range/pan-change animation (see computeCycleChartZoomMatrix) can solve a single affine
+    // transform between two windows' own xOf/yOf mappings, exactly the way buildLineChart's
+    // computeZoomMatrix does for its own per-window-autoscaled Y-domain - no "fixed" coordinate space is
+    // needed for that, just both windows sharing the same log/linear scale type.
+    return {w,h,padL,padR,padT,padB, points, pricePts, halvings, yTicks, xTicks, flags, zones, crosshair, xOf, yOf,
+      priceMin: Math.pow(10,yLogMin), priceMax: Math.pow(10,yLogMax), logX, logY};
   }
 
   function renderCycleChartDOM(layout){
@@ -4036,36 +4072,24 @@
     svg.setAttribute("preserveAspectRatio","none");
     svg.setAttribute("role","img");
 
-    if(cycleChartLayerVisible.zyklus){
-      // A zone's own box connects its two REAL bounding prices exactly (see computeCycleChartLayout) -
-      // when one of those prices belongs to an extreme from well outside the current window (a swing
-      // that started years before a narrow "1J"/"6M" range, say), that price can map to a y-position far
-      // past the visible plot's own top/bottom, and without an explicit clip the site's own
-      // svg{overflow:visible} rule (needed elsewhere for rotated axis labels/flag glyphs that
-      // legitimately overhang the plot edge a little) would let it bleed out across the rest of the page
-      // instead of just quietly running past the card's own edge.
-      const clipId = "cyc-plot-clip-" + Math.random().toString(36).slice(2,9);
-      const defs = document.createElementNS(NS,"defs");
-      const clipPath = document.createElementNS(NS,"clipPath");
-      clipPath.setAttribute("id", clipId);
-      const clipRect = document.createElementNS(NS,"rect");
-      clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
-      clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
-      clipPath.appendChild(clipRect);
-      defs.appendChild(clipPath);
-      svg.appendChild(defs);
-      const zoneGroup = document.createElementNS(NS,"g");
-      zoneGroup.setAttribute("clip-path", `url(#${clipId})`);
-      layout.zones.forEach(z=>{
-        const rect = document.createElementNS(NS,"rect");
-        rect.setAttribute("class","cyc-zone");
-        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", z.yTop);
-        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(z.yBot-z.yTop,0));
-        rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.14");
-        zoneGroup.appendChild(rect);
-      });
-      svg.appendChild(zoneGroup);
-    }
+    // A zone's own box connects its two REAL bounding prices exactly (see computeCycleChartLayout) - when
+    // one of those prices belongs to an extreme from well outside the current window (a swing that
+    // started years before a narrow "1J"/"6M" range, say), that price can map to a y-position far past
+    // the visible plot's own top/bottom, and without an explicit clip the site's own svg{overflow:visible}
+    // rule (needed elsewhere for rotated axis labels/flag glyphs that legitimately overhang the plot edge
+    // a little) would let it bleed out across the rest of the page instead of just quietly running past
+    // the card's own edge. The same clip also keeps the .cyc-zoom-group below in bounds while it's
+    // mid-animation and briefly scaled/translated well past the plot's own edges.
+    const clipId = "cyc-plot-clip-" + Math.random().toString(36).slice(2,9);
+    const defs = document.createElementNS(NS,"defs");
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id", clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
 
     layout.yTicks.forEach(t=>{
       const gl = document.createElementNS(NS,"line");
@@ -4087,26 +4111,54 @@
       svg.appendChild(lbl);
     });
 
+    // Zones, halvings and the price line share a single group, transformed as one rigid unit during a
+    // range/pan-change animation (see animateCycleChartZoomFromLayout/computeCycleChartZoomMatrix) - the
+    // "gold standard" feel the user asked for (matching the Realized-Price tile's own buildLineChart
+    // zoom-content group) comes from animating exactly one affine transform on this group rather than
+    // tweening each element's own attributes independently. Halving lines have no text label riding along
+    // (unlike the flags below), so unlike those they're safe to live INSIDE the transformed group - a
+    // uniform scale+translate can never tilt a vertical line off-vertical, and their non-scaling-stroke
+    // keeps the dash weight constant regardless of the group's current scale.
+    const zoomGroup = document.createElementNS(NS,"g");
+    zoomGroup.setAttribute("class","cyc-zoom-group");
+    zoomGroup.setAttribute("clip-path", `url(#${clipId})`);
+    if(cycleChartLayerVisible.zyklus){
+      layout.zones.forEach(z=>{
+        const rect = document.createElementNS(NS,"rect");
+        rect.setAttribute("class","cyc-zone");
+        rect.dataset.zoneKey = z.toDate;
+        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", z.yTop);
+        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(z.yBot-z.yTop,0));
+        rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.14");
+        zoomGroup.appendChild(rect);
+      });
+    }
     layout.halvings.forEach(hv=>{
       const line = document.createElementNS(NS,"line");
       line.setAttribute("class","cyc-halving");
       line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
       line.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(line);
+      zoomGroup.appendChild(line);
     });
-
     const priceLine = document.createElementNS(NS,"path");
     priceLine.setAttribute("class","cyc-price-line");
     priceLine.setAttribute("d", pathD(layout.pricePts));
     priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
     priceLine.setAttribute("vector-effect","non-scaling-stroke");
-    svg.appendChild(priceLine);
+    zoomGroup.appendChild(priceLine);
+    svg.appendChild(zoomGroup);
 
+    // Flags stay OUTSIDE the zoom group (mirroring buildLineChart's own vLines/flags) so their glyph is
+    // only ever repositioned, never visually stretched, by the group's live transform - see
+    // collectCycleFlagSyncTargets/applyCycleFlagSync. data-flag-value (alongside the existing
+    // data-flag-date) lets that sync read each flag's own (days, price) straight back out of the DOM
+    // without having to re-search layout.flags for it.
     layout.flags.forEach(pt=>{
       const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
       g.setAttribute("transform", `translate(${pt.x.toFixed(1)},${pt.y.toFixed(1)})`);
       g.dataset.flagDate = pt.date;
+      g.dataset.flagValue = pt.value;
       if(!pt.confirmed){ g.style.opacity = "0.65"; g.setAttribute("stroke-dasharray","2 2"); }
       const title = document.createElementNS(NS,"title");
       const kindLabel = pt.dir>0 ? "Zyklus-Hoch" : "Zyklus-Tief";
@@ -4117,11 +4169,15 @@
       svg.appendChild(g);
     });
 
-    // Tap-to-annotate for the bull/bear zones - reports the box's own width in days and height in price
-    // (absolute and %), in the same color as the box itself. Only one label shown at a time, keyed by the
+    // Tap-to-pin AND hover-to-preview annotate for the bull/bear zones - reports the box's own width in
+    // days and height in price (absolute and %), in the same color as the box itself, drawn as a proper
+    // technical dimensioning ("Vermassung": a double-headed-arrow line outside each edge of the box, not
+    // text sitting on top of it - see paintZoneLabel). Only one annotation shown at a time, keyed by the
     // zone's own toDate (stable across re-renders, unlike an array index - a range/pan change can add or
-    // drop zones ahead of the one that was tapped) rather than array position; tapping the same zone
-    // again hides it, matching the flag markers' own tap-to-pin toggle behavior elsewhere on this chart.
+    // drop zones ahead of the one that was tapped/hovered) rather than array position; tapping a pinned
+    // zone again unpins it, matching the flag markers' own tap-to-pin toggle behavior elsewhere on this
+    // chart. Hovering (desktop mouse only - see the hitRect listeners below) previews a zone's annotation
+    // without pinning it, and takes display priority over whatever's pinned while the pointer is over it.
     const zoneLabelLayer = document.createElementNS(NS,"g");
     zoneLabelLayer.setAttribute("class","cyc-zone-label-layer");
     // The label renders on top of hitRect (so it's visible over the crosshair/zones) but must never
@@ -4129,46 +4185,123 @@
     // (centered right over the zone it annotates) would miss hitRect underneath and fail to toggle it
     // back off.
     zoneLabelLayer.style.pointerEvents = "none";
+    // Coordinate-based hit test shared by the tap-to-pin and hover-to-preview handlers alike - the hitRect
+    // below sits on top of the zone rects (needed for its own crosshair drag/hover), which would otherwise
+    // swallow every pointer event before it ever reached them, so neither handler can just listen on the
+    // rects directly.
+    function findZoneAt(clientX, clientY){
+      if(!cycleChartLayerVisible.zyklus) return null;
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return null;
+      const svgX = (clientX-rect.left)/(rect.width/w), svgY = (clientY-rect.top)/(rect.height/h);
+      return layout.zones.find(z=> svgX>=Math.min(z.x0,z.x1) && svgX<=Math.max(z.x0,z.x1) && svgY>=z.yTop && svgY<=z.yBot) || null;
+    }
+    // Strengthens the fill of whichever zone is currently hovered or pinned (hover wins while active) -
+    // a plain attribute change, animated by the .cyc-zone CSS transition rather than JS, since it's just
+    // a single before/after value with no intermediate frames to compute.
+    function updateCycleZoneHighlight(){
+      const activeKey = cycleChartHoverZoneKey || cycleChartActiveZoneKey;
+      zoomGroup.querySelectorAll(".cyc-zone").forEach(rect=>{
+        rect.setAttribute("opacity", rect.dataset.zoneKey === activeKey ? "0.32" : "0.14");
+      });
+    }
     function paintZoneLabel(){
       zoneLabelLayer.innerHTML = "";
-      const z = layout.zones.find(zz=> zz.toDate === cycleChartActiveZoneKey);
+      const activeKey = cycleChartHoverZoneKey || cycleChartActiveZoneKey;
+      const z = layout.zones.find(zz=> zz.toDate === activeKey);
       if(!z) return;
       const color = z.bull ? "var(--good)" : "var(--critical)";
-      const cx = (Math.min(z.x0,z.x1)+Math.max(z.x0,z.x1))/2;
-      const cy = (z.yTop+z.yBot)/2;
+      const x0 = Math.min(z.x0,z.x1), x1 = Math.max(z.x0,z.x1);
       const days = Math.round(z.toDays-z.fromDays);
       const priceDiff = Math.abs(z.toPrice-z.fromPrice);
       const pct = (z.toPrice/z.fromPrice - 1)*100;
-      const line1 = `${days.toLocaleString("de-DE")} Tage`;
-      const line2 = `${fmtUSD(priceDiff)} (${pct>=0?"+":""}${pct.toFixed(1)}%)`;
-      const boxW = Math.max(line1.length, line2.length)*6.3 + 18;
-      const bg = document.createElementNS(NS,"rect");
-      bg.setAttribute("x", (cx-boxW/2).toFixed(1)); bg.setAttribute("y", (cy-18).toFixed(1));
-      bg.setAttribute("width", boxW.toFixed(1)); bg.setAttribute("height","36"); bg.setAttribute("rx","7");
-      bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke",color); bg.setAttribute("stroke-width","1.3");
-      zoneLabelLayer.appendChild(bg);
-      [[line1,cy-3],[line2,cy+11]].forEach(([txt,y])=>{
-        const t = document.createElementNS(NS,"text");
-        t.setAttribute("x",cx.toFixed(1)); t.setAttribute("y",y.toFixed(1)); t.setAttribute("text-anchor","middle");
-        t.setAttribute("font-size","10.5"); t.setAttribute("font-weight","700"); t.setAttribute("fill",color);
-        t.textContent = txt;
-        zoneLabelLayer.appendChild(t);
-      });
+      const widthLabel = `${days.toLocaleString("de-DE")} Tage`;
+      const heightLabel = `${fmtUSD(priceDiff)} (${pct>=0?"+":""}${pct.toFixed(1)}%)`;
+
+      const g = document.createElementNS(NS,"g");
+      g.setAttribute("class","cyc-zone-dim");
+      g.style.opacity = "0";
+      const GAP = 6, RUN = 15, ARR = 4.5;
+      const mkLine = (x1_,y1_,x2_,y2_,dash)=>{
+        const l = document.createElementNS(NS,"line");
+        l.setAttribute("x1",x1_.toFixed(1)); l.setAttribute("y1",y1_.toFixed(1));
+        l.setAttribute("x2",x2_.toFixed(1)); l.setAttribute("y2",y2_.toFixed(1));
+        l.setAttribute("stroke",color); l.setAttribute("stroke-width","1");
+        if(dash) l.setAttribute("stroke-dasharray",dash);
+        l.setAttribute("vector-effect","non-scaling-stroke");
+        g.appendChild(l);
+      };
+      // A dimension arrow's tip sits exactly at (x,y) - the true edge of the span being measured - and
+      // points OUTWARD, away from the span's own center, mirroring a real technical drawing's "|<--->|".
+      const mkArrow = (x_,y_,dirX,dirY)=>{
+        const nx = -dirY, ny = dirX;
+        const bx = x_-dirX*ARR, by = y_-dirY*ARR;
+        const p = document.createElementNS(NS,"polygon");
+        p.setAttribute("points", `${x_.toFixed(1)},${y_.toFixed(1)} ${(bx+nx*ARR*0.55).toFixed(1)},${(by+ny*ARR*0.55).toFixed(1)} ${(bx-nx*ARR*0.55).toFixed(1)},${(by-ny*ARR*0.55).toFixed(1)}`);
+        p.setAttribute("fill",color);
+        g.appendChild(p);
+      };
+
+      // Width (days), a horizontal dimension line below the box - or above it, if there isn't room below
+      // before the x-axis labels.
+      const belowSign = (z.yBot+RUN+14 <= h-padB) ? 1 : -1;
+      const hEdgeY = belowSign>0 ? z.yBot : z.yTop;
+      const hDimY = hEdgeY + belowSign*RUN;
+      mkLine(x0, hEdgeY+belowSign*GAP, x0, hDimY, "2 2");
+      mkLine(x1, hEdgeY+belowSign*GAP, x1, hDimY, "2 2");
+      mkLine(x0, hDimY, x1, hDimY);
+      mkArrow(x0, hDimY, -1, 0);
+      mkArrow(x1, hDimY, 1, 0);
+      const wLbl = document.createElementNS(NS,"text");
+      wLbl.setAttribute("x",((x0+x1)/2).toFixed(1)); wLbl.setAttribute("y",(hDimY+belowSign*11).toFixed(1));
+      wLbl.setAttribute("text-anchor","middle"); wLbl.setAttribute("font-size","10"); wLbl.setAttribute("font-weight","700");
+      wLbl.setAttribute("fill",color); wLbl.textContent = widthLabel;
+      g.appendChild(wLbl);
+
+      // Height (price diff + %), a vertical dimension line right of the box - or left, if there isn't room
+      // to the right before the plot's own edge.
+      const rightSign = (x1+RUN+58 <= w-padR) ? 1 : -1;
+      const vEdgeX = rightSign>0 ? x1 : x0;
+      const vDimX = vEdgeX + rightSign*RUN;
+      mkLine(vEdgeX+rightSign*GAP, z.yTop, vDimX, z.yTop, "2 2");
+      mkLine(vEdgeX+rightSign*GAP, z.yBot, vDimX, z.yBot, "2 2");
+      mkLine(vDimX, z.yTop, vDimX, z.yBot);
+      mkArrow(vDimX, z.yTop, 0, -1);
+      mkArrow(vDimX, z.yBot, 0, 1);
+      const hLbl = document.createElementNS(NS,"text");
+      hLbl.setAttribute("x",(vDimX+rightSign*4).toFixed(1)); hLbl.setAttribute("y",((z.yTop+z.yBot)/2+3.5).toFixed(1));
+      hLbl.setAttribute("text-anchor", rightSign>0 ? "start" : "end");
+      hLbl.setAttribute("font-size","10"); hLbl.setAttribute("font-weight","700");
+      hLbl.setAttribute("fill",color); hLbl.textContent = heightLabel;
+      g.appendChild(hLbl);
+
+      zoneLabelLayer.appendChild(g);
+      requestAnimationFrame(()=>{ g.style.opacity = "1"; });
     }
-    // Hit-tested against click/tap coordinates directly rather than a per-rect listener - the hitRect
-    // below sits on top of the zone rects (needed for its own crosshair drag/hover), which would
-    // otherwise swallow every pointer event before it ever reached them.
     function checkZoneTap(clientX, clientY){
-      if(!cycleChartLayerVisible.zyklus) return;
-      const rect = svg.getBoundingClientRect();
-      if(rect.width===0) return;
-      const svgX = (clientX-rect.left)/(rect.width/w), svgY = (clientY-rect.top)/(rect.height/h);
-      const hit = layout.zones.find(z=> svgX>=Math.min(z.x0,z.x1) && svgX<=Math.max(z.x0,z.x1) && svgY>=z.yTop && svgY<=z.yBot);
+      const hit = findZoneAt(clientX, clientY);
       if(!hit) return;
       cycleChartActiveZoneKey = cycleChartActiveZoneKey===hit.toDate ? null : hit.toDate;
+      cycleChartHoverZoneKey = null;
       paintZoneLabel();
+      updateCycleZoneHighlight();
+    }
+    function handleZoneHover(clientX, clientY){
+      const hit = findZoneAt(clientX, clientY);
+      const key = hit ? hit.toDate : null;
+      if(key === cycleChartHoverZoneKey) return;
+      cycleChartHoverZoneKey = key;
+      paintZoneLabel();
+      updateCycleZoneHighlight();
+    }
+    function clearZoneHover(){
+      if(cycleChartHoverZoneKey===null) return;
+      cycleChartHoverZoneKey = null;
+      paintZoneLabel();
+      updateCycleZoneHighlight();
     }
     paintZoneLabel();
+    updateCycleZoneHighlight();
 
     const cross = document.createElementNS(NS,"line");
     cross.setAttribute("class","cyc-crosshair");
@@ -4212,7 +4345,8 @@
       cycleChartCrosshairDate = pt.date;
       paintCrosshair({date:pt.date, price:pt.price, isLatest: lo===points.length-1, x:layout.xOf(pt.days), y:layout.yOf(pt.price)});
     }
-    hitRect.addEventListener("mousemove", e=> handleMove(e.clientX));
+    hitRect.addEventListener("mousemove", e=>{ handleMove(e.clientX); handleZoneHover(e.clientX, e.clientY); });
+    hitRect.addEventListener("mouseleave", clearZoneHover);
     hitRect.addEventListener("click", e=> checkZoneTap(e.clientX, e.clientY));
     hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
     hitRect.addEventListener("touchstart", e=>{
@@ -4246,6 +4380,10 @@
 
     const panel = document.getElementById("cycleChartPanel");
     if(!panel) return;
+    // Snapshotted before the rebuild wipes it - animateCycleChartZoomFromLayout needs the OLD svg's own
+    // .cyc-zoom-group content (not just its geometry) for the zoom-IN case, exactly like renderAllZoom's
+    // own oldSvgClones does for buildLineChart's tiles (see animateZoomInWithOldContent).
+    const oldSvgClone = animate ? panel.querySelector("svg")?.cloneNode(true) : null;
     panel.innerHTML = "";
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
@@ -4291,7 +4429,11 @@
     cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
     if(animate){
       const oldLayout = computeCycleChartLayoutFor(prevState.logX, prevState.logY, prevState.rangeDays, prevState.panOffsetDays, cycleChartCrosshairDate);
-      animateCycleChartFromLayout(oldLayout);
+      // Only a genuine range/pan move reaches here (see cycleChartAnimatePending) - the scale type
+      // (logX/logY) never changes between prevState and the live globals in this branch, so the true
+      // affine "camera zoom" (computeCycleChartZoomMatrix) is always valid here, unlike the axis-toggle
+      // path below which can cross a log<->linear boundary a single matrix can't represent.
+      animateCycleChartZoomFromLayout(oldLayout, oldSvgClone);
     }
   }
 
@@ -4305,13 +4447,13 @@
     finally{ rangeDays = savedRange; panOffsetDays = savedPan; }
   }
 
-  // Animates this chart's own state changes - axis-scale toggles (mirroring animatePowerLawAxisChange's
-  // approach) and, via renderCycleChart's own cycleChartAnimatePending flag, range/pan moves too: build
-  // the true end state once, then drive every animatable element's attributes directly from interpolated
-  // old/new layouts each frame. This chart always autoscales its Y-domain to whatever's in the current
-  // window (per explicit feedback that it should, unlike the power-law chart's fixed-ratio zoom) so there
-  // is no fixed coordinate space to animate a "camera zoom" within - a plain per-point/per-box morph is
-  // the whole animation here, for every kind of change alike.
+  // Animates a log<->linear axis-scale toggle (mirroring animatePowerLawAxisChange's own morph for the
+  // same case): build the true end state once, then drive every animatable element's attributes directly
+  // from interpolated old/new layouts each frame. A single affine transform can't represent this
+  // particular transition - going from a linear to a logarithmic mapping (or back) bends the space itself,
+  // it doesn't just scale/translate it - so this stays a plain per-point/per-box morph, same as before.
+  // Range/pan moves (see cycleChartAnimatePending/animateCycleChartZoomFromLayout below) don't cross a
+  // scale-type boundary, so THEY get the true "camera zoom" treatment instead.
   function animateCycleChartAxisChange(newLogX, newLogY){
     const oldLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
     cycleChartLogX = newLogX; cycleChartLogY = newLogY;
@@ -4378,6 +4520,133 @@
       else renderCycleChart();
     }
     requestAnimationFrame(frame);
+  }
+
+  // Solves the single 2D affine transform (see computeZoomMatrix, whose "gold standard" approach this
+  // mirrors exactly) that makes newLayout's own zoom-group content visually match how oldLayout looked,
+  // given both share the same viewBox/padding. Valid whenever both layouts share the same log/linear
+  // scale on each axis - both are then linear functions of the same underlying (possibly log-transformed)
+  // days/price variable, so composing old-space -> real days/price -> new-space stays exactly affine. This
+  // is the same mathematical fact that lets buildLineChart's own per-window-autoscaled Y-domain use this
+  // trick (see computeZoomMatrix's own Y-solve comment) - no "fixed" coordinate space is required, only
+  // the shared scale type, so this chart's autoscaling Y-domain doesn't rule the technique out after all.
+  // X uses oldLayout's own xOf() evaluated at newLayout's two edge days; Y uses oldLayout's own yOf()
+  // evaluated at newLayout's real price bounds (priceMin/priceMax).
+  function computeCycleChartZoomMatrix(oldLayout, newLayout){
+    const identity = {a:1, d:1, e:0, f:0};
+    if(!oldLayout || !newLayout) return identity;
+    if(!!oldLayout.logX !== !!newLayout.logX || !!oldLayout.logY !== !!newLayout.logY) return identity;
+    const {w, padL, padR, padT, padB, h} = newLayout;
+    const newFirst = newLayout.points[0], newLast = newLayout.points[newLayout.points.length-1];
+    let a = 1, e = 0;
+    if(newFirst && newLast && newFirst.days !== newLast.days){
+      const targetLeftX = oldLayout.xOf(newFirst.days);
+      const targetRightX = oldLayout.xOf(newLast.days);
+      a = (targetRightX - targetLeftX) / ((w-padR) - padL);
+      e = targetLeftX - a*padL;
+    }
+    let d = 1, f = 0;
+    if(newLayout.priceMax > newLayout.priceMin){
+      const yTop = oldLayout.yOf(newLayout.priceMax);
+      const yBot = oldLayout.yOf(newLayout.priceMin);
+      d = (yBot - yTop) / ((h-padB) - padT);
+      f = yTop - d*padT;
+    }
+    return {a, d, e, f};
+  }
+
+  // Cycle-flag/crosshair equivalents of collectFlagSyncTargets/collectCrosshairSyncTarget - simpler than
+  // those, since this chart maps a raw (days, price) pair straight through a layout's own xOf/yOf rather
+  // than an index into a shared domain, so no separate "domainXOf" abstraction is needed - the layout's
+  // own closures already are that mapping. `wrap` is always the live/current DOM; `layout` picks which
+  // window's mapping produces each element's "raw" (pre-transform) position for this frame.
+  function collectCycleFlagSyncTargets(wrap, layout){
+    const targets = [];
+    wrap.querySelectorAll("g[data-flag-date]").forEach(g=>{
+      const days = daysSinceGenesis(g.dataset.flagDate);
+      const value = parseFloat(g.dataset.flagValue);
+      if(!isFinite(value)) return;
+      targets.push({g, rawX: layout.xOf(days), rawY: layout.yOf(value)});
+    });
+    return targets;
+  }
+  function applyCycleFlagSync(targets, a, d, e, f){
+    targets.forEach(t=>{
+      const x = t.rawX*a + e, y = t.rawY*d + f;
+      t.g.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+    });
+  }
+  function collectCycleCrosshairSyncTarget(wrap, layout){
+    const cross = wrap.querySelector(".cyc-crosshair");
+    const dot = wrap.querySelector(".cyc-price-dot");
+    if(!cross || !layout.crosshair) return null;
+    return {cross, dot, rawX: layout.xOf(daysSinceGenesis(layout.crosshair.date)), rawY: layout.yOf(layout.crosshair.price)};
+  }
+  function applyCycleCrosshairSync(target, a, d, e, f){
+    if(!target) return;
+    const x = target.rawX*a + e, y = target.rawY*d + f;
+    target.cross.setAttribute("x1", x.toFixed(1)); target.cross.setAttribute("x2", x.toFixed(1));
+    if(target.dot){ target.dot.setAttribute("cx", x.toFixed(1)); target.dot.setAttribute("cy", y.toFixed(1)); }
+  }
+
+  // The "gold standard" range/pan-change animation - mirrors buildLineChart's own renderAllZoom machinery
+  // (computeZoomMatrix/animateMatrix/animateZoomInWithOldContent) instead of the axis-toggle's per-point
+  // morph above: the .cyc-zoom-group (zones+halvings+price line, see renderCycleChartDOM) is driven by one
+  // interpolated affine transform, so the whole transition reads as a single rigid camera move rather than
+  // an organic reshape - flags/crosshair (kept outside the group so their glyphs/text never stretch) track
+  // that exact same live transform every frame via collectCycleFlagSyncTargets/applyCycleFlagSync and
+  // collectCycleCrosshairSyncTarget/applyCycleCrosshairSync, exactly like the halving vLines/flags do for
+  // buildLineChart's own tiles.
+  function animateCycleChartZoomFromLayout(oldLayout, oldSvgClone){
+    const wrap = document.querySelector("#cycleChartPanel .chart-wrap");
+    const svg = wrap && wrap.querySelector("svg");
+    if(!svg || !oldLayout) return;
+    const newLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
+    const group = svg.querySelector(".cyc-zoom-group");
+    if(!group || !!oldLayout.logX !== !!newLayout.logX || !!oldLayout.logY !== !!newLayout.logY) return;
+
+    const myGen = zoomGen;
+    const identity = {a:1, d:1, e:0, f:0};
+    // Re-pins flags/crosshair to their true final (newLayout, identity) position once the animation ends -
+    // the last animation frame should already land there numerically (endMatrix is solved so old-raw*
+    // endMatrix === new-raw at identity), but this removes any doubt from floating-point rounding instead
+    // of relying on that coincidence.
+    const settle = ()=>{
+      applyCycleFlagSync(collectCycleFlagSyncTargets(wrap, newLayout), 1, 1, 0, 0);
+      applyCycleCrosshairSync(collectCycleCrosshairSyncTarget(wrap, newLayout), 1, 1, 0, 0);
+    };
+
+    // Zoom IN (new range is a strict subset of old, e.g. "Alles" -> "1J") can't be animated the same way
+    // as zooming out/panning - the freshly-built new content simply has no pixels drawn outside its own
+    // (narrower) window, so starting it shrunk down to wherever that sliver sat in the old view would
+    // leave a hard-edged blank gap where the wider old context used to be. Fixed exactly like
+    // animateZoomInWithOldContent: animate the OLD content (still fully drawn, still in its own old-domain
+    // raw coordinates) forward instead, then swap to the already-built new content the instant it lines up.
+    const oldGroupSrc = oldSvgClone && oldSvgClone.querySelector(".cyc-zoom-group");
+    if(oldGroupSrc && newLayout.points.length < oldLayout.points.length){
+      const clipId = svg.querySelector("defs clipPath")?.id;
+      if(clipId) oldGroupSrc.setAttribute("clip-path", `url(#${clipId})`);
+      group.style.display = "none";
+      svg.insertBefore(oldGroupSrc, group);
+      const endMatrix = computeCycleChartZoomMatrix(newLayout, oldLayout);
+      const flagTargets = collectCycleFlagSyncTargets(wrap, oldLayout);
+      const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, oldLayout);
+      animateMatrix(oldGroupSrc, identity, endMatrix, myGen, ()=>{
+        oldGroupSrc.remove();
+        group.style.display = "";
+        settle();
+      }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); });
+      return;
+    }
+
+    // Generic path (zoom-out / pan / equal-width) - the freshly-built new content is already complete
+    // across its own window, so it can just start at the matrix that makes it look like the old view and
+    // animate straight down to identity.
+    const m = computeCycleChartZoomMatrix(oldLayout, newLayout);
+    const flagTargets = collectCycleFlagSyncTargets(wrap, newLayout);
+    const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, newLayout);
+    animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; settle(); },
+      (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); });
   }
 
   function tileIsAvailable(tile){
@@ -4503,6 +4772,11 @@
     document.querySelector(".mobile-topbar")?.classList.toggle("hidden", open);
     document.querySelector(".page")?.classList.toggle("nav-pushed", open);
     try{ localStorage.setItem(SIDEBAR_OPEN_STORAGE_KEY, open ? "1" : "0"); }catch(e){}
+    // .page's own top padding (see the stylesheet) reserves exactly this bar's height for the
+    // now-fixed .mobile-topbar - toggling .hidden above changes that height to/from 0 immediately, so
+    // this has to be recomputed right here rather than waiting for the next scroll/resize to happen to
+    // call it, or content would sit under the bar (or leave a gap under nothing) until then.
+    syncNavOffset();
   }
   function openSidebar(){ setSidebarOpen(true); }
   function closeSidebar(){ setSidebarOpen(false); }
