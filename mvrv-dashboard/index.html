@@ -82,41 +82,87 @@
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:26px;}
   .mono{font-family:var(--font-display); font-variant-numeric:tabular-nums;}
 
-  header{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:22px;}
-  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin:0 0 8px;}
-  .h1-row{display:flex; align-items:center; gap:8px;}
-  h1{font-family:var(--font-display); font-size:32px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
-  .header-actions{display:flex; align-items:center; gap:10px;}
-  .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600;}
+  /* Plain top row, own line, above everything else - a return path should be the very first thing on
+     the page, not sharing a row with the brand. */
+  .backlink{font-size:12.5px; color:var(--accent); text-decoration:none; font-weight:600; align-self:flex-start;}
   .backlink:hover{text-decoration:underline;}
 
-  /* Sticky chip-row nav: one row on every viewport (no separate desktop-sidebar layout) so behaviour
-     stays identical on mobile and desktop - it just scrolls horizontally once the chips overflow, same
-     gesture as everything else on a touch screen. Sits directly under the header, sticks to the very
-     top of the viewport once scrolled past, above every chart/card (z-index) so it never gets covered. */
-  .section-nav{
-    position:sticky; top:0; z-index:40; display:flex; gap:6px; overflow-x:auto; overflow-y:hidden;
-    padding:9px 2px; margin:0 -2px; background:var(--bg); border-bottom:1px solid var(--border);
-    scrollbar-width:none;
+  .brand-row{display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:18px;}
+  .brand-id{display:flex; align-items:center; gap:10px; min-width:0;}
+  .eyebrow{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700; margin:0;}
+  h1{font-family:var(--font-display); font-size:30px; margin:0; letter-spacing:-.01em; font-weight:700; text-wrap:balance;}
+  /* Simple circular ₿ mark instead of a hand-drawn glyph - same brand color BTC-Kurs already uses
+     everywhere else on the page, so it reads as "this page" rather than a generic crypto icon. */
+  .brand-icon{
+    width:32px; height:32px; border-radius:50%; background:var(--c-price); color:#fff; flex:none;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:17px; line-height:1;
   }
-  .section-nav::-webkit-scrollbar{display:none;}
-  .section-nav a{
-    flex:none; font-family:var(--font-display); font-size:12px; font-weight:600; white-space:nowrap;
-    color:var(--ink-2); text-decoration:none; background:var(--card); border:1px solid var(--border);
-    border-radius:999px; padding:6px 13px; transition:border-color .15s ease, color .15s ease, background .15s ease;
-  }
-  .section-nav a:hover{color:var(--ink); border-color:var(--ink-3);}
-  .section-nav a.active{color:var(--accent); border-color:var(--accent); background:var(--accent-bg);}
-  /* Keeps a scrolled-to section's heading from landing flush under the sticky nav bar. */
-  .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:56px;}
 
-  .theme-toggle{
-    width:38px; height:38px; border-radius:50%; border:1.5px solid var(--border); background:var(--card);
-    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
+  /* Sticky nav: one bar on every viewport. Desktop shows every link inline (scrolling horizontally only
+     once they overflow); mobile collapses the link list behind a burger button instead, since a dozen+
+     chart names never fit a phone-width row even with scrolling. Sits directly under the brand row,
+     sticks to the very top of the viewport once scrolled past, above every chart/card (z-index) so it
+     never gets covered - except the info popover, which must still be able to cover *it* (higher z-index)
+     when open, since it can be triggered from content that now sits right next to/under the nav. */
+  .section-nav{
+    position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:4px;
+    padding:8px 2px; margin:0 -2px; background:var(--bg); border-bottom:1px solid var(--border);
+  }
+  /* Mini brand mark, mirroring the real one above - hidden until the real brand row has scrolled out of
+     view (see the "scrolled" class, toggled by the scroll listener in wireControls), so the reader is
+     never left without any page identity/way back to the top once they've scrolled past it. */
+  .nav-brand{
+    display:none; align-items:center; gap:7px; flex:none; background:none; border:none; cursor:pointer;
+    padding:4px 6px 4px 2px; margin-right:2px; font-family:var(--font-display); font-weight:700;
+    font-size:12.5px; color:var(--ink); white-space:nowrap;
+  }
+  .section-nav.scrolled .nav-brand{display:inline-flex;}
+  .brand-icon-sm{
+    width:22px; height:22px; border-radius:50%; background:var(--c-price); color:#fff; flex:none;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:12px; line-height:1;
+  }
+  .nav-links{display:flex; align-items:center; gap:2px; overflow-x:auto; overflow-y:hidden; flex:1 1 auto; min-width:0; scrollbar-width:none;}
+  .nav-links::-webkit-scrollbar{display:none;}
+  /* Plain text tabs, no pill background/border - an underline carries the active/hover state instead. */
+  .nav-links a{
+    flex:none; font-family:var(--font-display); font-size:12px; font-weight:600; white-space:nowrap;
+    color:var(--ink-2); text-decoration:none; padding:8px 10px; border-bottom:2px solid transparent;
     transition:border-color .15s ease, color .15s ease;
   }
+  .nav-links a:hover{color:var(--ink);}
+  .nav-links a.active{color:var(--accent); border-bottom-color:var(--accent);}
+  .nav-burger{
+    display:none; width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border); background:var(--card);
+    align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none; margin-right:4px;
+  }
+  .nav-burger svg{width:16px; height:16px;}
+  /* Keeps a scrolled-to section's heading from landing flush under the sticky nav bar - kept in sync
+     with the nav's own real height via --nav-offset (see syncNavOffset), since a fixed guess drifts out
+     of sync the moment the nav's content/height actually changes (e.g. the mini-brand toggling on). */
+  .panel, .hero-panel, .overlay-panel, section[id], .card{scroll-margin-top:var(--nav-offset, 56px);}
+
+  @media (max-width:700px){
+    .nav-burger{display:inline-flex;}
+    .nav-links{
+      display:none; position:absolute; left:0; right:0; top:100%; flex-direction:column; align-items:stretch;
+      background:var(--card); border-bottom:1px solid var(--border); box-shadow:var(--shadow); padding:6px 4px;
+      max-height:calc(100vh - 60px); overflow-y:auto;
+    }
+    .section-nav{position:sticky; flex-wrap:wrap;}
+    .nav-links.open{display:flex;}
+    .nav-links a{padding:11px 12px; border-bottom:1px solid var(--border); border-radius:0;}
+    .nav-links a.active{background:var(--accent-bg); border-bottom-color:var(--border);}
+  }
+
+  .theme-toggle{
+    width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:var(--card);
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-2); flex:none;
+    transition:border-color .15s ease, color .15s ease; margin-left:6px;
+  }
   .theme-toggle:hover{border-color:var(--accent); color:var(--accent);}
-  .theme-toggle svg{width:18px; height:18px;}
+  .theme-toggle svg{width:16px; height:16px;}
   .theme-toggle .icon-moon{display:none;}
   :root[data-theme="dark"] .theme-toggle .icon-sun{display:none;}
   :root[data-theme="dark"] .theme-toggle .icon-moon{display:block;}
@@ -129,10 +175,18 @@
   }
   .info-btn:hover, .info-btn[aria-expanded="true"]{border-color:var(--accent); color:var(--accent);}
   .info-pop{
-    position:absolute; top:26px; left:0; z-index:30; width:280px; max-width:min(80vw,320px);
+    /* Above .section-nav's own z-index:40 - the header's own info button sits right next to the nav
+       (and, once collapsed-into-nav, effectively inside its row), so its popover must be able to cover
+       the nav rather than render underneath it. */
+    position:absolute; top:26px; left:0; z-index:50; width:280px; max-width:min(80vw,320px);
     background:var(--card); border:1px solid var(--border); border-radius:12px; padding:13px 15px;
     box-shadow:var(--shadow); font-size:12.5px; color:var(--ink-2); line-height:1.55; display:none;
   }
+  .info-pop .eyebrow{margin:0 0 4px;}
+  .info-pop-section{padding-top:10px; margin-top:10px; border-top:1px solid var(--border);}
+  .info-pop-section:first-child{padding-top:0; margin-top:0; border-top:none;}
+  .info-pop a{color:var(--accent);}
+  .info-pop .retry-btn{border:none; background:var(--critical); color:#fff; padding:6px 12px; border-radius:7px; font-weight:700; cursor:pointer; margin-top:8px;}
   .info-pop.show{display:block;}
   .info-pop.align-right{left:auto; right:0;}
 
@@ -350,26 +404,32 @@
 <div class="page">
   <div class="wrap">
 
-    <header>
-      <div>
-        <p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">v59 · Deployed 19.08.2026 19:52 UTC</span></p>
-        <div class="h1-row">
-          <h1>MVRV Dashboard</h1>
-          <span id="headerInfo"></span>
-        </div>
-      </div>
-      <div class="header-actions">
-        <a class="backlink" href="../index.html">← Alle Dashboards</a>
-        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
-        </button>
-      </div>
-    </header>
+    <a class="backlink" href="../index.html">← Alle Dashboards</a>
 
-    <nav class="section-nav" id="sectionNav" aria-label="Chart-Navigation"></nav>
+    <div class="brand-row" id="brandRow">
+      <div class="brand-id">
+        <span class="brand-icon" aria-hidden="true">₿</span>
+        <h1>Bitcoin Dashboard</h1>
+      </div>
+      <span id="headerInfo"></span>
+    </div>
 
-    <div class="tab-status" id="statusBanner">Lade Onchain-Daten von Coin Metrics …</div>
+    <nav class="section-nav" id="sectionNav" aria-label="Chart-Navigation">
+      <button type="button" class="nav-brand" id="navBrand" aria-label="Nach oben" title="Nach oben">
+        <span class="brand-icon-sm" aria-hidden="true">₿</span>
+        <span>Bitcoin Dashboard</span>
+      </button>
+      <button type="button" class="nav-burger" id="navBurger" aria-label="Menü öffnen" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="nav-links" id="navLinks"></div>
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
+      </button>
+    </nav>
+
+    <div class="tab-status" id="statusBanner" style="display:none;"></div>
 
     <section class="panel" id="cycleChartPanel"></section>
 
@@ -813,7 +873,7 @@
     btn.setAttribute("aria-label","Erklärung anzeigen"); btn.setAttribute("aria-expanded","false");
     const pop = document.createElement("div");
     pop.className = "info-pop" + (opts && opts.alignRight ? " align-right" : "");
-    pop.textContent = text;
+    if(opts && opts.html) pop.innerHTML = text; else pop.textContent = text;
     wrap.appendChild(btn); wrap.appendChild(pop);
     btn.addEventListener("click", e=>{
       e.stopPropagation();
@@ -3916,7 +3976,8 @@
   // overflows into horizontal scroll on narrow viewports rather than needing a separate sidebar layout).
   function renderSectionNav(){
     const nav = document.getElementById("sectionNav");
-    if(!nav) return;
+    const list = document.getElementById("navLinks");
+    if(!nav || !list) return;
     const sections = [
       {id:"cycleChartPanel", label:"Marktzyklen"},
       {id:"powerLawPanel", label:"Power Law"},
@@ -3924,14 +3985,31 @@
       {id:"heroPanel", label:"MVRV Bands"},
       ...TILES.filter(tileIsAvailable).map(t=>({id:slugify(t.title), label:t.title}))
     ];
-    nav.innerHTML = sections.map(s=>`<a href="#${s.id}" data-nav-target="${s.id}">${s.label}</a>`).join("");
-    nav.querySelectorAll("a").forEach(a=>{
+    list.innerHTML = sections.map(s=>`<a href="#${s.id}" data-nav-target="${s.id}">${s.label}</a>`).join("");
+    list.querySelectorAll("a").forEach(a=>{
       a.addEventListener("click", e=>{
         e.preventDefault();
+        list.classList.remove("open");
+        document.getElementById("navBurger")?.setAttribute("aria-expanded","false");
         document.getElementById(a.dataset.navTarget)?.scrollIntoView({behavior:"smooth", block:"start"});
       });
     });
     updateSectionNavActive();
+  }
+
+  // Keeps --nav-offset (the CSS scroll-margin-top every section target uses - see the stylesheet) and
+  // this function's own "is this section now current" threshold reading the exact same number, always
+  // measured fresh from the nav's real current height. Before this the two were computed separately (a
+  // hardcoded scroll-margin-top vs. a live-measured nav height), which only agreed by coincidence - the
+  // mismatch is exactly what made the wrong (previous) chip stay highlighted right after a click, since
+  // scrollIntoView had already landed the target exactly at the CSS value while this comparison was still
+  // checking against a slightly different number.
+  function currentNavOffset(){
+    const nav = document.getElementById("sectionNav");
+    return (nav ? nav.getBoundingClientRect().height : 48) + 8;
+  }
+  function syncNavOffset(){
+    document.documentElement.style.setProperty("--nav-offset", currentNavOffset()+"px");
   }
 
   // Highlights whichever chip corresponds to the section currently scrolled just under the sticky bar.
@@ -3940,16 +4018,27 @@
   let lastActiveNavId = null;
   function updateSectionNavActive(){
     const nav = document.getElementById("sectionNav");
-    if(!nav) return;
-    const links = [...nav.querySelectorAll("a")];
+    const list = document.getElementById("navLinks");
+    if(!nav || !list) return;
+    const links = [...list.querySelectorAll("a")];
     if(!links.length) return;
-    const navHeight = nav.getBoundingClientRect().height || 0;
+    syncNavOffset();
+    const threshold = currentNavOffset();
     let activeId = links[0].dataset.navTarget;
     for(const a of links){
       const el = document.getElementById(a.dataset.navTarget);
-      if(el && el.getBoundingClientRect().top - navHeight <= 4) activeId = a.dataset.navTarget;
+      // +1.5px tolerance absorbs the browser's own subpixel rounding on scrollIntoView (the target can
+      // land a fraction of a pixel past the exact scroll-margin-top value) - not a reintroduction of the
+      // old bug, which was an ~8px+ mismatch from comparing against a different base number entirely.
+      if(el && el.getBoundingClientRect().top <= threshold+1.5) activeId = a.dataset.navTarget;
     }
     links.forEach(a=> a.classList.toggle("active", a.dataset.navTarget === activeId));
+    // The brand row (real headline) having scrolled out of view is exactly the point past which the
+    // reader has lost sight of any page identity/way back to the top - the same threshold used for
+    // "which section is current" works here too, since brandRow sits right above the nav's own sticky
+    // position.
+    const brandRow = document.getElementById("brandRow");
+    if(brandRow) nav.classList.toggle("scrolled", brandRow.getBoundingClientRect().bottom <= 0);
     if(activeId !== lastActiveNavId){
       lastActiveNavId = activeId;
       nav.querySelector("a.active")?.scrollIntoView({behavior:"smooth", block:"nearest", inline:"nearest"});
@@ -4669,26 +4758,39 @@
     }catch(e){ return iso; }
   }
 
+  // The source/freshness info this used to always show as its own banner on the page now lives inside
+  // the header's info popover instead (see wireControls' headerInfo setup) - #statusInfoContent there
+  // gets the exact same HTML on every status change. The one exception is an actual error: that stays a
+  // directly-visible banner too (#statusBanner, otherwise kept display:none), since a failed load with a
+  // retry button is the one state a reader shouldn't have to open a popover to even notice.
   function setStatus(kind, extra){
-    const el = document.getElementById("statusBanner");
+    let html;
     if(kind === "loading"){
-      el.className = "tab-status";
-      el.innerHTML = "Lade Onchain-Daten von Coin Metrics …";
+      html = "Lade Onchain-Daten von Coin Metrics …";
     } else if(kind === "ok"){
       const asOf = fmtDateOnly(FULL.dates[FULL.dates.length-1]);
       const isSnapshot = extra.source === "snapshot";
-      el.className = "tab-status";
       if(isSnapshot){
-        el.innerHTML = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (Live-Abruf direkt aus dem Browser wird von Coin Metrics per CORS blockiert) — abgeholt am <b>${fmtTs(extra.fetchedAt)}</b>, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage.`;
+        html = `Quelle: täglicher Snapshot von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (Live-Abruf direkt aus dem Browser wird von Coin Metrics per CORS blockiert) — abgeholt am <b>${fmtTs(extra.fetchedAt)}</b>, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage.`;
       } else {
-        el.innerHTML = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache)" : ""}, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage seit ${fmtDateOnly(FULL.dates[0])}.`;
+        html = `Live von der <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> abgeholt am <b>${fmtTs(extra.browserFetchedAt)}</b>${extra.fromCache ? " (aus Browser-Cache)" : ""}, Datenstand <b>${asOf}</b> · ${extra.count} Handelstage seit ${fmtDateOnly(FULL.dates[0])}.`;
       }
     } else if(kind === "error"){
-      el.className = "tab-status error";
-      el.innerHTML = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Snapshot. <button id="retryBtn" class="seg" style="border:none;background:var(--critical);color:#fff;padding:6px 12px;border-radius:7px;font-weight:700;cursor:pointer;">Erneut versuchen</button>`;
-      const btn = document.getElementById("retryBtn");
-      if(btn) btn.addEventListener("click", ()=> loadAndRender(true));
+      html = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Snapshot. <button type="button" class="retry-btn">Erneut versuchen</button>`;
     }
+    const infoEl = document.getElementById("statusInfoContent");
+    if(infoEl) infoEl.innerHTML = html;
+    const banner = document.getElementById("statusBanner");
+    if(banner){
+      if(kind === "error"){
+        banner.className = "tab-status error";
+        banner.innerHTML = html;
+        banner.style.display = "";
+      } else {
+        banner.style.display = "none";
+      }
+    }
+    document.querySelectorAll(".retry-btn").forEach(btn=> btn.addEventListener("click", ()=> loadAndRender(true)));
   }
 
   // ---------- controls ----------
@@ -4696,7 +4798,15 @@
     document.getElementById("themeToggle").addEventListener("click", ()=>{
       setTheme(currentTheme() === "dark" ? "light" : "dark");
     });
-    attachInfo(document.getElementById("headerInfo"), "Bewertet BTC anhand des Verhältnisses von Marktpreis zu \"Realized Price\" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.");
+    // The header's info popover carries three things that used to each be their own always-visible page
+    // element: what this page measures, the version/deploy topline (with its own live-freshness check,
+    // see loadDeployInfo - #deployInfo keeps working unchanged, it's just relocated here now), and the
+    // data source/freshness line setStatus() updates on every load (see #statusInfoContent there).
+    attachInfo(document.getElementById("headerInfo"), `
+      <div class="info-pop-section">Bewertet BTC anhand des Verhältnisses von Marktpreis zu "Realized Price" (durchschnittlicher On-Chain-Einstandspreis aller im Umlauf befindlichen Coins). Alle abgeleiteten Kennzahlen werden im Browser berechnet, auf Basis eines täglichen, unveränderten Snapshots der frei zugänglichen Coin Metrics Community API.</div>
+      <div class="info-pop-section"><p class="eyebrow">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p></div>
+      <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
+    `, {html:true, alignRight:true});
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
     attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung. Der kleine Chart zeigt den MVRV-Perzentil-Verlauf mit dem aktuellen Stand sowie, falls vorhanden, dem historischen Vergleichszeitpunkt.", {alignRight:true});
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
@@ -4720,6 +4830,28 @@
       navScrollTicking = true;
       requestAnimationFrame(()=>{ updateSectionNavActive(); navScrollTicking = false; });
     }, {passive:true});
+
+    // navBrand/navBurger are static (outside #navLinks, so renderSectionNav() never touches them) -
+    // wired once here, not per-render.
+    document.getElementById("navBrand")?.addEventListener("click", ()=>{
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+    const burger = document.getElementById("navBurger");
+    const navLinks = document.getElementById("navLinks");
+    if(burger && navLinks){
+      burger.addEventListener("click", e=>{
+        e.stopPropagation();
+        const willOpen = !navLinks.classList.contains("open");
+        navLinks.classList.toggle("open", willOpen);
+        burger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      });
+      document.addEventListener("click", e=>{
+        if(navLinks.classList.contains("open") && !navLinks.contains(e.target) && e.target!==burger){
+          navLinks.classList.remove("open");
+          burger.setAttribute("aria-expanded","false");
+        }
+      });
+    }
   }
 
   async function loadAndRender(force){
