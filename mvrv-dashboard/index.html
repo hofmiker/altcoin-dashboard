@@ -595,7 +595,7 @@
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
         <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
-        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche.</p>
+        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der Kurs selbst wird nie in die Zukunft projiziert; lediglich in der "Alles"-Ansicht reicht die Zeitachse noch 3 zusätzliche, deutlich blass dargestellte Halvings über das letzte reale hinaus (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings), rein zur zeitlichen Orientierung.</p>
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
@@ -628,8 +628,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v219";
-  const EDIT_STAMP = "2026-08-21 17:02 UTC";
+  const EDIT_VERSION = "v226";
+  const EDIT_STAMP = "2026-08-21 17:13 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -2532,10 +2532,12 @@
   // reflect the current global rangeDays and never need separate active-state syncing) ----------
   const RANGE_OPTIONS = [
     {value:"all", label:"Alles"},
+    {value:"3650", label:"10J"},
     {value:"1825", label:"5J"},
     {value:"730", label:"2J"},
     {value:"365", label:"1J"},
-    {value:"180", label:"6M"}
+    {value:"180", label:"6M"},
+    {value:"30", label:"1M"}
   ];
   function buildRangeSeg(zoomKey){
     const group = document.createElement("div");
@@ -4152,8 +4154,12 @@
   // whatever's visible in the currently selected range/pan, same as every "normal" chart in the app -
   // there's no regression line here whose apparent slope a fixed ratio would need to protect, so a
   // flexible ratio just shows more vertical detail at every zoom level instead of enforcing a look this
-  // chart doesn't need. Never projects past real data either - this chart shows what happened, not an
-  // estimate of what's next.
+  // chart doesn't need. Still never projects the PRICE line itself past real data (per explicit
+  // feedback, this chart shows what happened, not an estimate of what's next) - but in the "Alles" view
+  // the X-domain now extends 3 average halving-cycle-lengths past the last real day, the same
+  // projectedHalvings()/avgHalvingCycleDays() the power-law chart's own "Alles" corridor already uses,
+  // purely so those few upcoming, clearly-marked-as-estimated halving lines have room to render. Nothing
+  // else (price line, zones, Y-axis autoscale) reads from that extended space.
   function computeCycleChartLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
     const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=46;
@@ -4179,9 +4185,13 @@
       points = allPoints.slice(idx, endIdx);
     }
     const daysMin = points[0].days, daysMax = points[points.length-1].days;
+    // Only "Alles" gets the projected-corridor extension - any other range is already a deliberately
+    // narrow, real-data-only window (a reader who picked "1J" wants exactly that year, not 3 more cycles
+    // of empty space tacked onto the end of it).
+    const domainDaysMax = rangeDays === "all" ? daysMax + 3*avgHalvingCycleDays() : daysMax;
 
     function xVal(days){ return logX ? Math.log10(days) : days; }
-    const xValMin = xVal(daysMin), xValMax = xVal(daysMax);
+    const xValMin = xVal(daysMin), xValMax = xVal(domainDaysMax);
     function xOf(days){ return padL + (xVal(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
 
     const priceLogVals = points.map(p=>Math.log10(p.price));
@@ -4192,9 +4202,12 @@
 
     const pricePts = points.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
 
-    const halvings = (showHalvings ? HALVING_DATES : [])
-      .map(hv=>({date:hv.date, days:daysSinceGenesis(hv.date)}))
-      .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
+    const halvingSource = showHalvings
+      ? HALVING_DATES.concat(rangeDays === "all" ? projectedHalvings(3) : [])
+      : [];
+    const halvings = halvingSource
+      .map(hv=>({date:hv.date, projected:!!hv.projected, days:daysSinceGenesis(hv.date)}))
+      .filter(hv=> hv.days>=daysMin && hv.days<=domainDaysMax)
       .map(hv=>({...hv, x:xOf(hv.days)}));
 
     // Fixed-fraction ticks (5 evenly spaced, frac=0 at the top/max down to frac=1 at the bottom/min) -
@@ -4225,7 +4238,10 @@
     // same year-month in both old and new layouts, e.g. January of some year, still animates smoothly
     // between them instead of just snapping the instant the tick style itself changes).
     const firstDate = new Date(GENESIS_MS+daysMin*86400000);
-    const lastDate = new Date(GENESIS_MS+daysMax*86400000);
+    // domainDaysMax, not daysMax - in the "Alles" view the plotted domain reaches a few projected years
+    // past the last real day (see above), and the year ticks should cover that same span so the reader
+    // can see roughly when each projected halving falls, not just where the real data stops.
+    const lastDate = new Date(GENESIS_MS+domainDaysMax*86400000);
     const firstYear = firstDate.getUTCFullYear(), lastYear = lastDate.getUTCFullYear();
     const xTicks = [];
     // Per explicit feedback, a window of 2 years or less should show month granularity, not just the
@@ -4247,7 +4263,7 @@
       const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
       for(let y=firstYear; y<=lastYear; y+=yearStep){
         const days = daysSinceGenesis(`${y}-01-01`);
-        if(days < daysMin || days > daysMax) continue;
+        if(days < daysMin || days > domainDaysMax) continue;
         xTicks.push({x:xOf(days), label:String(y), key:`${y}-01`});
       }
     }
@@ -4439,6 +4455,15 @@
       line.setAttribute("x1",hv.x); line.setAttribute("x2",hv.x); line.setAttribute("y1",padT); line.setAttribute("y2",h-padB);
       line.setAttribute("stroke","var(--ink-3)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 3");
       line.setAttribute("vector-effect","non-scaling-stroke");
+      // Projected future halvings (only ever present in the "Alles" view - see computeCycleChartLayout)
+      // are an estimate, not a fact - faded relative to the real ones so they read as speculative, same
+      // treatment the power-law chart's own projected halvings already get.
+      if(hv.projected){
+        line.setAttribute("opacity","0.4");
+        const title = document.createElementNS(NS,"title");
+        title.textContent = `Geschätztes Halving: ${fmtDateOnly(hv.date)} (Ø Zyklusdauer der bisherigen Halvings)`;
+        line.appendChild(title);
+      }
       zoomGroup.appendChild(line);
     });
     const priceLine = document.createElementNS(NS,"path");
@@ -4753,7 +4778,7 @@
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Marktzyklen</h3>`;
     panel.appendChild(headRow);
-    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Zeigt ausschließlich die echte Kurshistorie, keine Projektion in die Zukunft.`);
+    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklen"-Umschalter) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Zeigt ausschließlich die echte Kurshistorie, keine Projektion des Kurses in die Zukunft - in der "Alles"-Ansicht reicht die Zeitachse lediglich noch 3 geschätzte, deutlich blass markierte Halvings über das letzte reale Halving hinaus (Ø Zyklusdauer der bisherigen Halvings), rein zur Orientierung.`);
 
     const points = powerLawPoints();
     if(points.length < 2){
