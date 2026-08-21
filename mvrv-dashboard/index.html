@@ -339,6 +339,30 @@
   .cyc-zone{ transition: opacity .15s ease; }
   .cyc-zone-dim{ transition: opacity .15s ease; }
 
+  /* Single-button log/linear toggles for the Marktzyklen chart's own X/Y axes, styled after the sibling
+     btc/ project's own ".scale-btn" (button text names the state you'd switch TO, highlight applies
+     while currently in Log mode) - sit directly on the chart itself (absolutely positioned inside
+     .cyc-chart-svg-host, a zero-padding wrapper around just the <svg> so percentage offsets line up with
+     the viewBox's own coordinate fractions) rather than in the external toolbar row below, since the
+     user asked for them right at the axis they each control. */
+  .cyc-chart-svg-host{ position:relative; }
+  .cyc-axis-toggle{
+    position:absolute; font:inherit; font-family:var(--font-display); font-size:11px; font-weight:700;
+    padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--ink-2);
+    cursor:pointer; transition:border-color .15s ease, color .15s ease; z-index:4; line-height:1.3; white-space:nowrap;
+  }
+  .cyc-axis-toggle:hover{ color:var(--ink); border-color:var(--ink-3); }
+  .cyc-axis-toggle.active{ border-color:var(--bitcoin-accent); color:var(--bitcoin-accent); }
+  .cyc-axis-toggle-y{ transform:translate(2px,-100%); margin-top:-4px; }
+  .cyc-axis-toggle-x{ transform:translate(-100%,-50%); }
+
+  /* Crosshair readout pill (see updateCycleReadoutPill) - a compact date/price/change stack pinned to
+     the top-right corner of the plot, mirroring the sibling btc/ project's own card-label/card-value/
+     card-sub ticker layout. Plain viewBox-unit font sizes (like the zone dimension-line pills just above),
+     not run through fitChartTypography's constant-real-px normalization - it already scales correctly
+     with the chart's own aspect-locked SVG the same way those pills do. */
+  .cyc-readout-price{ font-variant-numeric:tabular-nums; }
+
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, then dialed back
      to 75% of that doubled size (28.5px/39px) once the full +100% read as too big in practice. Narrow
@@ -628,8 +652,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v226";
-  const EDIT_STAMP = "2026-08-21 17:13 UTC";
+  const EDIT_VERSION = "v227";
+  const EDIT_STAMP = "2026-08-21 18:08 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -940,7 +964,9 @@
   }
 
   let FULL = null;
-  let rangeDays = 1825;
+  // 10 Jahre - matches Marktzyklen's requested Log/Log+10J default and the sibling btc/ dashboard's
+  // own default range. Shared global state (see panOffsetDays below), so this applies to every chart.
+  let rangeDays = 3650;
   // How many days back from "today" the current window's right edge is shifted - 0 means the window
   // ends on the most recent available date (the only state that existed before panning). Reset to 0
   // whenever rangeDays itself changes, so switching zoom level always starts fresh at "today". Doesn't
@@ -2539,7 +2565,8 @@
     {value:"180", label:"6M"},
     {value:"30", label:"1M"}
   ];
-  function buildRangeSeg(zoomKey){
+  function buildRangeSeg(zoomKey, opts){
+    const showHalvingBtn = !opts || opts.halvingBtn !== false;
     const group = document.createElement("div");
     // flex-wrap here (not just on the outer .card-toolbar) matters on narrow screens: without it, this
     // whole group - the range seg, jump-to-today, and Zyklen button together - is one rigid non-wrapping
@@ -2589,17 +2616,22 @@
     // Zyklus markers (halving dates, and each cycle's own high/low - see cfg.vLines), on by default -
     // shared across every chart (like rangeDays/panOffsetDays), so toggling it anywhere applies
     // everywhere at once. A visibility change, not a domain change, so it snaps (renderAll) rather than
-    // animating like a range/scale change would.
-    const halvingBtn = document.createElement("button");
-    halvingBtn.type = "button";
-    halvingBtn.className = "halving-toggle-btn" + (showHalvings ? " active" : "");
-    halvingBtn.title = "Zyklus-Markierungen (Halvings, Hochs/Tiefs je Zyklus) ein-/ausblenden";
-    halvingBtn.textContent = "Zyklen";
-    halvingBtn.addEventListener("click", ()=>{
-      showHalvings = !showHalvings;
-      renderAll();
-    });
-    group.appendChild(halvingBtn);
+    // animating like a range/scale change would. Suppressed here (opts.halvingBtn:false) for the
+    // Marktzyklen chart specifically, since that chart's own compact "Zyklus"-Zonen pill above the chart
+    // now controls this same showHalvings flag too (see renderCycleChart) - showing both would be two
+    // controls for one piece of state.
+    if(showHalvingBtn){
+      const halvingBtn = document.createElement("button");
+      halvingBtn.type = "button";
+      halvingBtn.className = "halving-toggle-btn" + (showHalvings ? " active" : "");
+      halvingBtn.title = "Zyklus-Markierungen (Halvings, Hochs/Tiefs je Zyklus) ein-/ausblenden";
+      halvingBtn.textContent = "Zyklen";
+      halvingBtn.addEventListener("click", ()=>{
+        showHalvings = !showHalvings;
+        renderAll();
+      });
+      group.appendChild(halvingBtn);
+    }
     return group;
   }
 
@@ -4341,8 +4373,22 @@
       priceMin, priceMax, logX, logY};
   }
 
+  // Single-button log/lin toggle for the Marktzyklen chart's own X/Y axes (see .cyc-axis-toggle CSS) -
+  // unlike buildPowerLawAxisSeg's shared two-button Log/Linear segmented pair (still used as-is by the
+  // Power-Law chart), this shows only the state you'd switch TO and highlights while currently in Log
+  // mode, mirroring the sibling btc/ project's own ".scale-btn" pattern the user asked to port here.
+  function buildCycleAxisToggle(extraClass, isLog, onToggle, title){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cyc-axis-toggle " + extraClass + (isLog ? " active" : "");
+    btn.textContent = isLog ? "Linear" : "Log";
+    btn.title = title;
+    btn.addEventListener("click", ()=> onToggle(!isLog));
+    return btn;
+  }
+
   function renderCycleChartDOM(layout){
-    const {w,h,padL,padR,padT,padB, points} = layout;
+    const {w,h,padL,padR,padT,padB, points, logX, logY} = layout;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.setAttribute("preserveAspectRatio","none");
@@ -4701,15 +4747,67 @@
     priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
     svg.appendChild(priceDot);
 
-    const readout = buildReadout(
-      [{key:"price", label:"BTC-Kurs", color:"var(--c-price)", fmt:fmtUSD}],
-      {compact:true}
-    );
+    // Compact date/price/change stack pinned to the plot's own top-right corner, replacing the previous
+    // external buildReadout() row (which the user reported sliding left-aligned above the chart on
+    // narrow layouts) - mirrors the sibling btc/ project's own card-label/card-value/card-sub ticker.
+    // Plain viewBox-unit font sizes, same as the zone dimension-line pills above: this chart's SVG is
+    // always aspect-locked (preserveAspectRatio="none" + CSS width:100%/height:auto), so it already scales
+    // undistorted without needing fitChartTypography's separate constant-real-px normalization pass.
+    const readoutG = document.createElementNS(NS,"g");
+    readoutG.setAttribute("class","cyc-readout-pill");
+    readoutG.style.pointerEvents = "none";
+    const readoutRect = document.createElementNS(NS,"rect");
+    readoutRect.setAttribute("rx","8"); readoutRect.setAttribute("fill","var(--card)");
+    readoutRect.setAttribute("stroke","var(--border)"); readoutRect.setAttribute("stroke-width","1");
+    readoutG.appendChild(readoutRect);
+    const readoutDate = document.createElementNS(NS,"text");
+    readoutDate.setAttribute("class","cyc-readout-date"); readoutDate.setAttribute("text-anchor","end");
+    readoutDate.setAttribute("font-size","10.5"); readoutDate.setAttribute("font-weight","600"); readoutDate.setAttribute("fill","var(--ink-3)");
+    readoutG.appendChild(readoutDate);
+    const readoutPrice = document.createElementNS(NS,"text");
+    readoutPrice.setAttribute("class","cyc-readout-price"); readoutPrice.setAttribute("text-anchor","end");
+    readoutPrice.setAttribute("font-size","20"); readoutPrice.setAttribute("font-weight","800"); readoutPrice.setAttribute("fill","var(--ink)");
+    readoutG.appendChild(readoutPrice);
+    const readoutChange = document.createElementNS(NS,"text");
+    readoutChange.setAttribute("class","cyc-readout-change"); readoutChange.setAttribute("text-anchor","end");
+    readoutChange.setAttribute("font-size","11.5"); readoutChange.setAttribute("font-weight","700");
+    readoutG.appendChild(readoutChange);
+    svg.appendChild(readoutG);
+    function readoutTextWidth(str, fontSize, weight){
+      return str.length * fontSize * (weight>=800 ? 0.62 : weight>=700 ? 0.58 : 0.53);
+    }
+    function paintReadoutPill(dateStr, price){
+      // Baseline is the first point currently in view, same "what's the window's own starting price"
+      // convention buildLineChart's own baseValues already use elsewhere - not points[crosshair-1], so
+      // panning/zooming (which changes what's in view) updates the % shown, but moving the crosshair
+      // within a fixed window doesn't chase a moving target.
+      const basePrice = points[0].price;
+      const priceStr = fmtUSD(price);
+      const pct = basePrice ? (price/basePrice - 1)*100 : 0;
+      const changeStr = (pct>=0?"+":"") + pct.toFixed(1) + "%";
+      readoutDate.textContent = dateStr;
+      readoutPrice.textContent = priceStr;
+      readoutChange.textContent = changeStr;
+      readoutChange.setAttribute("fill", pct>=0 ? "var(--good)" : "var(--critical)");
+      const rectRight = w-padR-6, textRight = rectRight-10, rectY = padT+6;
+      const y1 = rectY+15, y2 = y1+23, y3 = y2+17;
+      readoutDate.setAttribute("x",textRight); readoutDate.setAttribute("y",y1);
+      readoutPrice.setAttribute("x",textRight); readoutPrice.setAttribute("y",y2);
+      readoutChange.setAttribute("x",textRight); readoutChange.setAttribute("y",y3);
+      const maxW = Math.max(
+        readoutTextWidth(dateStr,10.5,600),
+        readoutTextWidth(priceStr,20,800),
+        readoutTextWidth(changeStr,11.5,700)
+      );
+      const rectW = maxW+20, rectH = (y3+7)-rectY;
+      readoutRect.setAttribute("x",(rectRight-rectW).toFixed(1)); readoutRect.setAttribute("y",rectY.toFixed(1));
+      readoutRect.setAttribute("width",rectW.toFixed(1)); readoutRect.setAttribute("height",rectH.toFixed(1));
+    }
     function paintCrosshair(cr){
       cross.setAttribute("x1",cr.x); cross.setAttribute("x2",cr.x);
       priceDot.setAttribute("cx",cr.x); priceDot.setAttribute("cy",cr.y);
       afterVeil.setAttribute("x",cr.x); afterVeil.setAttribute("width", Math.max(0, w-padR-cr.x));
-      readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price], [cr.price]);
+      paintReadoutPill(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), cr.price);
     }
     paintCrosshair(layout.crosshair);
 
@@ -4747,12 +4845,23 @@
 
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
-    wrap.appendChild(svg);
-    const readoutRow = document.createElement("div");
-    readoutRow.style.display = "flex"; readoutRow.style.justifyContent = "flex-end";
-    readoutRow.appendChild(readout.el);
+    // Zero-padding host around just the <svg> (chart-wrap itself has its own padding) so the axis
+    // toggles' percentage-based left/top below line up exactly with the viewBox's own coordinate
+    // fractions instead of chart-wrap's padded box.
+    const svgHost = document.createElement("div");
+    svgHost.className = "cyc-chart-svg-host";
+    svgHost.appendChild(svg);
+    const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", logY, v=> animateCycleChartAxisChange(cycleChartLogX, v), "Y-Achse: Log/Linear umschalten");
+    yToggle.style.left = (padL/w*100).toFixed(2)+"%";
+    yToggle.style.top = (padT/h*100).toFixed(2)+"%";
+    svgHost.appendChild(yToggle);
+    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", logX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
+    xToggle.style.left = ((w-padR)/w*100).toFixed(2)+"%";
+    xToggle.style.top = ((h-padB)/h*100).toFixed(2)+"%";
+    svgHost.appendChild(xToggle);
+    wrap.appendChild(svgHost);
 
-    return {svg, wrap, readoutRow};
+    return {svg, wrap};
   }
 
   // What renderCycleChart() last rendered with - captured at the end of every call so the NEXT one can
@@ -4791,28 +4900,34 @@
 
     const layerToggleWrap = document.createElement("div");
     layerToggleWrap.className = "overlay-toggles";
+    // One compact pill now covers both the bull/bear zone shading AND this chart's halving markers
+    // (previously two separate controls - a rounded "Zyklus-Zonen" chip up here plus a distinct "Zyklen"
+    // button down in the toolbar) - same compact rectangular shape as the time-range buttons rather than
+    // the oval overlay-toggle-chip shape. showHalvings is shared global state (see buildRangeSeg), so
+    // toggling this also affects halving markers on every other chart, same as the toolbar button it
+    // replaces here always did.
     const zVisible = cycleChartLayerVisible.zyklus;
-    const zLab = document.createElement("label");
-    zLab.className = "overlay-toggle-chip" + (zVisible ? " active" : "");
-    zLab.style.setProperty("--chip-color", "var(--good)");
-    zLab.innerHTML = `<input type="checkbox" ${zVisible ? "checked" : ""}><i></i>Zyklus-Zonen`;
-    zLab.querySelector("input").addEventListener("change", e=>{
-      cycleChartLayerVisible.zyklus = e.target.checked;
-      renderCycleChart();
+    const zBtn = document.createElement("button");
+    zBtn.type = "button";
+    zBtn.className = "halving-toggle-btn" + (zVisible ? " active" : "");
+    zBtn.title = "Zyklus-Zonen und Halving-Markierungen ein-/ausblenden";
+    zBtn.textContent = "Zyklus";
+    zBtn.addEventListener("click", ()=>{
+      const next = !cycleChartLayerVisible.zyklus;
+      cycleChartLayerVisible.zyklus = next;
+      showHalvings = next;
+      renderAll();
     });
-    layerToggleWrap.appendChild(zLab);
+    layerToggleWrap.appendChild(zBtn);
     panel.appendChild(layerToggleWrap);
 
     const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
-    const {wrap, readoutRow} = renderCycleChartDOM(layout);
-    panel.insertBefore(readoutRow, layerToggleWrap);
+    const {wrap} = renderCycleChartDOM(layout);
     panel.appendChild(wrap);
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
-    toolbar.appendChild(buildPowerLawAxisSeg("X", ()=>cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY)));
-    toolbar.appendChild(buildPowerLawAxisSeg("Y", ()=>cycleChartLogY, v=> animateCycleChartAxisChange(cycleChartLogX, v)));
-    toolbar.appendChild(buildRangeSeg("cyclechart"));
+    toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
     panel.appendChild(toolbar);
 
     cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
