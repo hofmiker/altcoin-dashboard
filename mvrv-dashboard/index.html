@@ -669,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v232";
-  const EDIT_STAMP = "2026-08-21 19:44 UTC";
+  const EDIT_VERSION = "v233";
+  const EDIT_STAMP = "2026-08-21 20:01 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5100,6 +5100,13 @@
       e.preventDefault();
       if(e.touches.length===1){ handleMove(e.touches[0].clientX); checkZoneTap(e.touches[0].clientX, e.touches[0].clientY); }
     }, {passive:false});
+    // A plain tap (no touchmove in between) never reaches any other handler here once the finger lifts -
+    // touch-action:none plus touchstart's own preventDefault above still isn't enough on iOS Safari to
+    // reliably suppress its native double-tap-to-zoom gesture, which is decided at touchend, not
+    // touchstart: two quick taps that both preventDefault on start but not on end still register as a
+    // zoom gesture, magnifying the whole page around the second tap right where the crosshair had just
+    // jumped to from the first one.
+    hitRect.addEventListener("touchend", e=> e.preventDefault(), {passive:false});
     svg.appendChild(hitRect);
     svg.appendChild(zoneLabelLayer);
 
@@ -5208,6 +5215,15 @@
     panel.appendChild(toolRow);
 
     panel.appendChild(wrap);
+
+    // renderCycleChartDOM above just created every axis-label text fresh, at the same fixed
+    // raw viewBox-unit font-size renderAllImmediate's own fitChartTypography pass normally corrects
+    // right after - but that pass only runs from renderAllImmediate itself. Every OTHER path that
+    // rebuilds this chart's DOM (the "Kurs" toggle's direct renderCycleChart() call, and both
+    // animateCycleChartZoomFromLayout/animateCycleChartFromLayout below, which only interpolate
+    // position, never font-size) used to skip it entirely, leaving labels stuck at that small raw
+    // size - most visible on a narrower card, where "raw size" and "real fitted size" diverge most.
+    fitChartTypography();
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
