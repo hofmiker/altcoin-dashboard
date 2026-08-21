@@ -346,22 +346,39 @@
      the viewBox's own coordinate fractions) rather than in the external toolbar row below, since the
      user asked for them right at the axis they each control. */
   .cyc-chart-svg-host{ position:relative; }
+  /* Fixed width (not just padding) so the Log<->Linear text swap never resizes the button - it used to
+     visibly jump width on click. Neutral border/background like every other toggle button on this chart
+     (.halving-toggle-btn) rather than the brand-accent color tried earlier - that read as an odd one-off
+     the same coloring doesn't apply to anywhere else on the page. */
   .cyc-axis-toggle{
     position:absolute; font:inherit; font-family:var(--font-display); font-size:11px; font-weight:700;
-    padding:4px 9px; border-radius:6px; border:1px solid var(--border); background:var(--card); color:var(--ink-2);
-    cursor:pointer; transition:border-color .15s ease, color .15s ease; z-index:4; line-height:1.3; white-space:nowrap;
+    padding:4px 0; width:46px; text-align:center; border-radius:6px; border:1px solid var(--border);
+    background:var(--card); color:var(--ink-2); cursor:pointer;
+    transition:border-color .15s ease, color .15s ease, background .15s ease; z-index:4; line-height:1.3;
   }
   .cyc-axis-toggle:hover{ color:var(--ink); border-color:var(--ink-3); }
-  .cyc-axis-toggle.active{ border-color:var(--bitcoin-accent); color:var(--bitcoin-accent); }
-  .cyc-axis-toggle-y{ transform:translate(2px,-100%); margin-top:-4px; }
-  .cyc-axis-toggle-x{ transform:translate(-100%,-50%); }
+  .cyc-axis-toggle.active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  /* Anchored at (padL, padT) - the corner where the Y gridlines/labels start - but pulled fully above
+     and to the left of it (not straddling the axis line the way a centered transform would) so it reads
+     as sitting above the Y-axis's own value-label column, not on top of the axis itself. */
+  .cyc-axis-toggle-y{ transform:translate(-100%,-100%); margin:-6px 0 0 -4px; }
+  /* Anchored at (w-padR, h-padB) - the axis line's own right end - but pushed straight down past it so
+     it sits beside/below the rotated X-axis label row instead of vertically centered on the axis line. */
+  .cyc-axis-toggle-x{ transform:translate(-100%,0); margin-top:10px; }
 
-  /* Crosshair readout pill (see updateCycleReadoutPill) - a compact date/price/change stack pinned to
-     the top-right corner of the plot, mirroring the sibling btc/ project's own card-label/card-value/
-     card-sub ticker layout. Plain viewBox-unit font sizes (like the zone dimension-line pills just above),
-     not run through fitChartTypography's constant-real-px normalization - it already scales correctly
-     with the chart's own aspect-locked SVG the same way those pills do. */
-  .cyc-readout-price{ font-variant-numeric:tabular-nums; }
+  /* Row directly below the "Marktzyklen" headline and above the chart itself: the crosshair readout
+     (date/price/change, see paintReadoutPill) on the left, the Zyklus/Kurs layer toggles on the right -
+     plain HTML now, not an SVG overlay pinned inside the chart (that placement, top-right over the plot,
+     was explicitly wrong per feedback). Wraps on narrow screens rather than forcing both halves onto one
+     cramped line. */
+  .cyc-tool-row{ display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:10px 16px; }
+  .cyc-readout{ display:flex; flex-direction:column; gap:1px; }
+  .cyc-readout-date{ font-size:11.5px; font-weight:600; color:var(--ink-3); }
+  .cyc-readout-price{ font-size:23px; font-weight:800; color:var(--ink); line-height:1.2; font-variant-numeric:tabular-nums; }
+  .cyc-readout-change{ font-size:12.5px; font-weight:700; }
+  .cyc-readout-change.pos{ color:var(--good); }
+  .cyc-readout-change.neg{ color:var(--critical); }
+  .cyc-readout-change.neutral{ color:var(--ink-3); }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, then dialed back
@@ -652,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v228";
-  const EDIT_STAMP = "2026-08-21 18:29 UTC";
+  const EDIT_VERSION = "v229";
+  const EDIT_STAMP = "2026-08-21 18:47 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1734,7 +1751,9 @@
   // pick a taller viewBox height itself on mobile so width:100%/height:auto keeps scaling uniform.
   function chartHeight(){
     const mobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
-    return mobile ? 1200 : 380;
+    // +20% on desktop/tablet per explicit feedback - mobile's own value is left alone (already tuned
+    // separately for its much narrower, taller aspect ratio).
+    return mobile ? 1200 : 456;
   }
   // Height for the RSI/MACD indicator sub-panels stacked under the hero price chart - deliberately
   // flatter than a full chart (see chartHeight above), since they only need enough room to read a
@@ -3168,6 +3187,34 @@
     for(let v=Math.ceil(min/step)*step; v<=max+step*1e-9; v+=step) ticks.push(v);
     return ticks;
   }
+  // "Nice" Y-axis tick VALUES for either scale type - the value-axis equivalent of the X-axis's own
+  // fixed calendar-boundary ticks (whole years, or months once zoomed inside ~2 years - see
+  // computeCycleChartLayout's xTicks), so a range/zoom change slides existing tick rows to a new
+  // position (see collectCycleYTickSyncTargets/applyCycleYTickSync) instead of leaving every row fixed
+  // and only counting a number up/down inside it. Linear mode reuses niceLinearTicks directly - a round
+  // step like $10,000/$25,000 is "nice" regardless of which scale draws it. Log mode instead tries
+  // increasingly fine standard log-tick multiplier sets (bare decades, then the classic 1-2-5 pattern)
+  // per power of ten, since a LINEAR round step would leave most of a multi-decade log range (e.g.
+  // "Alles", spanning cents to six figures) with no gridlines at all below wherever the first big round
+  // number happens to land; only once even the finest log multiplier set still can't find 3 candidates
+  // inside a narrow enough window (proportionally close together prices, near-linear at that scale
+  // anyway) does it fall back to plain niceLinearTicks too.
+  function niceYTicks(min, max, logMode, targetCount){
+    if(!logMode || !(min>0) || !(max>0)) return niceLinearTicks(min, max, targetCount);
+    const logMin = Math.log10(min), logMax = Math.log10(max);
+    const dLo = Math.floor(logMin), dHi = Math.ceil(logMax);
+    const MULT_SETS = [[1], [1,2,5], [1,2,3,4,5,6,7,8,9]];
+    for(const mults of MULT_SETS){
+      const out = [];
+      for(let d=dLo; d<=dHi; d++) for(const m of mults){
+        const v = m*Math.pow(10,d);
+        if(v>=min-1e-9 && v<=max+1e-9) out.push(v);
+      }
+      out.sort((a,b)=>a-b);
+      if(out.length>=Math.min(4,targetCount)) return out;
+    }
+    return niceLinearTicks(min, max, targetCount);
+  }
 
   // Windows the real price data to the same shared range/pan the rest of the page uses (see sliceRange,
   // which this mirrors against allPoints' own .t instead of FULL's) - "Alles" is the one exception:
@@ -4253,27 +4300,15 @@
       .filter(hv=> hv.days>=daysMin && hv.days<=domainDaysMax)
       .map(hv=>({...hv, x:xOf(hv.days)}));
 
-    // Fixed-fraction ticks (5 evenly spaced, frac=0 at the top/max down to frac=1 at the bottom/min) -
-    // the same scheme buildLineChart's own gridlines use for every other chart on the page, not the
-    // previous "nice round number" log-decade/niceLinearTicks generation. That older approach picked a
-    // different VALUE SET (and even a different tick COUNT) depending on the window's own price range,
-    // so there was no stable correspondence between an old and a new layout's ticks to animate between -
-    // switching to fixed fractions makes each label's screen position genuinely constant across a zoom,
-    // which is what lets its displayed value count smoothly the same way every other chart's already
-    // does (see animateAxisLabelValues) instead of just snapping.
-    // valueAtFraction always expects REAL (never pre-logged) min/max and does its own log conversion
-    // internally when domain.log is set - yValMin/yValMax above are already log10'd whenever logY is true
-    // (that's what yOf's own yVal()/pixel-mapping needs), so feeding those straight in here would log an
-    // already-logged number. priceMin/priceMax (below, also returned from this function) are the real
-    // price bounds regardless of logY - exactly what valueAtFraction needs to log correctly itself.
+    // Nice round-value ticks (prototype - see niceYTicks - for eventually applying the same principle to
+    // every chart's own Y-axis) - the value counterpart to the X-axis's own calendar-boundary ticks just
+    // below: fixed, genuinely round dollar values (e.g. every $10,000/$25,000, or a decade/1-2-5 log
+    // step) rather than 5 fixed screen FRACTIONS whose displayed number used to just count up/down as the
+    // window changed. Each tick keeps its own value as a stable key (see collectCycleYTickSyncTargets)
+    // so a zoom/pan/axis change that shows a different round-value set slides existing rows to their new
+    // position instead of leaving every row fixed in place.
     const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
-    const Y_TICK_COUNT = 5;
-    const yTicks = [];
-    for(let i=0;i<=Y_TICK_COUNT;i++){
-      const frac = i/Y_TICK_COUNT;
-      const val = valueAtFraction({min:priceMin, max:priceMax, log:logY}, frac);
-      yTicks.push({y: padT+frac*(h-padT-padB), label:fmtUSD(val), frac});
-    }
+    const yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v)}));
     // Every tick (year-only or month-inclusive alike) carries a "YYYY-MM" key, not just a bare year - so
     // the zoom/axis-toggle animation's old->new tick matching (see collectCycleXTickSyncTargets and the
     // axis-toggle lerp) keeps working unchanged across a range change that crosses the 2-year threshold
@@ -4548,11 +4583,12 @@
 
     layout.yTicks.forEach(t=>{
       const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("class","cyc-ytick"); gl.dataset.key = t.key;
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label"); lbl.dataset.frac = t.frac;
+      lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
@@ -4686,7 +4722,10 @@
     const flagLayer = document.createElementNS(NS,"g");
     flagLayer.setAttribute("clip-path", `url(#${fullClipId})`);
     svg.appendChild(flagLayer);
-    layout.flags.forEach(pt=>{
+    // Gated behind the same "Zyklus" toggle as the zones/halvings/tunnel above - previously always
+    // shown regardless, which left the top/bottom markers on screen even with everything else about
+    // the cycle view switched off.
+    if(cycleChartLayerVisible.zyklus) layout.flags.forEach(pt=>{
       const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
       // Set via the CSS transform property, not the attribute - see applyCycleFlagSync, which drives
       // this same property during a zoom animation; setting the resting position through the same
@@ -4902,55 +4941,35 @@
     priceDot.setAttribute("fill","var(--c-price)"); priceDot.setAttribute("stroke","var(--card)"); priceDot.setAttribute("stroke-width","1.5");
     svg.appendChild(priceDot);
 
-    // Compact date/price/change stack pinned to the plot's own top-right corner, replacing the previous
-    // external buildReadout() row (which the user reported sliding left-aligned above the chart on
-    // narrow layouts) - mirrors the sibling btc/ project's own card-label/card-value/card-sub ticker.
-    // Plain viewBox-unit font sizes, same as the zone dimension-line pills above: this chart's SVG is
-    // always aspect-locked (preserveAspectRatio="none" + CSS width:100%/height:auto), so it already scales
-    // undistorted without needing fitChartTypography's separate constant-real-px normalization pass.
-    const readoutG = document.createElementNS(NS,"g");
-    readoutG.setAttribute("class","cyc-readout-pill");
-    readoutG.style.pointerEvents = "none";
-    const readoutRect = document.createElementNS(NS,"rect");
-    readoutRect.setAttribute("rx","8"); readoutRect.setAttribute("fill","var(--card)");
-    readoutRect.setAttribute("stroke","var(--border)"); readoutRect.setAttribute("stroke-width","1");
-    readoutG.appendChild(readoutRect);
-    const readoutDate = document.createElementNS(NS,"text");
-    readoutDate.setAttribute("class","cyc-readout-date"); readoutDate.setAttribute("text-anchor","end");
-    readoutDate.setAttribute("font-size","10.5"); readoutDate.setAttribute("font-weight","600"); readoutDate.setAttribute("fill","var(--ink-3)");
-    readoutG.appendChild(readoutDate);
-    const readoutPrice = document.createElementNS(NS,"text");
-    readoutPrice.setAttribute("class","cyc-readout-price"); readoutPrice.setAttribute("text-anchor","end");
-    readoutPrice.setAttribute("font-size","20"); readoutPrice.setAttribute("font-weight","800"); readoutPrice.setAttribute("fill","var(--ink)");
-    readoutG.appendChild(readoutPrice);
-    const readoutChange = document.createElementNS(NS,"text");
-    readoutChange.setAttribute("class","cyc-readout-change"); readoutChange.setAttribute("text-anchor","end");
-    readoutChange.setAttribute("font-size","11.5"); readoutChange.setAttribute("font-weight","700");
-    readoutG.appendChild(readoutChange);
-    svg.appendChild(readoutG);
-    function readoutTextWidth(str, fontSize, weight){
-      return str.length * fontSize * (weight>=800 ? 0.62 : weight>=700 ? 0.58 : 0.53);
-    }
+    // Compact date/price/change stack - plain HTML now, not an SVG overlay (see readoutEl in the return
+    // value below) - explicit feedback moved this off the SVG's own top-right corner (where it sat
+    // overlapping the plot itself) to a spot the caller places top-left, below the "Marktzyklen" headline
+    // and above the chart (see renderCycleChart). Still mirrors the sibling btc/ project's own
+    // card-label/card-value/card-sub ticker layout, just as ordinary flowed DOM instead of positioned SVG
+    // text, so sizing/wrapping is just CSS now instead of manually measured rect width.
+    const readoutEl = document.createElement("div");
+    readoutEl.className = "cyc-readout";
+    const readoutDate = document.createElement("div");
+    readoutDate.className = "cyc-readout-date";
+    const readoutPrice = document.createElement("div");
+    readoutPrice.className = "cyc-readout-price";
+    const readoutChange = document.createElement("div");
+    readoutChange.className = "cyc-readout-change";
+    readoutEl.appendChild(readoutDate); readoutEl.appendChild(readoutPrice); readoutEl.appendChild(readoutChange);
     function paintReadoutPill(cr){
-      const rectRight = w-padR-6, textRight = rectRight-10, rectY = padT+6;
-      const y1 = rectY+15, y2 = y1+23, y3 = y2+17;
-      readoutDate.setAttribute("x",textRight); readoutDate.setAttribute("y",y1);
-      readoutPrice.setAttribute("x",textRight); readoutPrice.setAttribute("y",y2);
-      readoutChange.setAttribute("x",textRight); readoutChange.setAttribute("y",y3);
-      let dateStr, priceStr, changeStr, changeColor;
       if(cr.projected){
         // No real price exists this far out - shows the tunnel envelope's own corridor bounds (see
         // buildEnvelope in computeCycleChartLayout) instead of a single number, so hovering the future
         // still reports something meaningful rather than just repeating the last real point.
         const upperVal = layout.tunnel && layout.tunnel.upper ? layout.tunnel.upper.valAt(cr.days) : null;
         const lowerVal = layout.tunnel && layout.tunnel.lower ? layout.tunnel.lower.valAt(cr.days) : null;
-        dateStr = "Projiziert: " + fmtDateOnly(cr.date);
+        readoutDate.textContent = "Projiziert: " + fmtDateOnly(cr.date);
         // min/max, not "lower/upper" by name - this far out, the two envelope lines (see buildEnvelope)
         // can themselves cross, since each just continues its own last real segment's slope independently
         // with no floor requiring the "support" line to stay under the "resistance" one indefinitely.
-        priceStr = (upperVal!=null && lowerVal!=null) ? `${fmtUSD(Math.min(upperVal,lowerVal))}–${fmtUSD(Math.max(upperVal,lowerVal))}` : "–";
-        changeStr = "geschätzter Korridor";
-        changeColor = "var(--ink-3)";
+        readoutPrice.textContent = (upperVal!=null && lowerVal!=null) ? `${fmtUSD(Math.min(upperVal,lowerVal))}–${fmtUSD(Math.max(upperVal,lowerVal))}` : "–";
+        readoutChange.textContent = "geschätzter Korridor";
+        readoutChange.className = "cyc-readout-change neutral";
       } else {
         // Baseline is the first point currently in view, same "what's the window's own starting price"
         // convention buildLineChart's own baseValues already use elsewhere - not points[crosshair-1], so
@@ -4958,23 +4977,11 @@
         // within a fixed window doesn't chase a moving target.
         const basePrice = points[0].price;
         const pct = basePrice ? (cr.price/basePrice - 1)*100 : 0;
-        dateStr = cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date);
-        priceStr = fmtUSD(cr.price);
-        changeStr = (pct>=0?"+":"") + pct.toFixed(1) + "%";
-        changeColor = pct>=0 ? "var(--good)" : "var(--critical)";
+        readoutDate.textContent = cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date);
+        readoutPrice.textContent = fmtUSD(cr.price);
+        readoutChange.textContent = (pct>=0?"+":"") + pct.toFixed(1) + "%";
+        readoutChange.className = "cyc-readout-change " + (pct>=0 ? "pos" : "neg");
       }
-      readoutDate.textContent = dateStr;
-      readoutPrice.textContent = priceStr;
-      readoutChange.textContent = changeStr;
-      readoutChange.setAttribute("fill", changeColor);
-      const maxW = Math.max(
-        readoutTextWidth(dateStr,10.5,600),
-        readoutTextWidth(priceStr,20,800),
-        readoutTextWidth(changeStr,11.5,700)
-      );
-      const rectW = maxW+20, rectH = (y3+7)-rectY;
-      readoutRect.setAttribute("x",(rectRight-rectW).toFixed(1)); readoutRect.setAttribute("y",rectY.toFixed(1));
-      readoutRect.setAttribute("width",rectW.toFixed(1)); readoutRect.setAttribute("height",rectH.toFixed(1));
     }
     // The after-veil fades everything right of the crosshair as "not yet looked at" - but only within
     // the REAL data window. Capping its right edge at the last real day (rather than always w-padR)
@@ -5056,7 +5063,7 @@
     svgHost.appendChild(xToggle);
     wrap.appendChild(svgHost);
 
-    return {svg, wrap};
+    return {svg, wrap, readoutEl};
   }
 
   // What renderCycleChart() last rendered with - captured at the end of every call so the NEXT one can
@@ -5093,6 +5100,9 @@
       return;
     }
 
+    const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
+    const {wrap, readoutEl} = renderCycleChartDOM(layout);
+
     const layerToggleWrap = document.createElement("div");
     layerToggleWrap.className = "overlay-toggles";
     // One compact pill now covers both the bull/bear zone shading AND this chart's halving markers
@@ -5128,10 +5138,17 @@
       renderCycleChart();
     });
     layerToggleWrap.appendChild(priceBtn);
-    panel.appendChild(layerToggleWrap);
 
-    const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
-    const {wrap} = renderCycleChartDOM(layout);
+    // Readout (date/price/change) on the left, layer toggles on the right - one row, directly below the
+    // headline and above the chart itself. Previously an SVG overlay pinned to the chart's own top-right
+    // corner; per explicit feedback that placement was wrong (it sat over the plot), so it's plain HTML
+    // now, positioned here instead.
+    const toolRow = document.createElement("div");
+    toolRow.className = "cyc-tool-row";
+    toolRow.appendChild(readoutEl);
+    toolRow.appendChild(layerToggleWrap);
+    panel.appendChild(toolRow);
+
     panel.appendChild(wrap);
 
     const toolbar = document.createElement("div");
@@ -5189,11 +5206,11 @@
     const flagEls = [...svg.querySelectorAll("g[data-flag-date]")];
     const xTickEls = [...svg.querySelectorAll("line.cyc-xtick[data-key]")];
     const xLabelEls = [...svg.querySelectorAll("text.axis-label-x[data-key]")];
+    const yTickEls = [...svg.querySelectorAll("line.cyc-ytick[data-key]")];
+    const yLabelEls = [...svg.querySelectorAll("text.axis-label:not(.axis-label-x)[data-key]")];
     const priceDot = svg.querySelector(".cyc-price-dot");
     const cross = svg.querySelector(".cyc-crosshair");
     const afterVeil = svg.querySelector(".cyc-after-veil");
-    animateAxisLabelValues(svg, {min:oldLayout.priceMin, max:oldLayout.priceMax, log:oldLayout.logY},
-      {min:newLayout.priceMin, max:newLayout.priceMax, log:newLayout.logY, axisFmt:fmtUSD});
 
     // An axis toggle never changes which dates are in view, only how they're mapped to pixels - old and
     // new pricePts are therefore always the exact same length here (unlike a range/pan change), so the
@@ -5265,9 +5282,9 @@
       });
       // X-ticks (year-only or month-inclusive, see computeCycleChartLayout), matched by their "YYYY-MM"
       // key same as the flags above - a log<->linear X toggle reshapes the whole date axis (unlike
-      // buildLineChart's own X labels, which stay put by design - see computeCycleChartLayout's
-      // Y_TICK_COUNT comment), so these genuinely need to slide too, tick line and rotated label together
-      // (the label's rotate() pivot has to track its own x or the text shears away from its tick line).
+      // buildLineChart's own X labels, which stay put by design), so these genuinely need to slide too,
+      // tick line and rotated label together (the label's rotate() pivot has to track its own x or the
+      // text shears away from its tick line).
       xTickEls.forEach(el=>{
         const key = el.dataset.key;
         const nt = newLayout.xTicks.find(t=>t.key===key);
@@ -5285,6 +5302,25 @@
         const y = el.getAttribute("y");
         el.setAttribute("x",x.toFixed(1));
         el.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${y})`);
+      });
+      // Y-ticks, matched by their own dollar value same as the X-ticks above (see niceYTicks) - a
+      // log<->linear Y toggle reshapes the whole price axis, so every gridline/label genuinely slides to
+      // a new row rather than the previous scheme's fixed rows with just a counting number in them.
+      yTickEls.forEach(el=>{
+        const key = el.dataset.key;
+        const nt = newLayout.yTicks.find(t=>t.key===key);
+        if(!nt) return;
+        const ot = oldLayout.yTicks.find(t=>t.key===key);
+        const y = lerp(ot ? ot.y : nt.y, nt.y);
+        el.setAttribute("y1",y.toFixed(1)); el.setAttribute("y2",y.toFixed(1));
+      });
+      yLabelEls.forEach(el=>{
+        const key = el.dataset.key;
+        const nt = newLayout.yTicks.find(t=>t.key===key);
+        if(!nt) return;
+        const ot = oldLayout.yTicks.find(t=>t.key===key);
+        const y = lerp(ot ? ot.y : nt.y, nt.y);
+        el.setAttribute("y",(y+3).toFixed(1));
       });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
@@ -5381,6 +5417,31 @@
       else { t.text.setAttribute("x", x.toFixed(1)); t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`); }
     });
   }
+  // Y-tick equivalent of the X-tick sync pair above - same "nice round value" principle as the X-axis's
+  // own calendar ticks (see computeCycleChartLayout's niceYTicks call): each gridline/label is tagged
+  // with its own fixed dollar VALUE as the data-key, not a screen fraction, so a range/pan/axis change
+  // that shows a different set of round values (e.g. $10K steps instead of $25K once zoomed in closer)
+  // can match old-to-new by that value and slide each one to its new screen row, rather than the previous
+  // fixed-fraction scheme where a label's row never moved and only the NUMBER printed there counted
+  // up/down - matching what the X-axis already did here, and the "later apply to every chart" prototype
+  // this whole mechanism is for.
+  function collectCycleYTickSyncTargets(wrap, layout){
+    const targets = [];
+    wrap.querySelectorAll("line.cyc-ytick[data-key]").forEach(line=>{
+      targets.push({kind:"tick", line, rawY: layout.yOf(parseFloat(line.dataset.key))});
+    });
+    wrap.querySelectorAll("text.axis-label:not(.axis-label-x)[data-key]").forEach(text=>{
+      targets.push({kind:"label", text, rawY: layout.yOf(parseFloat(text.dataset.key))});
+    });
+    return targets;
+  }
+  function applyCycleYTickSync(targets, d, f){
+    targets.forEach(t=>{
+      const y = t.rawY*d + f;
+      if(t.kind==="tick"){ t.line.setAttribute("y1",y.toFixed(1)); t.line.setAttribute("y2",y.toFixed(1)); }
+      else { t.text.setAttribute("y",(y+3).toFixed(1)); }
+    });
+  }
 
   // Cycle-flag/crosshair equivalents of collectFlagSyncTargets/collectCrosshairSyncTarget - simpler than
   // those, since this chart maps a raw (days, price) pair straight through a layout's own xOf/yOf rather
@@ -5464,12 +5525,8 @@
       applyCycleFlagSync(collectCycleFlagSyncTargets(wrap, newLayout), 1, 1, 0, 0);
       applyCycleCrosshairSync(collectCycleCrosshairSyncTarget(wrap, newLayout), 1, 1, 0, 0);
       applyCycleXTickSync(collectCycleXTickSyncTargets(wrap, newLayout), 1, 0);
+      applyCycleYTickSync(collectCycleYTickSyncTargets(wrap, newLayout), 1, 0);
     };
-    // Y-axis tick labels stay screen-fixed (see the Y_TICK_COUNT fixed-fraction scheme in
-    // computeCycleChartLayout) but their displayed price should still count smoothly old->new instead of
-    // snapping, the same "standard" every buildLineChart tile's own Y-axis already follows.
-    animateAxisLabelValues(wrap, {min:oldLayout.priceMin, max:oldLayout.priceMax, log:oldLayout.logY},
-      {min:newLayout.priceMin, max:newLayout.priceMax, log:newLayout.logY, axisFmt:fmtUSD});
 
     // Zoom IN (new range is a strict subset of old, e.g. "Alles" -> "1J") can't be animated the same way
     // as zooming out/panning - the freshly-built new content simply has no pixels drawn outside its own
@@ -5494,11 +5551,12 @@
       const flagTargets = collectCycleFlagSyncTargets(wrap, oldLayout);
       const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, oldLayout);
       const xTickTargets = collectCycleXTickSyncTargets(wrap, oldLayout);
+      const yTickTargets = collectCycleYTickSyncTargets(wrap, oldLayout);
       animateMatrix(oldGroupSrc, identity, endMatrix, myGen, ()=>{
         oldClipWrap.remove();
         realClipG.style.display = "";
         settle();
-      }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); });
+      }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); applyCycleYTickSync(yTickTargets, d, f); });
       return;
     }
 
@@ -5509,8 +5567,9 @@
     const flagTargets = collectCycleFlagSyncTargets(wrap, newLayout);
     const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, newLayout);
     const xTickTargets = collectCycleXTickSyncTargets(wrap, newLayout);
+    const yTickTargets = collectCycleYTickSyncTargets(wrap, newLayout);
     animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; settle(); },
-      (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); });
+      (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); applyCycleYTickSync(yTickTargets, d, f); });
   }
 
   function tileIsAvailable(tile){
