@@ -86,6 +86,25 @@ Abschluss des ganzen Batches warten.
   Regressionssuite laufen lassen, nicht nur den unmittelbar betroffenen
   Chart - mehrere Charts teilen sich dieselbe Zoom-/Crosshair-Maschinerie.
 
+## Methodik-Sektion aktuell halten
+
+`index.html` hat unten auf der Seite ein `<details id="detailsPanel">` mit
+der Überschrift "Methodik, Formeln & Datenquelle" - erklärt in normaler
+Prosa, wie jede Kennzahl/jeder Chart berechnet wird (Formeln, Schwellenwerte,
+Datenquelle). Bei **jeder** inhaltlichen Änderung, die diesen Text
+veraltet oder unvollständig macht, muss er im selben Batch mit-aktualisiert
+werden - nicht als separater Nachtrag später:
+
+- eine neue Kachel/ein neues Chart hinzugefügt
+- eine bestehende Berechnung/Schwelle geändert (Beispiel: der
+  75-%-Schwellenwert für bestätigte Zyklus-Hochs/-Tiefs bei Marktzyklen)
+- eine Datenquelle oder ihr Abruf-Mechanismus geändert
+
+Stil: kurzer, fetter Begriff gefolgt von einem prägnanten Erklärsatz,
+gleiche Tonlage wie die vorhandenen Absätze (siehe `<b>MVRV</b>`,
+`<b>NUPL</b>` usw. als Vorlage) - keine Marketingsprache, keine
+Wiederholung dessen, was der Chart selbst schon zeigt.
+
 ## Sonstiges
 
 - Farbentscheidungen (z. B. `--bitcoin-accent`) nie direkt festlegen,
