@@ -426,13 +426,16 @@
     z-index:250; overflow-y:auto; border-radius:0 !important;
     padding:calc(64px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left));
   }
-  /* Stretches the chart to fill whatever vertical room is left after the now-taller header/description -
-     safe specifically because buildLineChart already renders with preserveAspectRatio="none" (needed
-     elsewhere for the same non-uniform-stretch reason), so overriding height:auto here doesn't distort
-     anything that wasn't already built to tolerate an independent width/height scale. */
-  .hero-panel.fullscreen-active #heroChart{flex:1 1 auto; display:flex; min-height:0;}
-  .hero-panel.fullscreen-active #heroChart .chart-wrap{flex:1 1 auto; display:flex; flex-direction:column; min-height:0;}
-  .hero-panel.fullscreen-active #heroChart .chart-wrap svg{flex:1 1 auto; width:100%; height:100%; min-height:0;}
+  /* Fills whatever vertical room is left after the now-taller header/description, WITHOUT forcing a CSS
+     height that fights the SVG's own viewBox ratio - that was tried first and stretched every letter of
+     text non-uniformly the instant the fullscreen container's aspect ratio didn't happen to match the
+     chart's normal 1000:380 shape (see chartHeight's own comment for the same lesson learned earlier,
+     elsewhere on this page). computeHeroFullscreenHeight() picks a viewBox height that already matches
+     the available space instead, so plain width:100%/height:auto renders undistorted here exactly like it
+     does everywhere else - max-height is just a safety clamp against that estimate being slightly off.  */
+  .hero-panel.fullscreen-active #heroChart{flex:1 1 auto; display:flex; align-items:center; min-height:0;}
+  .hero-panel.fullscreen-active #heroChart .chart-wrap{width:100%; max-height:100%;}
+  .hero-panel.fullscreen-active #heroChart .chart-wrap svg{width:100%; height:auto; max-height:100%;}
   .hero-fs-placeholder{flex:none;}
 
   .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
@@ -625,8 +628,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v218";
-  const EDIT_STAMP = "2026-08-21 02:26 UTC";
+  const EDIT_VERSION = "v219";
+  const EDIT_STAMP = "2026-08-21 17:02 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -2994,6 +2997,34 @@
     el.innerHTML = stats.filter(s=>s.available).map(s=>s.html).join("");
   }
 
+  // Fullscreen's own chart height - NOT a CSS height:100% override on the svg (that was tried and
+  // reverted; see chartHeight's own comment above for why forcing a CSS pixel height that doesn't match
+  // the viewBox's own aspect ratio non-uniformly stretches everything inside it, text included, the exact
+  // "Typografie wird verzerrt" bug this replaced). Instead this picks a NEW viewBox height so the SVG's
+  // own intrinsic ratio already matches the available fullscreen space - width:100%/height:auto then
+  // renders it undistorted at whatever size that turns out to be, same as every other chart on the page.
+  // Returns null when not in fullscreen (or before layout has actually settled enough to measure), so
+  // callers fall back to the normal chartHeight().
+  function computeHeroFullscreenHeight(){
+    const panel = document.getElementById("heroPanel");
+    if(!panel || !panel.classList.contains("fullscreen-active")) return null;
+    const panelRect = panel.getBoundingClientRect();
+    const style = getComputedStyle(panel);
+    const padX = (parseFloat(style.paddingLeft)||0) + (parseFloat(style.paddingRight)||0);
+    const padY = (parseFloat(style.paddingTop)||0) + (parseFloat(style.paddingBottom)||0);
+    const gap = parseFloat(style.gap) || 0;
+    const contentWidth = panelRect.width - padX;
+    let usedHeight = 0, visibleSiblings = 0;
+    [...panel.children].forEach(el=>{
+      if(el.id === "heroChart") return;
+      const r = el.getBoundingClientRect();
+      if(r.height > 0){ usedHeight += r.height; visibleSiblings++; }
+    });
+    usedHeight += gap * visibleSiblings;
+    const availablePx = panelRect.height - padY - usedHeight;
+    if(availablePx < 100 || contentWidth < 100) return null;
+    return Math.max(200, Math.round(availablePx / (contentWidth/1000)));
+  }
   function renderHero(view){
     const chartHost = document.getElementById("heroChart");
     const readoutHost = document.getElementById("heroReadout");
@@ -3049,7 +3080,7 @@
     });
     togglesHost.appendChild(toggleWrap);
 
-    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price", perSeriesLabels:true});
+    const built = buildLineChart({dates:view.dates, series:visibleSeries, log:logScale, height:computeHeroFullscreenHeight()||chartHeight(), bandFill: visibleBandFill, compactReadout:true, zoomKey:"hero", startIdx:view.startIdx, cycleFlagsKey:"price", perSeriesLabels:true});
     registerZoomChart("hero", built);
     chartHost.appendChild(built.wrap);
     readoutHost.appendChild(built.readoutEl);
@@ -4524,14 +4555,16 @@
       };
       // A text label with its own backing rect - sitting directly over the price line/zone fill/gridlines
       // otherwise made it hard to read at a glance, exactly like the flag glyphs and zone-tap labels
-      // elsewhere on this chart already get a card-colored plate behind them for the same reason.
+      // elsewhere on this chart already get a card-colored plate behind them for the same reason. Same
+      // neutral card+border pill styling as the MVRV Quantile Bands per-series tooltip pills, for a
+      // consistent look across both charts.
       const mkLabel = (x_,y_,anchor,text)=>{
         const textW = text.length*7.1 + 12;
         const bg = document.createElementNS(NS,"rect");
         const bx = anchor==="middle" ? x_-textW/2 : anchor==="end" ? x_-textW : x_;
         bg.setAttribute("x",bx.toFixed(1)); bg.setAttribute("y",(y_-12).toFixed(1));
-        bg.setAttribute("width",textW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","3");
-        bg.setAttribute("fill","var(--card)"); bg.setAttribute("opacity","0.92");
+        bg.setAttribute("width",textW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","5");
+        bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke","var(--border)"); bg.setAttribute("stroke-width","1");
         g.appendChild(bg);
         const t = document.createElementNS(NS,"text");
         t.setAttribute("x",x_.toFixed(1)); t.setAttribute("y",y_.toFixed(1));
@@ -4565,7 +4598,33 @@
       mkLine(vDimX, z.yTop, vDimX, z.yBot);
       mkArrow(vDimX, z.yTop, 0, -1);
       mkArrow(vDimX, z.yBot, 0, 1);
-      mkLabel(vDimX+rightSign*5, (z.yTop+z.yBot)/2+4.5, rightSign>0?"start":"end", heightLabel);
+      // The vertical (price-diff) label gets one extra thing the horizontal one doesn't: a small color
+      // swatch in the zone's own bull/bear color, tying it back to the zone it measures - the same
+      // swatch-plus-neutral-text layout the MVRV Quantile Bands per-series pills use, per explicit
+      // feedback that this one (not the day-count label) may pick up red/green.
+      {
+        const zoneColor = z.bull ? "var(--good)" : "var(--critical)";
+        const anchorRight = rightSign>0;
+        const vLabelX = vDimX+rightSign*5;
+        const textW = heightLabel.length*7.1 + 12;
+        const boxW = textW + 12;
+        const boxX = anchorRight ? vLabelX : vLabelX-boxW;
+        const boxY = (z.yTop+z.yBot)/2 - 8.5;
+        const bg = document.createElementNS(NS,"rect");
+        bg.setAttribute("x",boxX.toFixed(1)); bg.setAttribute("y",boxY.toFixed(1));
+        bg.setAttribute("width",boxW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","5");
+        bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke","var(--border)"); bg.setAttribute("stroke-width","1");
+        g.appendChild(bg);
+        const dot = document.createElementNS(NS,"circle");
+        dot.setAttribute("cx",(boxX+9).toFixed(1)); dot.setAttribute("cy",(boxY+8.5).toFixed(1)); dot.setAttribute("r","3");
+        dot.setAttribute("fill", zoneColor);
+        g.appendChild(dot);
+        const t = document.createElementNS(NS,"text");
+        t.setAttribute("x",(boxX+16).toFixed(1)); t.setAttribute("y",((z.yTop+z.yBot)/2+4.5).toFixed(1));
+        t.setAttribute("text-anchor","start"); t.setAttribute("font-size","13"); t.setAttribute("font-weight","700");
+        t.setAttribute("fill",textColor); t.textContent = heightLabel;
+        g.appendChild(t);
+      }
 
       zoneLabelLayer.appendChild(g);
       requestAnimationFrame(()=>{ g.style.opacity = "1"; });
@@ -6152,6 +6211,25 @@
     const DURATION = 380;
     let placeholder = null;
     let busy = false;
+    let savedScrollY = 0;
+
+    // Plain body{overflow:hidden} doesn't reliably stop touch/momentum scrolling on iOS Safari - the
+    // background could still visibly shift underneath the panel while it's mid-animation, exactly the
+    // "das Scrollen irritiert hier" complaint. Pinning body to position:fixed at its current scroll
+    // offset is the well-established robust fix: there's no scroll position left for a touch/momentum
+    // gesture to move, on any engine, not just an overflow rule a browser might choose not to honor.
+    function lockScroll(){
+      savedScrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.position = "fixed";
+      document.body.style.top = (-savedScrollY)+"px";
+      document.body.style.left = "0"; document.body.style.right = "0";
+      document.body.style.width = "100%";
+    }
+    function unlockScroll(){
+      document.body.style.position = ""; document.body.style.top = "";
+      document.body.style.left = ""; document.body.style.right = ""; document.body.style.width = "";
+      window.scrollTo(0, savedScrollY);
+    }
 
     function enter(){
       if(busy || panel.classList.contains("fullscreen-active")) return;
@@ -6167,7 +6245,7 @@
       panel.style.width = rect.width+"px"; panel.style.height = rect.height+"px";
       panel.style.margin = "0";
       panel.classList.add("fullscreen-transitioning");
-      document.body.style.overflow = "hidden";
+      lockScroll();
       void panel.offsetWidth; // force layout so the fixed start position paints before animating away from it
       requestAnimationFrame(()=>{
         panel.classList.add("fullscreen-active");
@@ -6175,7 +6253,14 @@
         panel.style.width = "100vw"; panel.style.height = "100vh";
         requestAnimationFrame(()=> desc.classList.add("show"));
       });
-      setTimeout(()=>{ panel.classList.remove("fullscreen-transitioning"); busy = false; }, DURATION+30);
+      setTimeout(()=>{
+        panel.classList.remove("fullscreen-transitioning");
+        busy = false;
+        // Now that the panel genuinely fills the viewport, recompute the chart's own height to match -
+        // see computeHeroFullscreenHeight, which needs the fullscreen layout already settled to measure
+        // the real available space.
+        if(FULL) renderAllImmediate();
+      }, DURATION+30);
       document.addEventListener("keydown", onKeydown);
     }
     function exit(){
@@ -6187,13 +6272,16 @@
       panel.classList.remove("fullscreen-active");
       panel.style.top = targetRect.top+"px"; panel.style.left = targetRect.left+"px";
       panel.style.width = targetRect.width+"px"; panel.style.height = targetRect.height+"px";
-      document.body.style.overflow = "";
+      unlockScroll();
       setTimeout(()=>{
         panel.classList.remove("fullscreen-transitioning");
         panel.style.position = ""; panel.style.top = ""; panel.style.left = "";
         panel.style.width = ""; panel.style.height = ""; panel.style.margin = "";
         if(placeholder){ placeholder.remove(); placeholder = null; }
         busy = false;
+        // Back to the normal in-flow card size - restores the regular chartHeight() aspect ratio now
+        // that computeHeroFullscreenHeight() will correctly return null again.
+        if(FULL) renderAllImmediate();
       }, DURATION+30);
       document.removeEventListener("keydown", onKeydown);
     }
