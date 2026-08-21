@@ -669,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v230";
-  const EDIT_STAMP = "2026-08-21 18:53 UTC";
+  const EDIT_VERSION = "v231";
+  const EDIT_STAMP = "2026-08-21 19:09 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4284,10 +4284,46 @@
       return logX ? Math.pow(10,val) : val;
     }
 
-    const priceLogVals = points.map(p=>Math.log10(p.price));
-    const yLogMin = Math.min(...priceLogVals) - 0.06, yLogMax = Math.max(...priceLogVals) + 0.06;
-    const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
+    // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter) - computed here,
+    // ahead of the Y-domain below, because the projection tunnel's own extrapolated endpoint (see
+    // envelopeValAt/buildEnvelope further down) needs to be folded into that domain too - otherwise the
+    // "Alles" view's projected corridor silently got clipped at the plot's own top/bottom edge whenever
+    // it reached higher/lower than the real visible price range, since the clip rect is sized to exactly
+    // that domain.
+    const confirmedFlags = cycleExtremesEffective(FULL.price).map(pt=>({...pt, confirmed:true}));
+    const tentativeFlag = cycleTentativeExtremeAfter(FULL.price, confirmedFlags);
+    const cycleHighs = confirmedFlags.filter(f=>f.dir>0), cycleLows = confirmedFlags.filter(f=>f.dir<0);
+
     function yVal(price){ return logY ? Math.log10(price) : price; }
+    // Straight-line extrapolation of the last real segment between two same-direction corners (cycle
+    // highs for the "resistance" envelope, cycle lows for "support") - shared by the Y-domain padding
+    // below and the full tunnel construction further down (see buildEnvelope). A straight line in
+    // whatever the current xVal/yVal display space is has its extremes only at the two ends of its own
+    // parameter range, which is what lets the domain-padding step below just check the far end
+    // (domainDaysMax) rather than sampling the whole projected span.
+    function envelopeValAt(pts, days){
+      if(pts.length < 2) return null;
+      const a = pts[pts.length-2], b = pts[pts.length-1];
+      const ax = xVal(daysSinceGenesis(a.date)), bx = xVal(daysSinceGenesis(b.date));
+      const ay = yVal(a.value), by = yVal(b.value);
+      if(bx===ax) return null;
+      const slope = (by-ay)/(bx-ax);
+      const yv = by + slope*(xVal(days)-bx);
+      return logY ? Math.pow(10,yv) : yv;
+    }
+
+    const priceLogVals = points.map(p=>Math.log10(p.price));
+    let yLogMin = Math.min(...priceLogVals) - 0.06, yLogMax = Math.max(...priceLogVals) + 0.06;
+    // Same "Zyklus"+"Alles" gate the full tunnel/projected-zones below use (see tunnelActive) - only
+    // there is there projected domain space for the tunnel to reach into in the first place.
+    if(cycleChartLayerVisible.zyklus && rangeDays === "all"){
+      [envelopeValAt(cycleHighs, domainDaysMax), envelopeValAt(cycleLows, domainDaysMax)].forEach(v=>{
+        if(v==null || !(v>0)) return;
+        const lv = Math.log10(v);
+        yLogMin = Math.min(yLogMin, lv-0.06); yLogMax = Math.max(yLogMax, lv+0.06);
+      });
+    }
+    const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
     function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
 
     const pricePts = points.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
@@ -4346,15 +4382,14 @@
       }
     }
 
-    // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter), plus their bull
-    // (green)/bear(red) background zones - a rectangle per swing between one confirmed extreme and the
-    // next, mirroring the well-known "Bitcoin bull/bear market cycles" chart style. Per explicit feedback,
-    // each zone's box connects its own two bounding extremes exactly (top-left at the top's price,
-    // bottom-right at the bottom's price for a bear zone; the mirror image for a bull one) rather than
-    // reaching down to the full chart floor - a taller cycle then visibly reads as taller than a smaller
-    // one, instead of every zone looking identical regardless of how big that swing actually was.
-    const confirmedFlags = cycleExtremesEffective(FULL.price).map(pt=>({...pt, confirmed:true}));
-    const tentativeFlag = cycleTentativeExtremeAfter(FULL.price, confirmedFlags);
+    // Bull (green)/bear (red) background zones - a rectangle per swing between one confirmed cycle
+    // extreme and the next (confirmedFlags/tentativeFlag computed earlier, alongside the Y-domain
+    // padding that uses them too - see cycleHighs/cycleLows above), mirroring the well-known "Bitcoin
+    // bull/bear market cycles" chart style. Per explicit feedback, each zone's box connects its own two
+    // bounding extremes exactly (top-left at the top's price, bottom-right at the bottom's price for a
+    // bear zone; the mirror image for a bull one) rather than reaching down to the full chart floor - a
+    // taller cycle then visibly reads as taller than a smaller one, instead of every zone looking
+    // identical regardless of how big that swing actually was.
     const allFlagsRaw = tentativeFlag ? confirmedFlags.concat([{...tentativeFlag, confirmed:false}]) : confirmedFlags;
     const flags = allFlagsRaw
       .filter(pt=> pt.date>=points[0].date && pt.date<=points[points.length-1].date)
@@ -4413,26 +4448,20 @@
     // projected halvings below. Drawn as a straight line in whatever the CURRENT xVal/yVal display space
     // is (log or linear per logX/logY) - the user's own description ("in der log-log Darstellung entsteht
     // ein Tunnel") already anticipates that only the log-log view reads as a clean channel; other axis
-    // combinations still compute and render correctly, just without that particular visual.
+    // combinations still compute and render correctly, just without that particular visual. Reuses
+    // envelopeValAt (defined above, alongside the Y-domain padding that already made room for this same
+    // endpoint) rather than recomputing the slope a second time.
     function buildEnvelope(pts){
       if(pts.length < 2) return null;
-      const a = pts[pts.length-2], b = pts[pts.length-1];
-      const ax = xVal(daysSinceGenesis(a.date)), bx = xVal(daysSinceGenesis(b.date));
-      const ay = yVal(a.value), by = yVal(b.value);
-      if(bx===ax) return null;
-      const slope = (by-ay)/(bx-ax);
-      function valAt(days){
-        const yv = by + slope*(xVal(days)-bx);
-        return logY ? Math.pow(10,yv) : yv;
-      }
+      const b = pts[pts.length-1];
       const startDays = daysSinceGenesis(b.date);
-      return {startDays, startPrice:b.value, valAt,
-        x0:xOf(startDays), y0:yOf(b.value), x1:xOf(domainDaysMax), y1:yOf(valAt(domainDaysMax))};
+      return {startDays, startPrice:b.value, valAt: days=>envelopeValAt(pts, days),
+        x0:xOf(startDays), y0:yOf(b.value), x1:xOf(domainDaysMax), y1:yOf(envelopeValAt(pts, domainDaysMax))};
     }
     const tunnelActive = cycleChartLayerVisible.zyklus && rangeDays === "all";
     const tunnel = tunnelActive ? {
-      upper: buildEnvelope(confirmedFlags.filter(f=>f.dir>0)),
-      lower: buildEnvelope(confirmedFlags.filter(f=>f.dir<0)),
+      upper: buildEnvelope(cycleHighs),
+      lower: buildEnvelope(cycleLows),
     } : null;
 
     // Speculative future zone tiles (see .cyc-zone-projected CSS) continuing the same bull/bear
@@ -5216,6 +5245,7 @@
     const newLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
 
     const priceLine = svg.querySelector(".cyc-price-line");
+    const priceArea = svg.querySelector(".cyc-price-area");
     const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
     const zoneEls = [...svg.querySelectorAll(".cyc-zone")];
     const flagEls = [...svg.querySelectorAll("g[data-flag-date]")];
@@ -5257,6 +5287,22 @@
           const AA = resamplePtsToLength(oldPts,n), BB = resamplePtsToLength(newPts,n);
           priceLine.setAttribute("d", pathD(AA.map((p,i)=>({x:lerp(p.x,BB[i].x), y:lerp(p.y,BB[i].y)}))));
         }
+      }
+      // The area-fill under the price line (see priceArea/.cyc-price-area, only present with "Zyklus"
+      // off) previously wasn't touched by this per-frame loop at all - it sat frozen at its pre-toggle
+      // shape for the whole animation and only snapped to the correct one once renderCycleChart()
+      // rebuilt the DOM at the very end, the exact "ruckelt nach" (jerks in afterward) the price line
+      // and everything else here was already fixed against. Rebuilt every frame from the SAME lerped
+      // points the line above just computed, closed down to the (constant) baseline.
+      if(priceArea && oldPts.length === newPts.length){
+        const baseline = newLayout.h - newLayout.padB;
+        let d = "M"+lerp(oldPts[0].x,newPts[0].x).toFixed(1)+","+baseline.toFixed(1)+" ";
+        for(let i=0;i<newPts.length;i++){
+          const op = oldPts[i], np = newPts[i];
+          d += "L"+lerp(op.x,np.x).toFixed(1)+","+lerp(op.y,np.y).toFixed(1)+" ";
+        }
+        d += "L"+lerp(oldPts[oldPts.length-1].x,newPts[newPts.length-1].x).toFixed(1)+","+baseline.toFixed(1)+" Z";
+        priceArea.setAttribute("d", d);
       }
       // Halvings/zones matched by date, not index - a range/pan change (unlike an axis toggle) can add
       // or drop entries on either side, so pairing by position alone could morph one real halving/zone
