@@ -49,16 +49,24 @@ jobs:
           done
 
           # Landing page also aggregates each other project's own last-updated date and commit count
-          # for its dashboard cards (separate from the per-page {{VERSION}} above).
+          # for its dashboard cards (separate from the per-page {{VERSION}} above). Baked into the
+          # HTML via sed like everything else here, AND written to project-status.json so the page's
+          # own JS can re-fetch it with cache:"no-store" on load (same reasoning/pattern as
+          # deploy-info.json + loadDeployInfo() in mvrv-dashboard/index.html) - a browser/CDN cache
+          # holding a stale copy of index.html would otherwise keep showing old, or even literally
+          # unfilled "{{UPDATED:...}}", badges with nothing on the page hinting they might be stale.
+          STATUS_JSON="{"
+          FIRST=1
           for folder in $(grep -oP '(?<=\{\{UPDATED:)[^}]+' index.html | sort -u); do
             DATE=$(git log --follow -1 --format=%ad --date=format:'%d.%m.%Y' -- "$folder/index.html" 2>/dev/null)
             if [ -z "$DATE" ]; then DATE=$(date -u +'%d.%m.%Y'); fi
-            sed -i "s/{{UPDATED:$folder}}/$DATE/g" index.html
-          done
-          for folder in $(grep -oP '(?<=\{\{COMMITS:)[^}]+' index.html | sort -u); do
             COUNT=$(git log --follow --oneline -- "$folder/index.html" 2>/dev/null | wc -l)
-            sed -i "s/{{COMMITS:$folder}}/$COUNT/g" index.html
+            sed -i "s/{{UPDATED:$folder}}/$DATE/g; s/{{COMMITS:$folder}}/$COUNT/g" index.html
+            [ "$FIRST" = 1 ] || STATUS_JSON="$STATUS_JSON,"
+            STATUS_JSON="$STATUS_JSON\"$folder\":{\"updated\":\"$DATE\",\"commits\":$COUNT}"
+            FIRST=0
           done
+          echo "$STATUS_JSON}" > project-status.json
       - uses: actions/configure-pages@v5
       - name: Build publishable site (exclude internal data)
         run: |
