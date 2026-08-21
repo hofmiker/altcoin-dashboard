@@ -625,8 +625,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v217";
-  const EDIT_STAMP = "2026-08-21 02:15 UTC";
+  const EDIT_VERSION = "v218";
+  const EDIT_STAMP = "2026-08-21 02:26 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -998,6 +998,22 @@
   // cycleChartActiveZoneKey above) - takes display priority over the pinned zone while the pointer is over
   // it, then reverts back to the pinned one (if any) the instant it leaves. Not persisted across renders.
   let cycleChartHoverZoneKey = null;
+  // A pinned/hovered zone's dimension label+highlight is never synced to the live zoom/axis-toggle
+  // transform (unlike flags/crosshair) - it would need its own whole geometry rebuilt every frame (arrows,
+  // extension lines, text) for something that's only ever a brief annotation, not a permanent chart
+  // element. Simpler and per explicit request: just clear it the moment an animation starts, directly on
+  // whatever DOM is currently live (a fresh renderCycleChart() rebuild that hasn't happened yet would
+  // otherwise still show the OLD key's label/highlight for the remainder of the transition) - and leave it
+  // cleared once the animation settles, exactly like tapping empty space already does.
+  function clearCycleZoneAnnotation(){
+    cycleChartActiveZoneKey = null;
+    cycleChartHoverZoneKey = null;
+    const svg = document.querySelector("#cycleChartPanel svg");
+    if(!svg) return;
+    const layer = svg.querySelector(".cyc-zone-label-layer");
+    if(layer) layer.innerHTML = "";
+    svg.querySelectorAll(".cyc-zone").forEach(el=> el.setAttribute("opacity","0.14"));
+  }
   function filterVisibleSeries(tileTitle, series){
     const vis = tileSeriesVisible[tileTitle];
     if(!vis) return series;
@@ -4171,14 +4187,38 @@
       const val = valueAtFraction({min:priceMin, max:priceMax, log:logY}, frac);
       yTicks.push({y: padT+frac*(h-padT-padB), label:fmtUSD(val), frac});
     }
-    const firstYear = new Date(GENESIS_MS+daysMin*86400000).getUTCFullYear();
-    const lastYear = new Date(GENESIS_MS+daysMax*86400000).getUTCFullYear();
-    const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+    // Every tick (year-only or month-inclusive alike) carries a "YYYY-MM" key, not just a bare year - so
+    // the zoom/axis-toggle animation's old->new tick matching (see collectCycleXTickSyncTargets and the
+    // axis-toggle lerp) keeps working unchanged across a range change that crosses the 2-year threshold
+    // below and switches which of the two tick styles is showing (a tick that happens to land on the
+    // same year-month in both old and new layouts, e.g. January of some year, still animates smoothly
+    // between them instead of just snapping the instant the tick style itself changes).
+    const firstDate = new Date(GENESIS_MS+daysMin*86400000);
+    const lastDate = new Date(GENESIS_MS+daysMax*86400000);
+    const firstYear = firstDate.getUTCFullYear(), lastYear = lastDate.getUTCFullYear();
     const xTicks = [];
-    for(let y=firstYear; y<=lastYear; y+=yearStep){
-      const days = daysSinceGenesis(`${y}-01-01`);
-      if(days < daysMin || days > daysMax) continue;
-      xTicks.push({x:xOf(days), label:String(y), year:y});
+    // Per explicit feedback, a window of 2 years or less should show month granularity, not just the
+    // year - a bare "2025"/"2026" pair is nearly useless for orienting within a 6-month or 1-year window.
+    const MONTH_ABBR = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+    if(rangeDays !== "all" && Number(rangeDays) <= 730){
+      const totalMonths = (lastYear-firstYear)*12 + (lastDate.getUTCMonth()-firstDate.getUTCMonth()) + 1;
+      const monthStep = Math.max(1, Math.round(totalMonths/6));
+      const startY = firstYear, startM = firstDate.getUTCMonth();
+      for(let i=0; ; i++){
+        const mm = startM + i*monthStep;
+        const yy = startY + Math.floor(mm/12);
+        const mIdx = ((mm%12)+12)%12;
+        const days = daysSinceGenesis(`${yy}-${String(mIdx+1).padStart(2,"0")}-01`);
+        if(days > daysMax) break;
+        if(days >= daysMin) xTicks.push({x:xOf(days), label:`${MONTH_ABBR[mIdx]} ${String(yy).slice(2)}`, key:`${yy}-${String(mIdx+1).padStart(2,"0")}`});
+      }
+    } else {
+      const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+      for(let y=firstYear; y<=lastYear; y+=yearStep){
+        const days = daysSinceGenesis(`${y}-01-01`);
+        if(days < daysMin || days > daysMax) continue;
+        xTicks.push({x:xOf(days), label:String(y), key:`${y}-01`});
+      }
     }
 
     // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter), plus their bull
@@ -4309,19 +4349,19 @@
     });
     // Unlike buildLineChart's own X date labels (deliberately screen-fixed, see the comment there), this
     // chart's year labels genuinely slide during a zoom/pan (see collectCycleXTickSyncTargets/
-    // applyCycleXTickSync and the axis-toggle lerp below) - each one is tagged with its own real year so
-    // that animation can match old-to-new by value, same as the halvings/flags. A short tick line (from
+    // applyCycleXTickSync and the axis-toggle lerp below) - each one is tagged with its own "YYYY-MM" key
+    // so that animation can match old-to-new by value, same as the halvings/flags. A short tick line (from
     // the plot's own bottom edge down to the label) reads as a real axis tick connecting the rotated text
     // back to the exact x-position it labels, mirroring the Y-axis' own gridlines-to-label relationship.
     layout.xTicks.forEach(t=>{
       const tick = document.createElementNS(NS,"line");
-      tick.setAttribute("class","cyc-xtick"); tick.dataset.year = t.year;
+      tick.setAttribute("class","cyc-xtick"); tick.dataset.key = t.key;
       tick.setAttribute("x1",t.x); tick.setAttribute("x2",t.x);
       tick.setAttribute("y1",h-padB); tick.setAttribute("y2",h-padB+8);
       tick.setAttribute("stroke","var(--ink-3)"); tick.setAttribute("stroke-width","1"); tick.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(tick);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label axis-label-x"); lbl.dataset.year = t.year;
+      lbl.setAttribute("class","axis-label axis-label-x"); lbl.dataset.key = t.key;
       lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
@@ -4693,6 +4733,10 @@
 
     cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
     if(animate){
+      // Clears whatever zone label/highlight the DOM just rebuilt above still shows - see
+      // clearCycleZoneAnnotation's own comment for why this doesn't try to animate/carry it through
+      // instead.
+      clearCycleZoneAnnotation();
       const oldLayout = computeCycleChartLayoutFor(prevState.logX, prevState.logY, prevState.rangeDays, prevState.panOffsetDays, cycleChartCrosshairDate);
       // Only a genuine range/pan move reaches here (see cycleChartAnimatePending) - the scale type
       // (logX/logY) never changes between prevState and the live globals in this branch, so the true
@@ -4722,6 +4766,7 @@
   function animateCycleChartAxisChange(newLogX, newLogY){
     const oldLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
     cycleChartLogX = newLogX; cycleChartLogY = newLogY;
+    clearCycleZoneAnnotation();
     renderCycleChart();
     animateCycleChartFromLayout(oldLayout);
   }
@@ -4734,26 +4779,45 @@
     const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
     const zoneEls = [...svg.querySelectorAll(".cyc-zone")];
     const flagEls = [...svg.querySelectorAll("g[data-flag-date]")];
-    const xTickEls = [...svg.querySelectorAll("line.cyc-xtick[data-year]")];
-    const xLabelEls = [...svg.querySelectorAll("text.axis-label-x[data-year]")];
+    const xTickEls = [...svg.querySelectorAll("line.cyc-xtick[data-key]")];
+    const xLabelEls = [...svg.querySelectorAll("text.axis-label-x[data-key]")];
     const priceDot = svg.querySelector(".cyc-price-dot");
     const cross = svg.querySelector(".cyc-crosshair");
     const afterVeil = svg.querySelector(".cyc-after-veil");
     animateAxisLabelValues(svg, {min:oldLayout.priceMin, max:oldLayout.priceMax, log:oldLayout.logY},
       {min:newLayout.priceMin, max:newLayout.priceMax, log:newLayout.logY, axisFmt:fmtUSD});
 
+    // An axis toggle never changes which dates are in view, only how they're mapped to pixels - old and
+    // new pricePts are therefore always the exact same length here (unlike a range/pan change), so the
+    // path string can be built directly in a single pass instead of going through a fresh array of
+    // interpolated {x,y} objects (thrown away next frame) followed by a second pass in pathD(). For
+    // "Alles" (1800+ daily points) at 60fps that's tens of thousands of avoidable object allocations over
+    // one transition's ~35 frames - real GC pressure on a less powerful device even though the
+    // interpolation math itself was never wrong.
+    const oldPts = oldLayout.pricePts, newPts = newLayout.pricePts;
     const start = performance.now();
     function frame(now){
       const raw = Math.min(1, (now-start)/ZOOM_DURATION_MS);
       const eased = zoomEase(raw);
       const lerp = (a,b)=> a+(b-a)*eased;
-      const lerpPts = (A,B)=>{
-        const n = Math.max(A.length,B.length);
-        const AA = resamplePtsToLength(A,n), BB = resamplePtsToLength(B,n);
-        return AA.map((p,i)=> ({x:lerp(p.x,BB[i].x), y:lerp(p.y,BB[i].y)}));
-      };
 
-      if(priceLine) priceLine.setAttribute("d", pathD(lerpPts(oldLayout.pricePts, newLayout.pricePts)));
+      if(priceLine){
+        if(oldPts.length === newPts.length){
+          let d = "";
+          for(let i=0;i<newPts.length;i++){
+            const op = oldPts[i], np = newPts[i];
+            const x = lerp(op.x, np.x), y = lerp(op.y, np.y);
+            d += (i===0?"M":"L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+          }
+          priceLine.setAttribute("d", d);
+        } else {
+          // Defensive fallback only - shouldn't happen for an axis toggle, but keeps this correct if
+          // that assumption ever stops holding rather than silently drawing a garbled line.
+          const n = Math.max(oldPts.length, newPts.length);
+          const AA = resamplePtsToLength(oldPts,n), BB = resamplePtsToLength(newPts,n);
+          priceLine.setAttribute("d", pathD(AA.map((p,i)=>({x:lerp(p.x,BB[i].x), y:lerp(p.y,BB[i].y)}))));
+        }
+      }
       // Halvings/zones matched by date, not index - a range/pan change (unlike an axis toggle) can add
       // or drop entries on either side, so pairing by position alone could morph one real halving/zone
       // into a completely unrelated one. Anything with no match on the old side just snaps in at its
@@ -4791,24 +4855,24 @@
         const y = lerp(of ? of.y : nf.y, nf.y);
         el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
       });
-      // Year x-ticks, matched by year same as the flags above - a log<->linear X toggle reshapes the
-      // whole date axis (unlike buildLineChart's own X labels, which stay put by design - see
-      // computeCycleChartLayout's Y_TICK_COUNT comment), so these genuinely need to slide too, tick line
-      // and rotated label together (the label's rotate() pivot has to track its own x or the text shears
-      // away from its tick line as it moves).
+      // X-ticks (year-only or month-inclusive, see computeCycleChartLayout), matched by their "YYYY-MM"
+      // key same as the flags above - a log<->linear X toggle reshapes the whole date axis (unlike
+      // buildLineChart's own X labels, which stay put by design - see computeCycleChartLayout's
+      // Y_TICK_COUNT comment), so these genuinely need to slide too, tick line and rotated label together
+      // (the label's rotate() pivot has to track its own x or the text shears away from its tick line).
       xTickEls.forEach(el=>{
-        const year = Number(el.dataset.year);
-        const nt = newLayout.xTicks.find(t=>t.year===year);
+        const key = el.dataset.key;
+        const nt = newLayout.xTicks.find(t=>t.key===key);
         if(!nt) return;
-        const ot = oldLayout.xTicks.find(t=>t.year===year);
+        const ot = oldLayout.xTicks.find(t=>t.key===key);
         const x = lerp(ot ? ot.x : nt.x, nt.x);
         el.setAttribute("x1",x.toFixed(1)); el.setAttribute("x2",x.toFixed(1));
       });
       xLabelEls.forEach(el=>{
-        const year = Number(el.dataset.year);
-        const nt = newLayout.xTicks.find(t=>t.year===year);
+        const key = el.dataset.key;
+        const nt = newLayout.xTicks.find(t=>t.key===key);
         if(!nt) return;
-        const ot = oldLayout.xTicks.find(t=>t.year===year);
+        const ot = oldLayout.xTicks.find(t=>t.key===key);
         const x = lerp(ot ? ot.x : nt.x, nt.x);
         const y = el.getAttribute("y");
         el.setAttribute("x",x.toFixed(1));
@@ -4865,19 +4929,19 @@
     return {a, d, e, f};
   }
 
-  // Year x-tick equivalent of buildLineChart's own collectVLineSyncTargets/applyVLineSync (X-only, no Y) -
-  // the tick line and its rotated label are two separate elements tagged with the same data-year, so
+  // X-tick equivalent of buildLineChart's own collectVLineSyncTargets/applyVLineSync (X-only, no Y) - the
+  // tick line and its rotated label are two separate elements tagged with the same "YYYY-MM" data-key, so
   // both get carried by the exact same live transform every frame. The label's rotate() pivot is tied to
   // its own x, not just the x attribute, so that has to move in lockstep too or the text would visibly
   // shear away from its own tick line as it slides.
   function collectCycleXTickSyncTargets(wrap, layout){
     const targets = [];
-    wrap.querySelectorAll("line.cyc-xtick[data-year]").forEach(line=>{
-      const days = daysSinceGenesis(`${line.dataset.year}-01-01`);
+    wrap.querySelectorAll("line.cyc-xtick[data-key]").forEach(line=>{
+      const days = daysSinceGenesis(`${line.dataset.key}-01`);
       targets.push({kind:"tick", line, rawX: layout.xOf(days)});
     });
-    wrap.querySelectorAll("text.axis-label-x[data-year]").forEach(text=>{
-      const days = daysSinceGenesis(`${text.dataset.year}-01-01`);
+    wrap.querySelectorAll("text.axis-label-x[data-key]").forEach(text=>{
+      const days = daysSinceGenesis(`${text.dataset.key}-01`);
       targets.push({kind:"label", text, rawX: layout.xOf(days), y: parseFloat(text.getAttribute("y"))});
     });
     return targets;
