@@ -622,8 +622,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v215";
-  const EDIT_STAMP = "2026-08-20 20:08 UTC";
+  const EDIT_VERSION = "v216";
+  const EDIT_STAMP = "2026-08-21 01:56 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4126,9 +4126,27 @@
       .filter(hv=> hv.days>=daysMin && hv.days<=daysMax)
       .map(hv=>({...hv, x:xOf(hv.days)}));
 
-    const yTicks = logY
-      ? (()=>{ const lo=Math.floor(yLogMin), hi=Math.ceil(yLogMax), out=[]; for(let d=lo;d<=hi;d++) if(d>=yLogMin&&d<=yLogMax) out.push({y:yOf(Math.pow(10,d)), label:fmtUSD(Math.pow(10,d))}); return out; })()
-      : niceLinearTicks(yValMin,yValMax,6).map(v=>({y:yOf(v), label:fmtUSD(v)}));
+    // Fixed-fraction ticks (5 evenly spaced, frac=0 at the top/max down to frac=1 at the bottom/min) -
+    // the same scheme buildLineChart's own gridlines use for every other chart on the page, not the
+    // previous "nice round number" log-decade/niceLinearTicks generation. That older approach picked a
+    // different VALUE SET (and even a different tick COUNT) depending on the window's own price range,
+    // so there was no stable correspondence between an old and a new layout's ticks to animate between -
+    // switching to fixed fractions makes each label's screen position genuinely constant across a zoom,
+    // which is what lets its displayed value count smoothly the same way every other chart's already
+    // does (see animateAxisLabelValues) instead of just snapping.
+    // valueAtFraction always expects REAL (never pre-logged) min/max and does its own log conversion
+    // internally when domain.log is set - yValMin/yValMax above are already log10'd whenever logY is true
+    // (that's what yOf's own yVal()/pixel-mapping needs), so feeding those straight in here would log an
+    // already-logged number. priceMin/priceMax (below, also returned from this function) are the real
+    // price bounds regardless of logY - exactly what valueAtFraction needs to log correctly itself.
+    const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
+    const Y_TICK_COUNT = 5;
+    const yTicks = [];
+    for(let i=0;i<=Y_TICK_COUNT;i++){
+      const frac = i/Y_TICK_COUNT;
+      const val = valueAtFraction({min:priceMin, max:priceMax, log:logY}, frac);
+      yTicks.push({y: padT+frac*(h-padT-padB), label:fmtUSD(val), frac});
+    }
     const firstYear = new Date(GENESIS_MS+daysMin*86400000).getUTCFullYear();
     const lastYear = new Date(GENESIS_MS+daysMax*86400000).getUTCFullYear();
     const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
@@ -4136,7 +4154,7 @@
     for(let y=firstYear; y<=lastYear; y+=yearStep){
       const days = daysSinceGenesis(`${y}-01-01`);
       if(days < daysMin || days > daysMax) continue;
-      xTicks.push({x:xOf(days), label:String(y)});
+      xTicks.push({x:xOf(days), label:String(y), year:y});
     }
 
     // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter), plus their bull
@@ -4209,7 +4227,7 @@
     // computeZoomMatrix does for its own per-window-autoscaled Y-domain - no "fixed" coordinate space is
     // needed for that, just both windows sharing the same log/linear scale type.
     return {w,h,padL,padR,padT,padB, points, pricePts, halvings, yTicks, xTicks, flags, zones, crosshair, xOf, yOf,
-      priceMin: Math.pow(10,yLogMin), priceMax: Math.pow(10,yLogMax), logX, logY};
+      priceMin, priceMax, logX, logY};
   }
 
   function renderCycleChartDOM(layout){
@@ -4236,6 +4254,21 @@
     clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
     clipPath.appendChild(clipRect);
     defs.appendChild(clipPath);
+    // A second, much more generous clip - the full SVG viewBox, not the tight plot rect above - just for
+    // the flags below. They live outside .cyc-zoom-group entirely (so their glyphs never stretch) and
+    // therefore never shared the plot clip either, so a zoom-out's live transform could carry one
+    // measurably past the card's own edge for a few frames while sliding in from off-screen before
+    // settling - genuinely visible outside the chart, not just a geometry oddity. Sized to the whole
+    // viewBox rather than the plot rect so a flag's normal, at-rest habit of overhanging the plot edge a
+    // little (see fitChartTypography) is never itself clipped - only a flag actually leaving the card.
+    const fullClipId = "cyc-full-clip-" + Math.random().toString(36).slice(2,9);
+    const fullClipPath = document.createElementNS(NS,"clipPath");
+    fullClipPath.setAttribute("id", fullClipId);
+    const fullClipRect = document.createElementNS(NS,"rect");
+    fullClipRect.setAttribute("x","0"); fullClipRect.setAttribute("y","0");
+    fullClipRect.setAttribute("width",w); fullClipRect.setAttribute("height",h);
+    fullClipPath.appendChild(fullClipRect);
+    defs.appendChild(fullClipPath);
     svg.appendChild(defs);
 
     layout.yTicks.forEach(t=>{
@@ -4244,14 +4277,28 @@
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       svg.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label"); lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("class","axis-label"); lbl.dataset.frac = t.frac;
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
       svg.appendChild(lbl);
     });
+    // Unlike buildLineChart's own X date labels (deliberately screen-fixed, see the comment there), this
+    // chart's year labels genuinely slide during a zoom/pan (see collectCycleXTickSyncTargets/
+    // applyCycleXTickSync and the axis-toggle lerp below) - each one is tagged with its own real year so
+    // that animation can match old-to-new by value, same as the halvings/flags. A short tick line (from
+    // the plot's own bottom edge down to the label) reads as a real axis tick connecting the rotated text
+    // back to the exact x-position it labels, mirroring the Y-axis' own gridlines-to-label relationship.
     layout.xTicks.forEach(t=>{
+      const tick = document.createElementNS(NS,"line");
+      tick.setAttribute("class","cyc-xtick"); tick.dataset.year = t.year;
+      tick.setAttribute("x1",t.x); tick.setAttribute("x2",t.x);
+      tick.setAttribute("y1",h-padB); tick.setAttribute("y2",h-padB+8);
+      tick.setAttribute("stroke","var(--ink-3)"); tick.setAttribute("stroke-width","1"); tick.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(tick);
       const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label axis-label-x"); lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("class","axis-label axis-label-x"); lbl.dataset.year = t.year;
+      lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
@@ -4311,7 +4358,13 @@
     // only ever repositioned, never visually stretched, by the group's live transform - see
     // collectCycleFlagSyncTargets/applyCycleFlagSync. data-flag-value (alongside the existing
     // data-flag-date) lets that sync read each flag's own (days, price) straight back out of the DOM
-    // without having to re-search layout.flags for it.
+    // without having to re-search layout.flags for it. Wrapped in the generous full-viewBox clip (see
+    // fullClipId above) so a flag genuinely can't render outside the card while it's sliding in/out mid
+    // zoom - it just isn't drawn until it's back within the viewBox, instead of visibly poking out past
+    // the card's own edge for a few frames.
+    const flagLayer = document.createElementNS(NS,"g");
+    flagLayer.setAttribute("clip-path", `url(#${fullClipId})`);
+    svg.appendChild(flagLayer);
     layout.flags.forEach(pt=>{
       const g = buildFlagMarker(pt.dir, pt.confirmed ? "var(--ink)" : "var(--ink-3)");
       // Set via the CSS transform property, not the attribute - see applyCycleFlagSync, which drives
@@ -4327,7 +4380,7 @@
       const unconfirmedPart = pt.confirmed ? "" : ` · noch nicht endgültig bestätigt - könnte noch von einem neuen ${pt.dir>0?"Hoch":"Tief"} übertroffen werden`;
       title.textContent = `${pt.confirmed?"":"Bisheriges "}${kindLabel}: ${fmtUSD(pt.value)} am ${fmtDateOnly(pt.date)}${sincePart}${unconfirmedPart}`;
       g.appendChild(title);
-      svg.appendChild(g);
+      flagLayer.appendChild(g);
     });
 
     // Tap-to-pin AND hover-to-preview annotate for the bull/bear zones - reports the box's own width in
@@ -4385,7 +4438,7 @@
       const g = document.createElementNS(NS,"g");
       g.setAttribute("class","cyc-zone-dim");
       g.style.opacity = "0";
-      const GAP = 6, RUN = 15, ARR = 4.5;
+      const GAP = 6, RUN = 15, ARR = 6.5;
       const mkLine = (x1_,y1_,x2_,y2_,dash)=>{
         const l = document.createElementNS(NS,"line");
         l.setAttribute("x1",x1_.toFixed(1)); l.setAttribute("y1",y1_.toFixed(1));
@@ -4405,22 +4458,38 @@
         p.setAttribute("fill",lineColor);
         g.appendChild(p);
       };
+      // A text label with its own backing rect - sitting directly over the price line/zone fill/gridlines
+      // otherwise made it hard to read at a glance, exactly like the flag glyphs and zone-tap labels
+      // elsewhere on this chart already get a card-colored plate behind them for the same reason.
+      const mkLabel = (x_,y_,anchor,text)=>{
+        const textW = text.length*7.1 + 12;
+        const bg = document.createElementNS(NS,"rect");
+        const bx = anchor==="middle" ? x_-textW/2 : anchor==="end" ? x_-textW : x_;
+        bg.setAttribute("x",bx.toFixed(1)); bg.setAttribute("y",(y_-12).toFixed(1));
+        bg.setAttribute("width",textW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","3");
+        bg.setAttribute("fill","var(--card)"); bg.setAttribute("opacity","0.92");
+        g.appendChild(bg);
+        const t = document.createElementNS(NS,"text");
+        t.setAttribute("x",x_.toFixed(1)); t.setAttribute("y",y_.toFixed(1));
+        t.setAttribute("text-anchor",anchor); t.setAttribute("font-size","13"); t.setAttribute("font-weight","700");
+        t.setAttribute("fill",textColor); t.textContent = text;
+        g.appendChild(t);
+      };
 
-      // Width (days), a horizontal dimension line always below the box - a fixed, predictable spot to
-      // look for it rather than one that hops to the top edge for some zones and the bottom for others.
-      const belowSign = 1;
-      const hEdgeY = z.yBot;
+      // Width (days), a horizontal dimension line below the box by default - a fixed, predictable spot to
+      // look for it rather than one that hops around for no reason. Flips above instead whenever the zone
+      // sits close enough to the plot's own bottom edge that the line/label would otherwise run past it
+      // (or get clipped) - a zone butting right up against "today" or the window's own oldest edge is
+      // common enough (any window that opens or closes mid-swing) that this isn't a rare edge case.
+      const belowSign = (h-padB-z.yBot >= RUN+GAP+22) ? 1 : -1;
+      const hEdgeY = belowSign>0 ? z.yBot : z.yTop;
       const hDimY = hEdgeY + belowSign*RUN;
       mkLine(x0, hEdgeY+belowSign*GAP, x0, hDimY, "2 2");
       mkLine(x1, hEdgeY+belowSign*GAP, x1, hDimY, "2 2");
       mkLine(x0, hDimY, x1, hDimY);
       mkArrow(x0, hDimY, -1, 0);
       mkArrow(x1, hDimY, 1, 0);
-      const wLbl = document.createElementNS(NS,"text");
-      wLbl.setAttribute("x",((x0+x1)/2).toFixed(1)); wLbl.setAttribute("y",(hDimY+belowSign*14).toFixed(1));
-      wLbl.setAttribute("text-anchor","middle"); wLbl.setAttribute("font-size","13"); wLbl.setAttribute("font-weight","700");
-      wLbl.setAttribute("fill",textColor); wLbl.textContent = widthLabel;
-      g.appendChild(wLbl);
+      mkLabel((x0+x1)/2, hDimY+belowSign*14, "middle", widthLabel);
 
       // Height (price diff + %), a vertical dimension line right of the box - or left, if there isn't room
       // to the right before the plot's own edge.
@@ -4432,12 +4501,7 @@
       mkLine(vDimX, z.yTop, vDimX, z.yBot);
       mkArrow(vDimX, z.yTop, 0, -1);
       mkArrow(vDimX, z.yBot, 0, 1);
-      const hLbl = document.createElementNS(NS,"text");
-      hLbl.setAttribute("x",(vDimX+rightSign*5).toFixed(1)); hLbl.setAttribute("y",((z.yTop+z.yBot)/2+4.5).toFixed(1));
-      hLbl.setAttribute("text-anchor", rightSign>0 ? "start" : "end");
-      hLbl.setAttribute("font-size","13"); hLbl.setAttribute("font-weight","700");
-      hLbl.setAttribute("fill",textColor); hLbl.textContent = heightLabel;
-      g.appendChild(hLbl);
+      mkLabel(vDimX+rightSign*5, (z.yTop+z.yBot)/2+4.5, rightSign>0?"start":"end", heightLabel);
 
       zoneLabelLayer.appendChild(g);
       requestAnimationFrame(()=>{ g.style.opacity = "1"; });
@@ -4467,6 +4531,18 @@
     paintZoneLabel();
     updateCycleZoneHighlight();
 
+    // Fades everything right of the crosshair toward the card background, exactly like buildLineChart's
+    // own afterVeil on every other chart - marks that stretch as "history relative to where you're
+    // looking" via a genuine opacity reduction rather than recoloring each series individually. Above
+    // the zones/price line (painted before it) but below the crosshair line/dot themselves, which stay
+    // crisp on top of it.
+    const afterVeil = document.createElementNS(NS,"rect");
+    afterVeil.setAttribute("class","cyc-after-veil");
+    afterVeil.setAttribute("y",padT); afterVeil.setAttribute("height", h-padT-padB);
+    afterVeil.setAttribute("fill","var(--card)"); afterVeil.setAttribute("opacity","0.55");
+    afterVeil.style.pointerEvents = "none";
+    svg.appendChild(afterVeil);
+
     const cross = document.createElementNS(NS,"line");
     cross.setAttribute("class","cyc-crosshair");
     cross.setAttribute("y1",padT); cross.setAttribute("y2",h-padB);
@@ -4484,6 +4560,7 @@
     function paintCrosshair(cr){
       cross.setAttribute("x1",cr.x); cross.setAttribute("x2",cr.x);
       priceDot.setAttribute("cx",cr.x); priceDot.setAttribute("cy",cr.y);
+      afterVeil.setAttribute("x",cr.x); afterVeil.setAttribute("width", Math.max(0, w-padR-cr.x));
       readout.update(cr.isLatest ? "Aktuell" : fmtDateOnly(cr.date), [cr.price], [cr.price]);
     }
     paintCrosshair(layout.crosshair);
@@ -4633,8 +4710,13 @@
     const halvingEls = [...svg.querySelectorAll(".cyc-halving")];
     const zoneEls = [...svg.querySelectorAll(".cyc-zone")];
     const flagEls = [...svg.querySelectorAll("g[data-flag-date]")];
+    const xTickEls = [...svg.querySelectorAll("line.cyc-xtick[data-year]")];
+    const xLabelEls = [...svg.querySelectorAll("text.axis-label-x[data-year]")];
     const priceDot = svg.querySelector(".cyc-price-dot");
     const cross = svg.querySelector(".cyc-crosshair");
+    const afterVeil = svg.querySelector(".cyc-after-veil");
+    animateAxisLabelValues(svg, {min:oldLayout.priceMin, max:oldLayout.priceMax, log:oldLayout.logY},
+      {min:newLayout.priceMin, max:newLayout.priceMax, log:newLayout.logY, axisFmt:fmtUSD});
 
     const start = performance.now();
     function frame(now){
@@ -4685,11 +4767,35 @@
         const y = lerp(of ? of.y : nf.y, nf.y);
         el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
       });
+      // Year x-ticks, matched by year same as the flags above - a log<->linear X toggle reshapes the
+      // whole date axis (unlike buildLineChart's own X labels, which stay put by design - see
+      // computeCycleChartLayout's Y_TICK_COUNT comment), so these genuinely need to slide too, tick line
+      // and rotated label together (the label's rotate() pivot has to track its own x or the text shears
+      // away from its tick line as it moves).
+      xTickEls.forEach(el=>{
+        const year = Number(el.dataset.year);
+        const nt = newLayout.xTicks.find(t=>t.year===year);
+        if(!nt) return;
+        const ot = oldLayout.xTicks.find(t=>t.year===year);
+        const x = lerp(ot ? ot.x : nt.x, nt.x);
+        el.setAttribute("x1",x.toFixed(1)); el.setAttribute("x2",x.toFixed(1));
+      });
+      xLabelEls.forEach(el=>{
+        const year = Number(el.dataset.year);
+        const nt = newLayout.xTicks.find(t=>t.year===year);
+        if(!nt) return;
+        const ot = oldLayout.xTicks.find(t=>t.year===year);
+        const x = lerp(ot ? ot.x : nt.x, nt.x);
+        const y = el.getAttribute("y");
+        el.setAttribute("x",x.toFixed(1));
+        el.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${y})`);
+      });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
         const py = lerp(oldLayout.crosshair.y, newLayout.crosshair.y);
         if(priceDot){ priceDot.setAttribute("cx",px); priceDot.setAttribute("cy",py); }
         if(cross){ cross.setAttribute("x1",px); cross.setAttribute("x2",px); }
+        if(afterVeil){ afterVeil.setAttribute("x",px); afterVeil.setAttribute("width", Math.max(0, newLayout.w-newLayout.padR-px)); }
       }
       // Always rebuild fresh at the end - lerpPts pairs old/new points by index and just leaves any
       // leftover tail (whichever side has more points, e.g. a wider old range's point count vs. a
@@ -4735,6 +4841,31 @@
     return {a, d, e, f};
   }
 
+  // Year x-tick equivalent of buildLineChart's own collectVLineSyncTargets/applyVLineSync (X-only, no Y) -
+  // the tick line and its rotated label are two separate elements tagged with the same data-year, so
+  // both get carried by the exact same live transform every frame. The label's rotate() pivot is tied to
+  // its own x, not just the x attribute, so that has to move in lockstep too or the text would visibly
+  // shear away from its own tick line as it slides.
+  function collectCycleXTickSyncTargets(wrap, layout){
+    const targets = [];
+    wrap.querySelectorAll("line.cyc-xtick[data-year]").forEach(line=>{
+      const days = daysSinceGenesis(`${line.dataset.year}-01-01`);
+      targets.push({kind:"tick", line, rawX: layout.xOf(days)});
+    });
+    wrap.querySelectorAll("text.axis-label-x[data-year]").forEach(text=>{
+      const days = daysSinceGenesis(`${text.dataset.year}-01-01`);
+      targets.push({kind:"label", text, rawX: layout.xOf(days), y: parseFloat(text.getAttribute("y"))});
+    });
+    return targets;
+  }
+  function applyCycleXTickSync(targets, a, e){
+    targets.forEach(t=>{
+      const x = t.rawX*a + e;
+      if(t.kind==="tick"){ t.line.setAttribute("x1",x.toFixed(1)); t.line.setAttribute("x2",x.toFixed(1)); }
+      else { t.text.setAttribute("x", x.toFixed(1)); t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`); }
+    });
+  }
+
   // Cycle-flag/crosshair equivalents of collectFlagSyncTargets/collectCrosshairSyncTarget - simpler than
   // those, since this chart maps a raw (days, price) pair straight through a layout's own xOf/yOf rather
   // than an index into a shared domain, so no separate "domainXOf" abstraction is needed - the layout's
@@ -4766,12 +4897,18 @@
   function collectCycleCrosshairSyncTarget(wrap, layout){
     const cross = wrap.querySelector(".cyc-crosshair");
     const dot = wrap.querySelector(".cyc-price-dot");
+    const veil = wrap.querySelector(".cyc-after-veil");
     if(!cross || !layout.crosshair) return null;
-    return {cross, dot, rawX: layout.xOf(daysSinceGenesis(layout.crosshair.date)), rawY: layout.yOf(layout.crosshair.price)};
+    return {cross, dot, veil, plotRight: layout.w - layout.padR,
+      rawX: layout.xOf(daysSinceGenesis(layout.crosshair.date)), rawY: layout.yOf(layout.crosshair.price)};
   }
   function applyCycleCrosshairSync(target, a, d, e, f){
     if(!target) return;
     const x = target.rawX*a + e, y = target.rawY*d + f;
+    if(target.veil){
+      target.veil.setAttribute("x", x.toFixed(1));
+      target.veil.setAttribute("width", Math.max(0, target.plotRight - x).toFixed(1));
+    }
     target.cross.setAttribute("x1", x.toFixed(1)); target.cross.setAttribute("x2", x.toFixed(1));
     if(target.dot){ target.dot.setAttribute("cx", x.toFixed(1)); target.dot.setAttribute("cy", y.toFixed(1)); }
   }
@@ -4801,7 +4938,13 @@
     const settle = ()=>{
       applyCycleFlagSync(collectCycleFlagSyncTargets(wrap, newLayout), 1, 1, 0, 0);
       applyCycleCrosshairSync(collectCycleCrosshairSyncTarget(wrap, newLayout), 1, 1, 0, 0);
+      applyCycleXTickSync(collectCycleXTickSyncTargets(wrap, newLayout), 1, 0);
     };
+    // Y-axis tick labels stay screen-fixed (see the Y_TICK_COUNT fixed-fraction scheme in
+    // computeCycleChartLayout) but their displayed price should still count smoothly old->new instead of
+    // snapping, the same "standard" every buildLineChart tile's own Y-axis already follows.
+    animateAxisLabelValues(wrap, {min:oldLayout.priceMin, max:oldLayout.priceMax, log:oldLayout.logY},
+      {min:newLayout.priceMin, max:newLayout.priceMax, log:newLayout.logY, axisFmt:fmtUSD});
 
     // Zoom IN (new range is a strict subset of old, e.g. "Alles" -> "1J") can't be animated the same way
     // as zooming out/panning - the freshly-built new content simply has no pixels drawn outside its own
@@ -4825,11 +4968,12 @@
       const endMatrix = computeCycleChartZoomMatrix(newLayout, oldLayout);
       const flagTargets = collectCycleFlagSyncTargets(wrap, oldLayout);
       const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, oldLayout);
+      const xTickTargets = collectCycleXTickSyncTargets(wrap, oldLayout);
       animateMatrix(oldGroupSrc, identity, endMatrix, myGen, ()=>{
         oldClipWrap.remove();
         realClipG.style.display = "";
         settle();
-      }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); });
+      }, (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); });
       return;
     }
 
@@ -4839,8 +4983,9 @@
     const m = computeCycleChartZoomMatrix(oldLayout, newLayout);
     const flagTargets = collectCycleFlagSyncTargets(wrap, newLayout);
     const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, newLayout);
+    const xTickTargets = collectCycleXTickSyncTargets(wrap, newLayout);
     animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; settle(); },
-      (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); });
+      (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); });
   }
 
   function tileIsAvailable(tile){
