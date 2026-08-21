@@ -340,11 +340,12 @@
   .cyc-zone-dim{ transition: opacity .15s ease; }
 
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
-  /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, with a smaller
-     (+50%, not +100%) bump on narrow screens (see the media query below) where a full doubling would eat
-     too much of the card's own width relative to everything else on it. */
-  .panel h2{font-family:var(--font-display); font-size:38px; margin:0; font-weight:700;}
-  .panel h3{font-family:var(--font-display); font-size:38px; margin:0; font-weight:700;}
+  /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, then dialed back
+     to 75% of that doubled size (28.5px/39px) once the full +100% read as too big in practice. Narrow
+     screens (see the media query below) keep their own smaller bump for the same reason as before - a
+     full doubling would eat too much of a phone card's own width relative to everything else on it. */
+  .panel h2{font-family:var(--font-display); font-size:28.5px; margin:0; font-weight:700;}
+  .panel h3{font-family:var(--font-display); font-size:28.5px; margin:0; font-weight:700;}
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
   .panel-head{display:flex; align-items:center; gap:8px;}
@@ -369,7 +370,7 @@
   .card-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;}
   .card-title-block{display:flex; flex-direction:column; gap:8px;}
   .ticker-row{display:flex; align-items:center; gap:7px;}
-  .card-title-block .ticker{font-family:var(--font-display); font-size:52px; font-weight:700; letter-spacing:.01em;}
+  .card-title-block .ticker{font-family:var(--font-display); font-size:39px; font-weight:700; letter-spacing:.01em;}
 
   .readout{display:flex; flex-direction:column; gap:5px; align-items:flex-end; margin-left:auto;}
   .readout-date{font-size:10.5px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
@@ -483,11 +484,12 @@
     .readout{align-items:flex-start; margin-left:0;}
     .readout-row{justify-content:flex-start;}
     h1{font-size:26px;}
-    /* A full +100% (see .panel h2/h3, .card-title-block .ticker above) reads fine on a wide desktop card
-       but eats a disproportionate share of a narrow phone card's own width - +50% instead keeps the
-       headline clearly bigger without crowding out everything else on the card-head row. */
-    .panel h2, .panel h3{font-size:28px;}
-    .card-title-block .ticker{font-size:39px;}
+    /* Mobile's own smaller bump over the 19px/26px original, then likewise dialed back to 75% of that -
+       a full +100% reads fine on a wide desktop card but eats a disproportionate share of a narrow phone
+       card's own width, so this stays a +50%-of-original bump (now scaled to 21px/29.25px) rather than
+       matching desktop's full doubling. */
+    .panel h2, .panel h3{font-size:21px;}
+    .card-title-block .ticker{font-size:29.25px;}
     /* On narrow screens the x-axis date labels rotate -45deg to fit (see buildLineChart's mobileTicks
        branch), which lets their lower corner extend visibly below the chart's own nominal bottom edge -
        svg{overflow:visible} means nothing clips that away. Without extra clearance here, whatever comes
@@ -590,6 +592,7 @@
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
         <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
+        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche.</p>
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
@@ -622,8 +625,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v216";
-  const EDIT_STAMP = "2026-08-21 01:56 UTC";
+  const EDIT_VERSION = "v217";
+  const EDIT_STAMP = "2026-08-21 02:15 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -2150,6 +2153,7 @@
     // second, in-chart-context readout of the exact same date the .readout-date text above the chart
     // already shows, but tied visually to the precise line/point it belongs to.
     const crossLabel = document.createElementNS(NS,"text");
+    crossLabel.setAttribute("class","crosshair-date-label");
     crossLabel.setAttribute("y", padT-5); crossLabel.setAttribute("text-anchor","middle");
     crossLabel.setAttribute("font-size","11"); crossLabel.setAttribute("font-weight","700");
     crossLabel.setAttribute("fill","var(--ink-2)");
@@ -2218,7 +2222,26 @@
       // Marktzyklen's zone dimension labels, just applied to N dots instead of 2 box edges - close
       // together whenever the bands themselves are (a compressed/narrow-Y window), which without this
       // would otherwise print several pills right on top of each other.
+      // Self-normalizes to the same real (device-pixel) size as the Y-axis value labels, rather than
+      // waiting on fitChartTypography's own separate later pass - that pass only touches font-size, and
+      // this pill's background/swatch/text-offset geometry is sized in proportion to its OWN font-size
+      // (via `k` below), so it has to be recomputed together with the font-size in the same place or the
+      // two drift out of sync (box too narrow/wide for whatever size the text actually rendered at).
+      // The measurement itself (getBoundingClientRect, a forced layout) is cached rather than re-run on
+      // every animation-sync frame during a zoom - the card's own rendered width can't change mid
+      // animation, only its content's live transform does, so remeasuring 60x/sec there would be pure
+      // waste (and exactly the kind of main-thread cost that reads as animation jank).
+      let cachedFontSize = 12.5;
+      let lastCrosshairX = 0;
+      function refreshLabelScale(){
+        const svgRect = svg.getBoundingClientRect();
+        const scaleX = svgRect.width ? svgRect.width/w : 1;
+        cachedFontSize = 12.5/scaleX;
+      }
       function reposition(crosshairX){
+        lastCrosshairX = crosshairX;
+        const fontSize = cachedFontSize;
+        const k = fontSize/10.5; // ratio to the size every constant below was originally tuned for
         const active = [];
         rows.forEach((row,si)=>{
           const dot = markers[si];
@@ -2227,7 +2250,7 @@
           active.push(row);
         });
         active.sort((a,b)=>a.cy-b.cy);
-        const MIN_GAP = 16;
+        const MIN_GAP = 16*k;
         for(let pass=0; pass<6; pass++){
           for(let i=1;i<active.length;i++){
             const gap = active[i].cy - active[i-1].cy;
@@ -2237,16 +2260,24 @@
         const anchorRight = crosshairX < padL + (w-padL-padR)*0.55;
         active.forEach(row=>{
           row.bg.style.display=""; row.swatch.style.display=""; row.text.style.display="";
-          const textW = (row.text.textContent||"").length*6.2 + 16;
-          const boxX = anchorRight ? crosshairX+12 : crosshairX-12-textW;
-          row.bg.setAttribute("x", boxX.toFixed(1)); row.bg.setAttribute("y",(row.cy-9).toFixed(1));
-          row.bg.setAttribute("width", textW.toFixed(1)); row.bg.setAttribute("height","18");
-          row.swatch.setAttribute("cx",(boxX+9).toFixed(1)); row.swatch.setAttribute("cy",row.cy.toFixed(1));
-          row.text.setAttribute("x",(boxX+16).toFixed(1)); row.text.setAttribute("y",(row.cy+0.5).toFixed(1));
+          row.text.setAttribute("font-size", fontSize.toFixed(2));
+          row.swatch.setAttribute("r", (3*k).toFixed(2));
+          const textW = (row.text.textContent||"").length*6.2*k + 16*k;
+          const boxX = anchorRight ? crosshairX+12*k : crosshairX-12*k-textW;
+          row.bg.setAttribute("x", boxX.toFixed(1)); row.bg.setAttribute("y",(row.cy-9*k).toFixed(1));
+          row.bg.setAttribute("width", textW.toFixed(1)); row.bg.setAttribute("height", (18*k).toFixed(1));
+          row.bg.setAttribute("rx", (5*k).toFixed(2));
+          row.swatch.setAttribute("cx",(boxX+9*k).toFixed(1)); row.swatch.setAttribute("cy",row.cy.toFixed(1));
+          row.text.setAttribute("x",(boxX+16*k).toFixed(1)); row.text.setAttribute("y",(row.cy+0.5).toFixed(1));
         });
       }
       layer.__reposition = reposition;
-      perSeriesLabels = {rows, reposition};
+      // fitChartTypography (called once more, later, right after every chart's DOM has actually landed
+      // in the page) uses this to correct the very first paint's fallback size (getBoundingClientRect
+      // returns 0 width - hence scaleX 1 - the moment this layer is built, since it isn't in the live DOM
+      // yet at that point) without needing the reader to hover first for it to self-correct.
+      layer.__refreshLabelScale = ()=>{ refreshLabelScale(); reposition(lastCrosshairX); };
+      perSeriesLabels = {rows, reposition, refreshLabelScale};
     }
 
     const hitRect = document.createElementNS(NS,"rect");
@@ -2311,6 +2342,7 @@
         cfg.series.forEach((s,si)=>{
           perSeriesLabels.rows[si].text.textContent = values[si]==null ? "–" : (s.fmt||fmtCompact)(values[si]);
         });
+        perSeriesLabels.refreshLabelScale();
         perSeriesLabels.reposition(x);
       }
       // Single-series zoneBand charts (MVRV-Perzentil, NUPL, ...): track whichever point the reader is
@@ -2955,24 +2987,16 @@
     toolbarHost.appendChild(buildScaleSeg(()=>logScale, v=>{logScale=v;}));
     toolbarHost.appendChild(buildRangeSeg("hero"));
     const bandKeys = ["p95","p75","p50","p25","p05"];
-    // Colors the price line itself by which market phase each day fell in - bull market (rising from a
-    // confirmed cycle bottom toward the next top) in the same green already used for "cheap/good"
-    // elsewhere, bear market (declining from a top toward the next bottom) in the same red already used
-    // for "expensive/critical" - tied to the same Zyklen toggle as the flags marking those tops/bottoms
-    // in the first place, since without them showing there's no visible reference for what the color is
-    // even based on.
-    const heroExtremes = showHalvings ? cycleExtremesEffective(FULL.price) : null;
-    const heroPriceColorAt = heroExtremes && heroExtremes.length ? (i=>{
-      const phase = cycleBullBearPhase(view.dates[i], heroExtremes);
-      return phase==="bull" ? "var(--good)" : phase==="bear" ? "var(--critical)" : "var(--c-price)";
-    }) : undefined;
+    // Unlike other charts, this one's price line stays a single consistent color even with Zyklen
+    // toggled on - the 5 quantile bands already carry their own color coding, and a bull/bear-tinted
+    // price line on top of that read as visually competing/confusing rather than adding information.
     const series = [
       {key:"p95", label:"Euphorie", color:"var(--critical)", values:view.bands.p95, width:1.1, fmt:fmtUSD},
       {key:"p75", label:"Teuer", color:"var(--caution)", values:view.bands.p75, width:1.1, fmt:fmtUSD},
       {key:"p50", label:"Fair Value", color:"var(--neutral)", values:view.bands.p50, width:1.1, fmt:fmtUSD},
       {key:"p25", label:"Günstig", color:"var(--good)", values:view.bands.p25, width:1.1, fmt:fmtUSD},
       {key:"p05", label:"Fire Sale", color:"var(--accent)", values:view.bands.p05, width:1.1, fmt:fmtUSD},
-      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD, colorAt:heroPriceColorAt}
+      {key:"price", label:"BTC-Kurs", color:"var(--c-price)", values:view.price, width:1.6, fmt:fmtUSD}
     ];
     const bandFill = [
       {topKey:"p95", bottomKey:"p75", color:"var(--critical-bg)"},
@@ -5116,6 +5140,25 @@
     // this has to be recomputed right here rather than waiting for the next scroll/resize to happen to
     // call it, or content would sit under the bar (or leave a gap under nothing) until then.
     syncNavOffset();
+    // Pushing/un-pushing .page changes every tile's own rendered width - exactly the same "how wide is my
+    // card actually rendering right now" question fitChartTypography answers for a real window resize,
+    // but a sidebar toggle never fires a resize event on its own. Without this, a chart's SVG labels
+    // stayed sized for whichever width happened to be current the last time a resize/rebuild ran, silently
+    // drifting the wrong real pixel size (too small after the sidebar opens and narrows the grid down to
+    // one column, say) until something else happened to trigger a rebuild.
+    // .page's own margin-left is itself CSS-transitioned (.28s, see the .page rule above) - measuring
+    // right away, or even one rAF later, still reads a mid-transition width (confirmed empirically: the
+    // rect is still animating 100ms in), so this waits for that transition to actually finish rather than
+    // guessing at a fixed delay. A trailing fallback timeout covers the (harmless either way) case where
+    // margin-left never actually changed - e.g. below the 900px breakpoint where the sidebar overlays
+    // instead of pushing - and so no transitionend ever fires for it.
+    const pageEl = document.querySelector(".page");
+    let fitDone = false;
+    const runFit = ()=>{ if(fitDone) return; fitDone = true; fitChartTypography(); };
+    if(pageEl){
+      pageEl.addEventListener("transitionend", e=>{ if(e.propertyName==="margin-left") runFit(); }, {once:true});
+    }
+    setTimeout(runFit, 320);
   }
   function openSidebar(){ setSidebarOpen(true); }
   function closeSidebar(){ setSidebarOpen(false); }
@@ -5384,6 +5427,12 @@
       svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
+      // The floating crosshair date label previously kept its own fixed, un-normalized font-size (11) -
+      // fine on a full-width desktop chart but visibly smaller than the axis labels right next to it on
+      // a narrower card, since those get rescaled to a constant real pixel size here and this didn't.
+      // Sized to match the axis value labels above, since it's read the same way (a number/date pinned
+      // to a specific screen position, not running text).
+      svg.querySelectorAll(".crosshair-date-label").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
       // The crosshair's hover dots are geometry (their radius, unlike a stroke's width, isn't kept
       // constant by vector-effect="non-scaling-stroke") - without this they read as tiny on a narrow
       // mobile card, since the same "6.5 viewBox units" is a much smaller fraction of a ~350px-wide
@@ -5393,6 +5442,12 @@
       // dots above - normalized here to a constant real pixel size (matching how they'd look on a
       // full-width ~1000px chart) regardless of how narrow the actual card is.
       svg.querySelectorAll(".flag-scale").forEach(g=> g.setAttribute("transform", `scale(${(1/scaleX).toFixed(3)})`));
+      // Per-series label pills (see buildLineChart's cfg.perSeriesLabels) size themselves off an actual
+      // measurement too, but had none available yet at the moment they were first built (not yet in the
+      // live DOM) - corrected here now that they are, so the very first paint is already right instead
+      // of only self-correcting the next time the reader moves the crosshair.
+      const labelLayer = svg.querySelector(".per-series-label-layer");
+      if(labelLayer && labelLayer.__refreshLabelScale) labelLayer.__refreshLabelScale();
     });
   }
 
