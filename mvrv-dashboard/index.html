@@ -636,7 +636,7 @@
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
         <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
-        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei Arten von Orientierungshilfen, alle sichtbar als Schätzung markiert (blass/gestrichelt/schraffiert), keine Kursprognose: drei zusätzliche Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings), eine gestrichelte "Tunnel"-Linie, die die letzte reale Bewegung zwischen den bestätigten Zyklus-Hochs (Widerstand) bzw. -Tiefs (Unterstützung) mit gleicher Steigung fortsetzt, und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor in denselben Halb-Zyklus-Abständen weiterführen. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort statt eines Kurses den geschätzten Korridor (Tunnel-Ober-/Untergrenze) an diesem Datum. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie statt der festen Kursfarbe einen Verlauf von gedämpft (älter) zu kräftig (aktuell), damit sie nicht kontextlos wirkt.</p>
+        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei Arten von Orientierungshilfen, alle sichtbar als Schätzung markiert (blass/gestrichelt/schraffiert), keine Kursprognose: drei zusätzliche Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings), eine gestrichelte "Tunnel"-Linie, die die letzte reale Bewegung zwischen den bestätigten Zyklus-Hochs (Widerstand) bzw. -Tiefs (Unterstützung) mit gleicher Steigung fortsetzt, und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor in denselben Halb-Zyklus-Abständen weiterführen. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort statt eines Kurses den geschätzten Korridor (Tunnel-Ober-/Untergrenze) an diesem Datum. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie eine Flächen-Verlaufsfüllung darunter (wie bei der Kachel "Realized Price vs. Marktpreis"), damit sie nicht kontextlos wirkt - die Linie selbst bleibt einfarbig.</p>
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
@@ -669,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v229";
-  const EDIT_STAMP = "2026-08-21 18:47 UTC";
+  const EDIT_VERSION = "v230";
+  const EDIT_STAMP = "2026-08-21 18:53 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4566,19 +4566,21 @@
       pattern.appendChild(stripe);
       defs.appendChild(pattern);
     });
-    // Horizontal fade from a muted neutral tone into the price line's own color, left (older) to right
-    // (today) - only used when the price line is shown with no cycle context at all (Zyklus zones off,
-    // see paintPriceLineStyle) so it isn't left reading as a completely flat, contextless stroke.
-    const priceGradId = "cyc-price-grad-" + Math.random().toString(36).slice(2,9);
-    const priceGrad = document.createElementNS(NS,"linearGradient");
-    priceGrad.setAttribute("id",priceGradId);
-    priceGrad.setAttribute("x1","0"); priceGrad.setAttribute("y1","0"); priceGrad.setAttribute("x2","1"); priceGrad.setAttribute("y2","0");
-    const priceGradStop1 = document.createElementNS(NS,"stop");
-    priceGradStop1.setAttribute("offset","0%"); priceGradStop1.style.setProperty("stop-color","var(--ink-3)");
-    const priceGradStop2 = document.createElementNS(NS,"stop");
-    priceGradStop2.setAttribute("offset","100%"); priceGradStop2.style.setProperty("stop-color","var(--c-price)");
-    priceGrad.appendChild(priceGradStop1); priceGrad.appendChild(priceGradStop2);
-    defs.appendChild(priceGrad);
+    // Vertical area-fill gradient under the price line - same technique as buildLineChart's own s.area
+    // (see the "Realized Price vs. Marktpreis" tile's BTC-Kurs series), fading from translucent near the
+    // line to fully transparent at the chart's bottom edge. Only drawn when the price line is shown with
+    // no cycle context at all (Zyklus zones off - see the priceLine block below) so it isn't left reading
+    // as a completely flat, contextless stroke with nothing else on the chart.
+    const priceAreaGradId = "cyc-price-area-grad-" + Math.random().toString(36).slice(2,9);
+    const priceAreaGrad = document.createElementNS(NS,"linearGradient");
+    priceAreaGrad.setAttribute("id",priceAreaGradId);
+    priceAreaGrad.setAttribute("x1","0"); priceAreaGrad.setAttribute("y1","0"); priceAreaGrad.setAttribute("x2","0"); priceAreaGrad.setAttribute("y2","1");
+    const priceAreaStop1 = document.createElementNS(NS,"stop");
+    priceAreaStop1.setAttribute("offset","0%"); priceAreaStop1.style.setProperty("stop-color","var(--c-price)"); priceAreaStop1.style.setProperty("stop-opacity","0.28");
+    const priceAreaStop2 = document.createElementNS(NS,"stop");
+    priceAreaStop2.setAttribute("offset","100%"); priceAreaStop2.style.setProperty("stop-color","var(--c-price)"); priceAreaStop2.style.setProperty("stop-opacity","0");
+    priceAreaGrad.appendChild(priceAreaStop1); priceAreaGrad.appendChild(priceAreaStop2);
+    defs.appendChild(priceAreaGrad);
     svg.appendChild(defs);
 
     layout.yTicks.forEach(t=>{
@@ -4696,15 +4698,28 @@
     });
     // Toggleable like the "Zyklus" pill next to it (see renderCycleChart) - if hidden, the zone tiles/
     // halvings/tunnel above are still whatever's left to look at. Shown but with the "Zyklus" layer OFF,
-    // it has no color context at all (no bull/bear zone under it, nothing), so it gets the muted-to-
-    // price-color gradient stroke built above instead of a flat color - a plain flat line read as
-    // strangely inert on its own during testing.
+    // it has no color context at all (no bull/bear zone under it, nothing), so it gets an area-fill
+    // gradient underneath it instead of staying a completely flat, contextless stroke - same technique
+    // as the Realized Price tile's own BTC-Kurs series (see priceAreaGrad above), not a gradient on the
+    // line's own stroke, which stays the plain price color either way.
     if(cycleChartLayerVisible.price){
+      if(!cycleChartLayerVisible.zyklus){
+        const baseline = h-padB, pts = layout.pricePts;
+        let areaD = "M"+pts[0].x.toFixed(1)+","+baseline.toFixed(1)+" ";
+        for(const p of pts) areaD += "L"+p.x.toFixed(1)+","+p.y.toFixed(1)+" ";
+        areaD += "L"+pts[pts.length-1].x.toFixed(1)+","+baseline.toFixed(1)+" Z";
+        const areaPath = document.createElementNS(NS,"path");
+        areaPath.setAttribute("class","cyc-price-area");
+        areaPath.setAttribute("d", areaD);
+        areaPath.setAttribute("fill", `url(#${priceAreaGradId})`);
+        areaPath.setAttribute("stroke","none");
+        zoomGroup.appendChild(areaPath);
+      }
       const priceLine = document.createElementNS(NS,"path");
       priceLine.setAttribute("class","cyc-price-line");
       priceLine.setAttribute("d", pathD(layout.pricePts));
       priceLine.setAttribute("fill","none");
-      priceLine.setAttribute("stroke", cycleChartLayerVisible.zyklus ? "var(--c-price)" : `url(#${priceGradId})`);
+      priceLine.setAttribute("stroke","var(--c-price)");
       priceLine.setAttribute("stroke-width","1.6");
       priceLine.setAttribute("vector-effect","non-scaling-stroke");
       zoomGroup.appendChild(priceLine);
@@ -5089,7 +5104,7 @@
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Marktzyklen</h3>`;
     panel.appendChild(headRow);
-    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen einen Verlauf von gedämpft zu kräftig. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings), eine gestrichelte "Tunnel"-Linie durch die bisherigen Zyklus-Hochs bzw. -Tiefs (Fortsetzung der jeweils letzten Bewegung) und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor weiterführen - rein zur Orientierung, keine Kursprognose. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort den geschätzten Korridor statt eines echten Kurses.`);
+    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings), eine gestrichelte "Tunnel"-Linie durch die bisherigen Zyklus-Hochs bzw. -Tiefs (Fortsetzung der jeweils letzten Bewegung) und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor weiterführen - rein zur Orientierung, keine Kursprognose. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort den geschätzten Korridor statt eines echten Kurses.`);
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -5127,7 +5142,7 @@
     // Separate on/off for the price line itself - shown with "Zyklus" so the reader can look at just the
     // zone/halving/tunnel structure with no price line cluttering it, or vice versa. When it's the ONLY
     // thing visible (Zyklus off), it has no bull/bear color context left at all, so renderCycleChartDOM
-    // gives it the muted-to-price-color gradient stroke instead of a flat color in that case.
+    // gives it an area-fill gradient underneath it instead of a flat, contextless line in that case.
     const priceBtn = document.createElement("button");
     priceBtn.type = "button";
     priceBtn.className = "halving-toggle-btn" + (cycleChartLayerVisible.price ? " active" : "");
