@@ -491,6 +491,43 @@
                 });
             }
         })();
+
+        // Re-fetch project-status.json with cache:"no-store" on every load and overwrite the
+        // baked-in "Aktualisiert"/"Commits" badges with it. The deploy workflow bakes those values
+        // directly into this HTML via sed, but a browser/CDN cache can still serve a stale copy of
+        // the page afterwards - a JSON fetch with cache:"no-store" and a timestamp query param
+        // bypasses HTML document caching entirely, so this reflects the real latest deploy even
+        // when the surrounding page itself came from a stale cache. Falls back to the baked-in text
+        // on fetch failure, or a plain-language notice if that text was never stamped at all (e.g. a
+        // local/offline checkout still showing literal "{{UPDATED:...}}").
+        (function () {
+            fetch('project-status.json?t=' + Date.now(), { cache: 'no-store' })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (data) {
+                    document.querySelectorAll('.projects > a').forEach(function (tile) {
+                        var folder = (tile.getAttribute('href') || '').replace(/\/$/, '');
+                        var info = data[folder];
+                        if (!info) return;
+                        var updatedEl = tile.querySelector('.updated');
+                        var commitsEl = tile.querySelector('.commits');
+                        if (updatedEl && info.updated) updatedEl.textContent = 'Aktualisiert: ' + info.updated;
+                        if (commitsEl && info.commits != null) commitsEl.textContent = 'Commits: ' + info.commits;
+                    });
+                })
+                .catch(function () {
+                    document.querySelectorAll('.projects > a').forEach(function (tile) {
+                        ['.updated', '.commits'].forEach(function (sel) {
+                            var el = tile.querySelector(sel);
+                            if (el && el.textContent.indexOf('{{') >= 0) {
+                                el.textContent = sel === '.updated' ? 'Aktualisiert: nicht verfügbar' : 'Commits: nicht verfügbar';
+                            }
+                        });
+                    });
+                });
+        })();
     </script>
 </body>
 </html>
