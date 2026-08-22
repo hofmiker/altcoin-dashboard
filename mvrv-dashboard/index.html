@@ -829,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v259";
-  const EDIT_STAMP = "2026-08-22 20:40 UTC";
+  const EDIT_VERSION = "v260";
+  const EDIT_STAMP = "2026-08-22 20:49 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5574,6 +5574,10 @@
       const daysDelta = Math.round(dx/scaleX*daysPerUnit);
       if(daysDelta === 0){ resetCyclePanDragVisuals(); return; }
       panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
+      // Tells the release animation exactly where this live drag visually left the content, in the same
+      // real-pixel terms it's already sitting at right now (see cyclePendingReleaseDx's own comment) -
+      // read once, then always cleared, by animateCycleChartZoomFromLayout.
+      cyclePendingReleaseDx = dx;
       renderAllZoom();
     }, {passive:false});
     hitRect.addEventListener("touchcancel", ()=>{ cyclePanDragStartX = null; resetCyclePanDragVisuals(); }, {passive:true});
@@ -5607,6 +5611,18 @@
   // exactly - see there for the fuller rationale.
   let cycleChartPrevState = null;
   let cycleChartAnimatePending = false;
+  // Set by the 2-finger live-pan's touchend right before it calls renderAllZoom() - the exact real-pixel
+  // CSS translateX() the live drag already visually left .cyc-zoom-group at (see the hitRect touch
+  // handlers in renderCycleChartDOM). Without this, the release animation computed its own start matrix
+  // purely from the old/new layouts' domains (computeCycleChartZoomMatrix) - a value derived independently
+  // of, and not necessarily equal to, wherever the live drag had actually already moved the content to,
+  // so the instant the DOM got rebuilt the content visibly snapped from "where the drag left it" to "where
+  // the animation's own math thinks it should start" before animating on to identity - a real, confirmed
+  // extra jump right at the handoff ("der Pan ruckelt noch etwas nach"). Read once by
+  // animateCycleChartZoomFromLayout to override just the animation's OWN start-e (never its Y/scale
+  // components, which the live drag never touched either), then always cleared so it can't leak into an
+  // unrelated later animation (e.g. a plain range-button click, which has no live-drag state to honor).
+  let cyclePendingReleaseDx = null;
 
   function renderCycleChart(){
     const prevState = cycleChartPrevState;
@@ -6085,6 +6101,11 @@
   // collectCycleCrosshairSyncTarget/applyCycleCrosshairSync, exactly like the halving vLines/flags do for
   // buildLineChart's own tiles.
   function animateCycleChartZoomFromLayout(oldLayout, oldSvgClone){
+    // Consumed exactly once per call, regardless of which branch below runs or returns early - never
+    // left set for some later, unrelated animation (e.g. a plain range-button click with no live-drag
+    // state of its own) to accidentally pick up.
+    const pendingReleaseDx = cyclePendingReleaseDx;
+    cyclePendingReleaseDx = null;
     const wrap = document.querySelector("#cycleChartPanel .chart-wrap");
     const svg = wrap && wrap.querySelector("svg");
     if(!svg || !oldLayout) return;
@@ -6141,6 +6162,10 @@
     // across its own window, so it can just start at the matrix that makes it look like the old view and
     // animate straight down to identity.
     const m = computeCycleChartZoomMatrix(oldLayout, newLayout);
+    // A 2-finger live-pan release overrides the computed start-e with the exact real-pixel offset the
+    // drag already visually left the content at (see cyclePendingReleaseDx's own comment) - never d/f
+    // (Y), which the live drag never touched either, so those keep coming from the real domain math above.
+    if(pendingReleaseDx != null) m.e = pendingReleaseDx;
     const flagTargets = collectCycleFlagSyncTargets(wrap, newLayout);
     const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, newLayout);
     const xTickTargets = collectCycleXTickSyncTargets(wrap, newLayout);
