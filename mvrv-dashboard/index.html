@@ -265,7 +265,7 @@
   .stat-strip-teaser{grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;}
   .stat-strip-teaser .panel-head{grid-column:1/-1;}
   .stat-strip-teaser .stat{
-    position:relative; overflow:hidden; cursor:pointer;
+    position:relative; overflow:hidden; cursor:pointer; color:#fff;
     display:flex; flex-direction:column; justify-content:space-between;
     aspect-ratio:1/0.92; container-type:inline-size;
     background:var(--stat-color, var(--card));
@@ -283,6 +283,43 @@
   .stat-strip-teaser .stat .value .unit{font-size:.36em; font-weight:700; opacity:.82; margin:0 1px;}
   .stat-strip-teaser .stat .value.compound{font-size:clamp(14px, 6.5cqw, 30px);}
   .stat-strip-teaser .stat .ctx{font-size:13px; margin-top:10px; min-height:1.4em; color:rgba(255,255,255,.85);}
+  /* Zone chips (Günstig/Gier/...) keep their own classification color everywhere else on the page, read
+     against a neutral card background there - but a teaser tile's OWN background is now that same zone
+     color for Fear & Greed (see renderStatStrip's dynamic --stat-color), which made the "Gier" chip's
+     text render in literally the same hue as the tile behind it, invisible. White-on-translucent instead,
+     matching every other white-text element already in this strip - the tile's own color already IS the
+     classification signal here, so the chip doesn't need to repeat it in text color too. */
+  .stat-strip-teaser .stat .chip{color:#fff; background:rgba(255,255,255,.22); border-color:rgba(255,255,255,.32);}
+  .stat-strip-teaser .stat .chip i{background:#fff;}
+
+  /* Compact mini-diagrams under the big number - one small visual language per metric type, reusing
+     the exact same zone-color/classification logic each metric's own chip/chart already uses elsewhere
+     on the page (see renderStatStrip) rather than inventing new thresholds just for this glance-graphic. */
+  .stat-strip-teaser .stat .mini{margin-top:8px;}
+  .stat-strip-teaser .stat .mini-spark{width:100%; height:26px; display:block; overflow:visible;}
+  .stat-strip-teaser .stat .mini-spark-line{fill:none; stroke:#fff; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .stat-strip-teaser .stat .mini-spark-dot{fill:#fff;}
+  .stat-strip-teaser .stat .mini-spark-halo{fill:#fff; opacity:.5; animation:miniSparkPulse 1.6s ease-out infinite;}
+  @keyframes miniSparkPulse{ 0%{r:2.2; opacity:.55;} 100%{r:6.5; opacity:0;} }
+  @media (prefers-reduced-motion: reduce){ .stat-strip-teaser .stat .mini-spark-halo{animation:none; opacity:.3;} }
+
+  .stat-strip-teaser .stat .mini-zone{position:relative; height:7px; border-radius:4px; overflow:hidden; display:flex;}
+  .stat-strip-teaser .stat .mini-zone div{height:100%;}
+  .stat-strip-teaser .stat .mini-zone-marker{position:absolute; top:-3px; width:2px; height:13px; background:#fff; border-radius:1px; box-shadow:0 0 0 1.5px rgba(0,0,0,.15);}
+
+  .stat-strip-teaser .stat .mini-bar{position:relative; height:7px; border-radius:4px; background:rgba(255,255,255,.18); overflow:hidden;}
+  .stat-strip-teaser .stat .mini-bar-fill{position:absolute; top:0; bottom:0; left:0; background:#fff; border-radius:4px;}
+
+  .stat-strip-teaser .stat .mini-arc-svg{width:64px; height:36px; display:block;}
+
+  .stat-strip-teaser .stat .ath-row{display:flex; align-items:stretch; gap:10px; justify-content:space-between; margin-bottom:42px;}
+  .stat-strip-teaser .stat .ath-text{flex:1 1 auto; min-width:0;}
+  .stat-strip-teaser .stat .ath-bar-col{width:24px; flex:none; display:flex; flex-direction:column; align-items:center;}
+  .stat-strip-teaser .stat .ath-bar-track{position:relative; width:7px; flex:1 1 auto; min-height:46px; border-radius:4px; background:rgba(255,255,255,.16); overflow:hidden;}
+  .stat-strip-teaser .stat .ath-lost{position:absolute; left:0; right:0; top:0; background:#fff; box-shadow:0 0 8px 2px rgba(255,255,255,.85);}
+  .stat-strip-teaser .stat .ath-held{position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.28);}
+  .stat-strip-teaser .stat .ath-bar-label{font-size:9px; font-weight:700; opacity:.75; text-align:center; line-height:1.2;}
+
   .stat-strip-teaser .stat.bounce .value{animation:statBounce .45s cubic-bezier(.34,1.56,.64,1);}
   @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.06);} 70%{transform:scale(.99);} 100%{transform:scale(1);} }
   @media (prefers-reduced-motion: reduce){ .stat-strip-teaser .stat.bounce .value{animation:none;} }
@@ -762,8 +799,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v250";
-  const EDIT_STAMP = "2026-08-22 15:21 UTC";
+  const EDIT_VERSION = "v251";
+  const EDIT_STAMP = "2026-08-22 15:38 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3164,6 +3201,10 @@
     const card = el.closest(".stat");
     const label = card && card.querySelector(".label");
     const ctx = card && card.querySelector(".ctx");
+    // The compact mini-diagram under the number (see renderStatStrip) is a sibling of .value that also
+    // needs its own room - without subtracting it here too, a value with plenty of width to spare (e.g.
+    // "1.22") would happily grow tall enough to shove the sparkline/zone-bar/arc below it out of frame.
+    const mini = card && card.querySelector(".mini");
     // Compound values (Market/Realized Cap - two full numbers in one string) stay intentionally
     // secondary/smaller even when a tile has room to spare, so they don't visually compete with the
     // single-number tiles' headline size - same content-driven shrink logic below, just a lower ceiling.
@@ -3173,7 +3214,7 @@
     const cs = card ? getComputedStyle(card) : null;
     const availHeight = card
       ? card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-        - (label ? label.offsetHeight : 0) - (ctx ? ctx.offsetHeight : 0) - 20
+        - (label ? label.offsetHeight : 0) - (ctx ? ctx.offsetHeight : 0) - (mini ? mini.offsetHeight : 0) - 20
       : Infinity;
     let size = ceiling, guard = 0;
     while(size > floor && guard < 120 && (el.scrollWidth > availWidth + 1 || size > availHeight)){
@@ -3181,6 +3222,73 @@
       el.style.fontSize = size + "px";
       guard++;
     }
+  }
+
+  // Compact sparkline (last 365 real closes) with a pulsing dot at the newest point - see renderStatStrip
+  // (BTC-Kurs tile). Non-uniform viewBox stretch (preserveAspectRatio="none") to always fill the tile's
+  // own width/height regardless of column count, same technique buildLineChart's own tiny previews use.
+  function miniSparklineHtml(values){
+    const vals = (values||[]).filter(v=>v!=null && isFinite(v));
+    if(vals.length<2) return "";
+    const min = Math.min(...vals), max = Math.max(...vals), range = (max-min)||1;
+    const n = vals.length;
+    const pts = vals.map((v,i)=>{
+      const x = (i/(n-1))*100, y = 2 + (1-(v-min)/range)*28;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const [lx,ly] = pts[pts.length-1].split(",");
+    return `<svg class="mini-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+      <polyline class="mini-spark-line" points="${pts.join(" ")}" vector-effect="non-scaling-stroke"/>
+      <circle class="mini-spark-halo" cx="${lx}" cy="${ly}" r="6"/>
+      <circle class="mini-spark-dot" cx="${lx}" cy="${ly}" r="2.3"/>
+    </svg>`;
+  }
+
+  // Compact horizontal zone-bar with a position marker - shared by MVRV-Ratio and NUPL (see
+  // renderStatStrip), reusing each metric's own REAL classification boundaries (mvrvZoneForCurrent's
+  // quantiles / nuplZone's fixed thresholds) rather than a value scaled onto some invented 0-100 range.
+  // `boundaries` is [floor, b1, b2, b3, b4, ceil] (6 edges, 5 zones); `floor`/`ceil` are synthetic (one
+  // adjacent zone-width beyond the outermost real boundary) purely so the two open-ended zones (e.g.
+  // MVRV's "Fire Sale"/"Euphorie") still get a sensible in-segment marker position instead of always
+  // sitting glued to their segment's inner edge. Each zone always gets an equal-width 20% segment - the
+  // real, uneven zone widths (e.g. NUPL's "Kapitulation" spans a much wider raw range than "Glaube") are
+  // deliberately not reflected in segment width, so a barely-legible sliver zone still reads clearly.
+  function miniZoneBarHtml(colors, boundaries, value){
+    if(value==null || !isFinite(value)) return "";
+    const n = colors.length;
+    let idx = n-1;
+    for(let i=0;i<n;i++){ if(value < boundaries[i+1]){ idx = i; break; } }
+    const lo = boundaries[idx], hi = boundaries[idx+1];
+    const frac = hi>lo ? Math.max(0, Math.min(1, (value-lo)/(hi-lo))) : 0.5;
+    const markerPct = idx*(100/n) + frac*(100/n);
+    const segs = colors.map(c=>`<div style="width:${100/n}%; background:${c}"></div>`).join("");
+    return `<div class="mini-zone">${segs}<div class="mini-zone-marker" style="left:${markerPct.toFixed(1)}%"></div></div>`;
+  }
+
+  // Fear & Greed's own compact half-circle arc (same coordinate geometry as buildGauge's full-size
+  // needle dial, just a plain 3-color gradient track here instead of 5 discrete zone wedges, and a
+  // marker dot instead of a needle - kept simple since this is a glance-graphic, not the primary dial,
+  // which still lives further down the page). Angle math: theta=180*(1-v/100), 180°=value 0 (left,
+  // fear/red end), 0°=value 100 (right, greed/green end) - matches FEARGREED_ZONES' own low-to-high
+  // color order (critical -> caution -> ... -> good).
+  function miniArcHtml(value){
+    if(value==null || !isFinite(value)) return "";
+    const v = Math.max(0,Math.min(100,value));
+    const theta = 180*(1-v/100), cx=100, cy=100, r=80;
+    const mx = (cx + r*Math.cos(theta*Math.PI/180)).toFixed(1);
+    const my = (cy - r*Math.sin(theta*Math.PI/180)).toFixed(1);
+    return `<svg class="mini-arc-svg" viewBox="0 0 200 110">
+      <path d="M 20,100 A 80,80 0 0 1 76,24.5" fill="none" stroke="#c73f39" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 76,24.5 A 80,80 0 0 1 124,24.5" fill="none" stroke="#e0a340" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 124,24.5 A 80,80 0 0 1 180,100" fill="none" stroke="#1f9d55" stroke-width="16" stroke-linecap="round"/>
+      <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="var(--stat-color)" stroke-width="2.5"/>
+    </svg>`;
+  }
+
+  // Plain horizontal fill bar (Circulating Supply's own vorrat-vs-cap, see renderStatStrip).
+  function miniBarHtml(pct){
+    if(pct==null || !isFinite(pct)) return "";
+    return `<div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`;
   }
 
   // Teaser strip at the very top of the page - one big, colorful card per always-or-conditionally
@@ -3197,28 +3305,76 @@
     const price = lastVal(FULL.price), mvrv = lastVal(FULL.mvrv), nupl = lastVal(FULL.nupl), z = lastVal(FULL.zscore);
     const rp = lastVal(FULL.realizedPrice), mc = lastVal(FULL.marketCap), rc = lastVal(FULL.realizedCap);
     const ath = lastVal(FULL.athDrawdown), sg = lastVal(FULL.supplyGrowth), sup = lastVal(FULL.supply);
-    const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z);
+    const fg = FULL.hasFearGreed ? lastVal(FULL.feargreed) : null;
+    const mz = mvrvZoneForCurrent(), nz = nuplZone(nupl), zz = zscoreZone(z), fgz = fearGreedZone(fg);
     const mzPulse = mz && zoneChangedSinceLastVisit("mvrv", mz.label) ? " zone-pulse" : "";
     const nzPulse = zoneChangedSinceLastVisit("nupl", nz.label) ? " zone-pulse" : "";
     const zzPulse = FULL.hasZScore && zoneChangedSinceLastVisit("zscore", zz.label) ? " zone-pulse" : "";
+    const fgPulse = fgz && zoneChangedSinceLastVisit("feargreed", fgz.label) ? " zone-pulse" : "";
+
+    // MVRV's own real quantile boundaries (mvrvZoneForCurrent's classification), extended by one
+    // adjacent zone-width on each end - see miniZoneBarHtml's own comment for why.
+    const q = FULL.mvrvQuantiles, p05 = lastVal(q.p05), p25 = lastVal(q.p25), p75 = lastVal(q.p75), p95 = lastVal(q.p95);
+    const mvrvBounds = (p05!=null && p25!=null && p75!=null && p95!=null)
+      ? [p05-(p25-p05), p05, p25, p75, p95, p95+(p95-p75)] : null;
+    // NUPL's own thresholds (nuplZone) are fixed constants, not data-driven quantiles - -0.5/1.0 as the
+    // synthetic floor/ceiling are a round, generous approximation of NUPL's real historical extremes.
+    const nuplBounds = [-0.5, 0, 0.25, 0.5, 0.75, 1.0];
+
+    const athPrice = Math.max(...FULL.price.filter(v=>v!=null && isFinite(v)));
+    const supplyPct = FULL.hasSupply && sup!=null ? sup/21000000*100 : null;
+
     const stats = [
-      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letzter Tages-Schlusskurs"},
-      {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–"},
-      {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`},
+      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letztes Jahr",
+        mini: miniSparklineHtml(FULL.price.slice(-365))},
+      {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–",
+        mini: mvrvBounds ? miniZoneBarHtml(["#1f9d55","#7fcc9c","rgba(255,255,255,.4)","#e0a340","#e0655f"], mvrvBounds, mvrv) : ""},
+      {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`,
+        mini: miniZoneBarHtml(["#e0655f","#e0a340","rgba(255,255,255,.4)","#7fcc9c","#c73f39"], nuplBounds, nupl)},
       {available:FULL.hasZScore, color:"var(--c-zscore)", target:slugify("MVRV Z-Score"), label:"MVRV Z-Score", value:fmtRatio(z), ctx:`<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>`},
+      {available:FULL.hasFearGreed, color: fgz ? fgz.color : "var(--c-feargreed)", target:slugify("Fear & Greed Index"), label:"Fear & Greed Index", value:fg!=null?String(Math.round(fg)):"–",
+        ctx: fgz ? `<span class="chip ${fgz.cls}${fgPulse}"><i></i>${fgz.label}</span>` : "–", mini: miniArcHtml(fg)},
       {available:true, color:"var(--c-realized)", target:slugify("Realized Price vs. Marktpreis"), label:"Realized Price", value:fmtUSDFull(rp), ctx:"Ø On-Chain-Einstandspreis"},
       {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSDFull(mc)} / ${fmtUSDFull(rc)}`, ctx:"Verhältnis = MVRV", compound:true},
-      {available:true, color:"var(--critical)", target:slugify("Abstand zum Allzeithoch"), label:"Abstand zum ATH", value:fmtPctRaw(ath), ctx:"Rekordhoch = 0%"},
-      {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value:fmtBTCFull(sup), ctx:`Wachstum p.a.: ${fmtPctRaw(sg)}`}
+      {available:true, color:"var(--critical)", target:slugify("Abstand zum Allzeithoch"), label:"Abstand zum ATH", value:fmtPctRaw(ath), ctx:"Verlust seit Rekordhoch", isAth:true,
+        athPrice, price},
+      {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value: supplyPct!=null ? fmtPctRaw(supplyPct) : "–",
+        ctx:`${fmtBTCFull(sup)} · Wachstum p.a.: ${fmtPctRaw(sg)}`, mini: miniBarHtml(supplyPct)}
     ];
     el.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.filter(s=>s.available).map(s=>{
       const valueHtml = s.compound
         ? `<div class="value mono compound">${s.value}</div>`
         : (()=>{ const {prefix,num,suffix} = splitStatValue(s.value);
             return `<div class="value mono">${prefix?`<span class="unit">${prefix}</span>`:""}${num}${suffix?`<span class="unit">${suffix}</span>`:""}</div>`; })();
+      // Abstand-zum-ATH keeps its own dedicated side-by-side layout (text left, vertical loss-bar right -
+      // explicit request, "Schiebe das Chart nach rechts") instead of the generic under-the-number `.mini`
+      // slot every other tile below uses - the bar reads as a companion to the number, not a footnote.
+      if(s.isAth){
+        const lostPct = s.athPrice>0 ? Math.max(0, Math.min(100, (1-s.price/s.athPrice)*100)) : 0;
+        const heldPct = 100-lostPct;
+        return `<div class="stat" style="--stat-color:${s.color}">
+          <div class="label">${s.label}</div>
+          <div class="ath-row">
+            <div class="ath-text">
+              ${valueHtml}
+              <div class="ctx">${s.ctx}</div>
+            </div>
+            <div class="ath-bar-col">
+              <div class="ath-bar-label">ATH<br>${fmtUSD(s.athPrice)}</div>
+              <div class="ath-bar-track">
+                <div class="ath-lost" style="height:${lostPct.toFixed(1)}%"></div>
+                <div class="ath-held" style="height:${heldPct.toFixed(1)}%"></div>
+              </div>
+              <div class="ath-bar-label">jetzt</div>
+            </div>
+          </div>
+          <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
+        </div>`;
+      }
       return `<div class="stat" style="--stat-color:${s.color}">
         <div class="label">${s.label}</div>
         ${valueHtml}
+        ${s.mini ? `<div class="mini">${s.mini}</div>` : ""}
         <div class="ctx">${s.ctx}</div>
         <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
       </div>`;
@@ -6797,6 +6953,13 @@
   function skelBar(ch){
     return `<span class="skel-bar" style="--skel-w:${ch}ch"></span>`;
   }
+  // Block-level pulsing placeholder (same currentColor/opacity/pulse language as skel-bar, just a fixed
+  // pixel height instead of a ch-wide inline span) for the teaser tiles' own mini-diagrams below - a
+  // sparkline/zone-bar/etc. is real chart geometry, not text, so it needs its own reserved height rather
+  // than a text-sized bar, or the real diagram arriving would grow the tile and jump the layout below it.
+  function skelBlock(px){
+    return `<div class="skel-bar mini" style="--skel-w:auto; display:block; width:100%; height:${px}px"></div>`;
+  }
   // Every element that's about to receive REAL interactive behavior once real data exists (a range
   // button, a toggle chip) needs to render identically to its final self - built with the exact same
   // function, not a hand-duplicated lookalike, so labels/widths can never quietly drift out of sync -
@@ -6844,15 +7007,25 @@
     const statStrip = document.getElementById("statStrip");
     if(statStrip){
       const stats = [
-        {label:"BTC-Kurs", color:"var(--c-price)", ctx:"Letzter Tages-Schlusskurs"},
-        {label:"MVRV-Ratio", color:"var(--c-mvrv)", ctxSkel:true},
-        {label:"NUPL", color:"var(--c-nupl)", ctxSkel:true},
+        {label:"BTC-Kurs", color:"var(--c-price)", ctx:"Letztes Jahr", miniPx:26},
+        {label:"MVRV-Ratio", color:"var(--c-mvrv)", ctxSkel:true, miniPx:7},
+        {label:"NUPL", color:"var(--c-nupl)", ctxSkel:true, miniPx:7},
         {label:"Realized Price", color:"var(--c-realized)", ctx:"Ø On-Chain-Einstandspreis"},
-        {label:"Abstand zum ATH", color:"var(--critical)", ctx:"Rekordhoch = 0%"},
       ];
       statStrip.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.map(s=>
-        `<div class="stat" style="--stat-color:${s.color}"><div class="label">${s.label}</div><div class="value mono">${skelBar(6)}</div><div class="ctx">${s.ctxSkel ? skelBar(5) : s.ctx}</div><span class="stat-arrow"></span></div>`
-      ).join("");
+        `<div class="stat" style="--stat-color:${s.color}"><div class="label">${s.label}</div><div class="value mono">${skelBar(6)}</div>${s.miniPx?skelBlock(s.miniPx):""}<div class="ctx">${s.ctxSkel ? skelBar(5) : s.ctx}</div><span class="stat-arrow"></span></div>`
+      ).join("")
+      // Abstand zum ATH keeps its own dedicated skeleton matching renderStatStrip's real side-by-side
+      // layout (text left, vertical loss-bar right) - a plain label/value/ctx skeleton here would jump
+      // taller/reflow sideways the moment real data replaces it with that row structure.
+      + `<div class="stat" style="--stat-color:var(--critical)">
+          <div class="label">Abstand zum ATH</div>
+          <div class="ath-row">
+            <div class="ath-text"><div class="value mono">${skelBar(5)}</div><div class="ctx">Verlust seit Rekordhoch</div></div>
+            <div class="ath-bar-col"><div class="ath-bar-label">ATH</div><div class="ath-bar-track"></div><div class="ath-bar-label">jetzt</div></div>
+          </div>
+          <span class="stat-arrow"></span>
+        </div>`;
     }
 
     // ---- gauges: always exactly 2 (Marktstimmung, Fear & Greed - see renderGauges/buildGauge). The
