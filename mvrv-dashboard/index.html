@@ -762,8 +762,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v247";
-  const EDIT_STAMP = "2026-08-22 12:16 UTC";
+  const EDIT_VERSION = "v248";
+  const EDIT_STAMP = "2026-08-22 12:25 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3148,19 +3148,36 @@
     return {prefix:m[2]||"", num:(m[1]||"")+m[3], suffix:m[4]};
   }
 
-  // The base .value font-size (see the clamp(...) rule) already grows with the tile's own width via a
-  // container query, so short values (e.g. "1.22") get to use the room a wide tile offers. But cqw
-  // scaling only knows the tile's width, not how many characters the value actually needs - a long,
-  // un-abbreviated full number (fmtUSDFull/fmtBTCFull, e.g. "$1,270,384,910,204 / $633,912,847,283")
-  // would overflow at that same size. This shrinks just that one element, in 1px steps, until it fits
-  // its own tile - each tile ends up using exactly as much space as it individually needs/has, instead
-  // of every tile sharing one guessed-conservative font-size.
+  // All teaser tiles sit in equal-width grid columns, so a container-query-only size (the previous
+  // approach: clamp(..., Ncqw, ...)) gives every tile the exact same starting size regardless of what
+  // it actually contains - "1.22" and "20,066,607 BTC" both just landed on whatever that one shared
+  // width-derived number was. That's the "Einheitsgröße" being flagged: sizing needs to react to each
+  // tile's own CONTENT, not just the (identical) container width.
+  //
+  // So this now always starts every value from the same generous ceiling and shrinks down from there,
+  // per tile, until it fits both its own available width (no wrap - long values must shrink, not spill)
+  // and its own available height (the tile's fixed aspect-ratio box, minus the label/ctx rows around
+  // it, so a value can't grow tall enough to shove those out of frame). A short value like "1.22" simply
+  // has far less width to fill per character, so it keeps a much bigger font before either limit bites
+  // than a 12+ character full number does - real, content-driven variety instead of one shared number.
   function fitValueText(el){
     if(!el) return;
-    el.style.fontSize = "";
-    let size = parseFloat(getComputedStyle(el).fontSize);
-    let guard = 0;
-    while(el.scrollWidth > el.clientWidth + 1 && size > 10 && guard < 80){
+    const card = el.closest(".stat");
+    const label = card && card.querySelector(".label");
+    const ctx = card && card.querySelector(".ctx");
+    // Compound values (Market/Realized Cap - two full numbers in one string) stay intentionally
+    // secondary/smaller even when a tile has room to spare, so they don't visually compete with the
+    // single-number tiles' headline size - same content-driven shrink logic below, just a lower ceiling.
+    const ceiling = el.classList.contains("compound") ? 44 : 130, floor = 15;
+    el.style.fontSize = ceiling + "px";
+    const availWidth = el.clientWidth;
+    const cs = card ? getComputedStyle(card) : null;
+    const availHeight = card
+      ? card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+        - (label ? label.offsetHeight : 0) - (ctx ? ctx.offsetHeight : 0) - 20
+      : Infinity;
+    let size = ceiling, guard = 0;
+    while(size > floor && guard < 120 && (el.scrollWidth > availWidth + 1 || size > availHeight)){
       size -= 1;
       el.style.fontSize = size + "px";
       guard++;
