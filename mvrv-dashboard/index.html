@@ -829,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v257";
-  const EDIT_STAMP = "2026-08-22 19:05 UTC";
+  const EDIT_VERSION = "v258";
+  const EDIT_STAMP = "2026-08-22 20:22 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4669,9 +4669,10 @@
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
     // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
     // extends daysMax past the last real day.
-    let points;
+    let points, overscanPoints;
     if(rangeDays === "all"){
       points = allPoints;
+      overscanPoints = allPoints;
     } else {
       const lastT = allPoints[allPoints.length-1].t;
       const endT = lastT - (panOffsetDays||0)*86400000;
@@ -4685,8 +4686,24 @@
       if(idx < 0) idx = 0;
       if(idx >= endIdx) idx = Math.max(0, endIdx-1);
       points = allPoints.slice(idx, endIdx);
+      // A live 2-finger drag (see the hitRect touch handlers below) translates the already-drawn
+      // .cyc-zoom-group in real time, well before any rebuild - so anything only drawn for the exact
+      // visible window goes visibly blank at whichever edge you drag towards, the instant you move at
+      // all (confirmed - not a rare edge case). Drawing a full extra `rangeDays` span of real data on
+      // each side (clamped to the dataset's own bounds) - used ONLY for pricePts/zones/halvings below,
+      // never for the Y-domain or tick computation, which still autoscale to the true visible window
+      // only - means that translation reveals actual history sliding in instead, comfortably covering
+      // any single-gesture drag distance a reader would realistically make before releasing.
+      const overscanCutoff = cutoff - rangeDays*86400000;
+      let overscanIdx = allPoints.findIndex(p=> p.t >= overscanCutoff);
+      if(overscanIdx < 0) overscanIdx = 0;
+      const overscanEndT = endT + rangeDays*86400000;
+      let overscanEndIdx = allPoints.findIndex(p=> p.t > overscanEndT);
+      if(overscanEndIdx < 0) overscanEndIdx = allPoints.length;
+      overscanPoints = allPoints.slice(overscanIdx, overscanEndIdx);
     }
     const daysMin = points[0].days, daysMax = points[points.length-1].days;
+    const overscanDaysMin = overscanPoints[0].days, overscanDaysMax = overscanPoints[overscanPoints.length-1].days;
     // Only "Alles" gets the projected-corridor extension - any other range is already a deliberately
     // narrow, real-data-only window (a reader who picked "1J" wants exactly that year, not 3 more cycles
     // of empty space tacked onto the end of it).
@@ -4722,14 +4739,16 @@
     const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
     function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
 
-    const pricePts = points.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
+    // Overscan (see overscanPoints above) - the live 2-finger drag needs real content already drawn past
+    // both edges of the visible window to translate into view.
+    const pricePts = overscanPoints.map(p=>({x:xOf(p.days), y:yOf(p.price)}));
 
     const halvingSource = showHalvings
       ? HALVING_DATES.concat(rangeDays === "all" ? projectedHalvings(3) : [])
       : [];
     const halvings = halvingSource
       .map(hv=>({date:hv.date, projected:!!hv.projected, days:daysSinceGenesis(hv.date)}))
-      .filter(hv=> hv.days>=daysMin && hv.days<=domainDaysMax)
+      .filter(hv=> hv.days>=overscanDaysMin && hv.days<=Math.max(domainDaysMax, overscanDaysMax))
       .map(hv=>({...hv, x:xOf(hv.days)}));
 
     // Nice round-value ticks (prototype - see niceYTicks - for eventually applying the same principle to
@@ -4826,13 +4845,18 @@
       // box's own real (unclamped) day span and both endpoint prices around too - not just for the y
       // geometry above, but so a tap on the box (see renderCycleChartDOM) can report its true width in
       // days and height in price, not whatever got clamped to the visible edge.
+      // Clamped to the OVERSCAN edges (see overscanPoints above), not the plain plot edges padL/w-padR -
+      // zones live inside .cyc-zoom-group same as the price line, so they need the same overscan margin
+      // to slide in smoothly during a live 2-finger drag instead of the visible window's own boundary
+      // staying baked into their rect geometry and creating a blank gap the moment the group moves.
+      const overscanX0 = xOf(overscanDaysMin), overscanX1 = xOf(overscanDaysMax);
       const pushRun = (fromDays, fromPrice, toDate, toPrice, bull)=>{
         const toDays = daysSinceGenesis(toDate);
         const xRaw0 = xOf(fromDays), xRaw1 = xOf(toDays);
-        if(Math.max(xRaw0,xRaw1) < padL || Math.min(xRaw0,xRaw1) > w-padR) return;
+        if(Math.max(xRaw0,xRaw1) < overscanX0 || Math.min(xRaw0,xRaw1) > overscanX1) return;
         out.push({
-          x0: Math.max(padL, Math.min(w-padR, xRaw0)),
-          x1: Math.max(padL, Math.min(w-padR, xRaw1)),
+          x0: Math.max(overscanX0, Math.min(overscanX1, xRaw0)),
+          x1: Math.max(overscanX0, Math.min(overscanX1, xRaw1)),
           yTop: yOf(Math.max(fromPrice,toPrice)), yBot: yOf(Math.min(fromPrice,toPrice)),
           bull, fromDays, toDays, fromPrice, toPrice, toDate
         });
@@ -4855,7 +4879,7 @@
       } else if(tentativeFlag){
         pushRun(daysMin, allPoints[0].price, tentativeFlag.date, tentativeFlag.value, tentativeFlag.dir>0);
       }
-      return out.filter(z => (Math.max(z.x0,z.x1)>=padL-1 && Math.min(z.x0,z.x1)<=w-padR+1));
+      return out.filter(z => (Math.max(z.x0,z.x1)>=overscanX0-1 && Math.min(z.x0,z.x1)<=overscanX1+1));
     })() : [];
 
     // The "Tunnel" projection envelope (two lines through the real cycle-high/-low corners, extrapolated
@@ -5468,6 +5492,18 @@
       if(idx < 0 || idx >= RANGE_OPTIONS.length-1) return null;
       return RANGE_OPTIONS[idx+1].value;
     }
+    // panOffsetDays that centers the double-tapped date within the new, narrower range - a double-tap
+    // should zoom into wherever the reader actually tapped, not always snap back to "today" like the
+    // range-button click (panOffsetDays=0) it otherwise mirrors.
+    function centeredPanOffsetForRange(tappedDays, newRangeDays){
+      if(newRangeDays === "all") return 0;
+      const lastT = FULL.t[FULL.t.length-1];
+      const tappedT = GENESIS_MS + tappedDays*86400000;
+      const totalDataDays = (FULL.t[FULL.t.length-1] - FULL.t[0]) / 86400000;
+      const maxPanOffsetDays = Math.max(0, totalDataDays - newRangeDays);
+      const rawOffsetDays = (lastT - tappedT) / 86400000 - newRangeDays/2;
+      return Math.max(0, Math.min(maxPanOffsetDays, Math.round(rawOffsetDays)));
+    }
     hitRect.addEventListener("touchmove", e=>{
       if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); }
       else if(e.touches.length===2 && cyclePanDragStartX!=null && rangeDays!=="all"){
@@ -5498,8 +5534,13 @@
           lastTapAt = 0; // consumed - a 3rd quick tap starts a fresh pair, doesn't chain into another zoom
           const nextVal = nextFinerRangeValue();
           if(nextVal != null){
-            rangeDays = nextVal === "all" ? "all" : parseInt(nextVal,10);
-            panOffsetDays = 0;
+            const nextRangeDays = nextVal === "all" ? "all" : parseInt(nextVal,10);
+            const rect = svg.getBoundingClientRect();
+            const scaleX = rect.width>0 ? rect.width/w : 1;
+            const svgX = (t.clientX-rect.left)/scaleX;
+            const tappedDays = layout.xInv(svgX);
+            rangeDays = nextRangeDays;
+            panOffsetDays = centeredPanOffsetForRange(tappedDays, nextRangeDays);
             vibrateTick();
             renderAllZoom();
           }
