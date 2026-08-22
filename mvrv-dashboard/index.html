@@ -494,6 +494,28 @@
   @media (prefers-reduced-motion: reduce){ .skeleton-spinner{ animation:none; } }
   .skeleton-error-text{color:var(--ink-3); font-size:12.5px; text-align:center; padding:0 20px;}
 
+  /* Reusable placeholder for a single not-yet-known piece of text (a number, a percentage, a date) -
+     an empty, rounded, low-opacity bar sized to roughly the eventual text's own width (set per use via
+     the inline --skel-w custom property, in ch units) and height (0.85 of the current font-size, so it
+     scales with whatever text size it's standing in for - a stat's big value vs. a small context line).
+     background:currentColor rather than a fixed color means it automatically picks up whatever color
+     the real text would have had (each use site already sets that via its own existing class - .value,
+     .readout-value, etc.) with no extra per-element color wiring needed. Reserves the real element's
+     eventual layout box exactly (see each call site) so nothing shifts once real text replaces it. */
+  .skel-bar{display:inline-block; width:var(--skel-w, 5ch); height:0.85em; min-height:9px; border-radius:5px; background:currentColor; opacity:0.11; vertical-align:middle; animation:skelPulse 1.7s ease-in-out infinite;}
+  @keyframes skelPulse{ 0%,100%{opacity:0.07;} 50%{opacity:0.16;} }
+  @media (prefers-reduced-motion: reduce){ .skel-bar{ animation:none; opacity:0.12; } }
+
+  /* For a section whose eventual shape genuinely can't be predicted before the data is in (how many
+     tiles the grid ends up with, whether the AI narrative card appears at all, which overlay metrics
+     are available) - no skeleton placeholder is built for these, but their first appearance still
+     shouldn't be an instant DOM-mutation snap that shoves everything below it down in one frame. Any
+     element getting this class right when its real content is populated fades/grows in over a short
+     transition instead - see revealAnimated(). */
+  .reveal-in{animation:revealIn 0.35s ease-out;}
+  @keyframes revealIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  @media (prefers-reduced-motion: reduce){ .reveal-in{ animation:none; } }
+
   /* The RSI/MACD indicator sub-panels stack directly beneath the overlay chart as one continuous block
      (see renderOverlay) - only the outermost container keeps the normal chart-wrap background/rounding,
      and each subsequent panel loses its own so the whole stack reads as one card, with a divider line
@@ -680,8 +702,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v237";
-  const EDIT_STAMP = "2026-08-22 06:42 UTC";
+  const EDIT_VERSION = "v238";
+  const EDIT_STAMP = "2026-08-22 07:05 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -6182,7 +6204,27 @@
     });
   }
 
+  // Set once the very first successful data render has completed - lets renderAllImmediate below tell
+  // "the reader is seeing real content appear for the first time" apart from every later state-change
+  // re-render (a range click, a toggle) that happens to touch the same sections. Only the former should
+  // ever fade/grow content in (see revealAnimated) - replaying that on every ordinary re-render would
+  // read as distracting jitter, not the one-time "content has arrived" cue it's meant to be.
+  let firstDataRenderDone = false;
   function renderAllImmediate(){
+    const isFirstRender = !firstDataRenderDone;
+    // FLIP ("First, Last, Invert, Play"): capture every top-level card's position BEFORE the real
+    // content lands, so that once it has (below, right after the render calls) any card that actually
+    // moved - because something above it grew from its skeleton guess to a genuinely different real
+    // size (overlayPanel/narrativeCard/metricsHost, see the comment below) - can be slid smoothly from
+    // its old position into its new one instead of just instantly appearing there. A CSS transition on
+    // the moved element itself can't do this alone: the browser's layout reflow that actually pushes it
+    // down happens in one synchronous step the instant the DOM changes, no matter what CSS is on it -
+    // only an explicit measure-before/measure-after-then-animate-the-difference, exactly what this is,
+    // can turn that instant jump into a smooth slide.
+    const wrap = document.querySelector(".wrap");
+    const flipEls = isFirstRender && wrap ? [...wrap.children] : [];
+    const flipOld = new Map(flipEls.map(el=>[el, el.getBoundingClientRect().top]));
+
     const view = sliceRange(FULL, rangeDays, panOffsetDays);
     renderOverlay(view);
     renderStatStrip();
@@ -6194,6 +6236,29 @@
     renderCycleChart();
     fitChartTypography();
     renderSectionNav();
+    // These four sections' real shape depends on which data ends up available (how many stat cards,
+    // how many tiles, whether the AI narrative even applies, which overlay metrics/indicators are
+    // toggled on) - renderSkeleton deliberately doesn't try to pre-size them (see its own comment), so
+    // their first appearance here is a genuine size change. Fading them in individually (revealAnimated)
+    // plus sliding every card below them into its new spot (the FLIP loop below) together cover the
+    // "avoid jumps, animate what's unavoidable" request: nothing so much as the elements that actually
+    // grew still just instantly appears full-size, and nothing below them just instantly jumps down.
+    if(isFirstRender){
+      ["statStrip","narrativeCard","metricsHost","overlayPanel"].forEach(id=> revealAnimated(document.getElementById(id)));
+      const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if(!reduceMotion) flipEls.forEach(el=>{
+        if(!document.body.contains(el)) return;
+        const delta = flipOld.get(el) - el.getBoundingClientRect().top;
+        if(Math.abs(delta) < 1) return;
+        el.style.transition = "none";
+        el.style.transform = `translateY(${delta}px)`;
+        void el.offsetHeight; // force the "old" position above to actually paint before transitioning away from it
+        el.style.transition = "transform 0.45s cubic-bezier(.22,.7,.32,1)";
+        el.style.transform = "";
+        el.addEventListener("transitionend", ()=>{ el.style.transition = ""; }, {once:true});
+      });
+      firstDataRenderDone = true;
+    }
   }
 
   // Default entry point for every state change - just rebuilds instantly, nothing moves. Mode switch,
@@ -6720,14 +6785,163 @@
   // card immediately instead of blank white space for however long the fetch takes. #heroChart
   // already sits inside heroPanel's own static markup (headline etc. baked into the HTML itself), so
   // it only needs the same inner chart-wrap placeholder, not a whole panel-head too.
+  // A single not-yet-known text value, sized to roughly the eventual real text's own width (in ch,
+  // an approximate character count) - see .skel-bar's own comment for why background:currentColor
+  // needs no per-call color argument.
+  function skelBar(ch){
+    return `<span class="skel-bar" style="--skel-w:${ch}ch"></span>`;
+  }
+  // Every element that's about to receive REAL interactive behavior once real data exists (a range
+  // button, a toggle chip) needs to render identically to its final self - built with the exact same
+  // function, not a hand-duplicated lookalike, so labels/widths can never quietly drift out of sync -
+  // but must not actually be triggerable yet: its own click handler reaches into FULL (the fetched
+  // dataset), which doesn't exist during the skeleton phase and would throw if triggered early. The
+  // real HTML `inert` attribute (not just pointer-events:none, which was tried first and confirmed by
+  // testing NOT to be enough - a keyboard user tabbing to a focusable button and pressing Enter/Space
+  // still activates it, pointer-events only ever governs pointer/mouse hit-testing) blocks every
+  // activation path at once: unclickable, unfocusable/untabbable, and hidden from assistive tech.
+  // Wrapping in a plain span, rather than disabling each control individually, keeps every one of
+  // those real builder functions untouched.
+  function inert(el){
+    const wrap = document.createElement("span");
+    wrap.inert = true;
+    wrap.appendChild(el);
+    return wrap;
+  }
+
+  // Static placeholder for the two panels that otherwise start out completely empty until the first
+  // real render (renderCycleChart/renderPowerLaw both do panel.innerHTML = "" and rebuild from
+  // scratch, so this needs no explicit teardown - a successful load just overwrites it the same way
+  // it always overwrote whatever was there before). Called once, synchronously, before the first
+  // loadAndRender() - so on a slow connection the reader sees the real headline and a chart-shaped
+  // card immediately instead of blank white space for however long the fetch takes. #heroChart
+  // already sits inside heroPanel's own static markup (headline etc. baked into the HTML itself), so
+  // it only needs the same inner chart-wrap placeholder, not a whole panel-head too.
+  //
+  // Only covers sections whose shape is fixed regardless of which data ends up available - the stat
+  // strip's 5 always-present cards (not the 3 conditional ones - see METRICS/tileIsAvailable), both
+  // gauges (always exactly 2), the hero panel's readout/toolbar, and each main chart's own
+  // toolbar/readout row (closing the small gap this used to leave, where only the chart area itself
+  // was pre-sized). Sections whose actual shape depends on the data itself - the metric tile grid,
+  // the AI narrative card, the metric-overlay panel's toggle set - can't be predicted this way at
+  // all; those instead fade/grow in once real (see .reveal-in / revealAnimated()) rather than being
+  // pre-skeletoned inaccurately.
   function renderSkeleton(){
     const spinner = '<div class="chart-wrap skeleton"><div class="skeleton-spinner"></div></div>';
+
+    // ---- stat strip: the 5 stats every dataset always has (see renderStatStrip's own {available:...}
+    // list) - the 3 conditional ones (Z-Score, Market/Realized Cap, Supply) are left for revealAnimated
+    // to fade in later, same as the tile grid, since guessing wrong here would itself cause a shift.
+    const statStrip = document.getElementById("statStrip");
+    if(statStrip){
+      const stats = [
+        {label:"BTC-Kurs", ctx:"Letzter Tages-Schlusskurs"},
+        {label:"MVRV-Ratio", ctxSkel:true},
+        {label:"NUPL", ctxSkel:true},
+        {label:"Realized Price", ctx:"Ø On-Chain-Einstandspreis"},
+        {label:"Abstand zum ATH", ctx:"Rekordhoch = 0%"},
+      ];
+      statStrip.innerHTML = stats.map(s=>
+        `<div class="stat"><div class="label">${s.label}</div><div class="value mono">${skelBar(6)}</div><div class="ctx">${s.ctxSkel ? skelBar(5) : s.ctx}</div></div>`
+      ).join("");
+    }
+
+    // ---- gauges: always exactly 2 (Marktstimmung, Fear & Greed - see renderGauges/buildGauge). The
+    // dial itself is a real SVG needle graphic, not text, so it gets a plain pulsing block rather than
+    // a text bar - sized to buildGauge's own .gauge-svg rule (200:110 aspect ratio, capped at 210px)
+    // so the card doesn't change size once the real dial lands. The value row below it (a big number +
+    // a colored zone chip, see buildGauge's own valueRow) gets ordinary text-sized skeleton bars.
+    const gaugeStrip = document.getElementById("gaugeStrip");
+    if(gaugeStrip){
+      const gaugeBlock = '<div class="skel-bar" style="display:block; width:100%; max-width:210px; aspect-ratio:200/110; height:auto; margin:4px 0 0; border-radius:10px;"></div>';
+      const valueRow = `<div class="gauge-value-row">${skelBar(2)}${skelBar(4)}</div>`;
+      gaugeStrip.innerHTML = ["Marktstimmung","Fear & Greed"].map(title=>
+        `<div class="gauge-card"><div class="gauge-card-head"><span>${title}</span></div>${gaugeBlock}${valueRow}</div>`
+      ).join("");
+    }
+
+    // ---- hero panel: headline/toggle buttons/chart placeholder already static or built above -
+    // just the readout (date + 6 value/change pairs) and the range/scale toolbar are still missing.
+    // Toolbar built from the exact same buildRangeSeg/buildScaleSeg the real render uses (identical
+    // labels/widths guaranteed, not a hand-copied lookalike) - see inert() for why it's wrapped
+    // pointer-events:none rather than left fully live this early.
+    const heroReadout = document.getElementById("heroReadout");
+    if(heroReadout){
+      // Colors/labels copied from renderHero's own `series` array (Zeile ~3108) - fixed regardless of
+      // data, same reasoning as the toolbar below: build the real shape, not a guess.
+      const heroSeries = [
+        {label:"Euphorie", color:"var(--critical)"}, {label:"Teuer", color:"var(--caution)"},
+        {label:"Fair Value", color:"var(--neutral)"}, {label:"Günstig", color:"var(--good)"},
+        {label:"Fire Sale", color:"var(--accent)"}, {label:"BTC-Kurs", color:"var(--c-price)"},
+      ];
+      heroReadout.innerHTML = `<div class="readout compact"><div class="readout-date">Aktuell</div><div class="readout-row">${
+        heroSeries.map(s=>`<div class="readout-item"><i class="readout-dot" style="background:${s.color}"></i><span class="readout-label">${s.label}</span><b class="readout-value mono">${skelBar(5)}</b><span class="readout-change mono">${skelBar(3)}</span></div>`).join("")
+      }</div></div>`;
+      const heroToggles = document.getElementById("heroToggles");
+      if(heroToggles){
+        heroToggles.innerHTML = `<div class="overlay-toggles tile-toggles">${
+          heroSeries.filter(s=>s.label!=="BTC-Kurs").map(s=>
+            `<label class="overlay-toggle-chip active" style="--chip-color:${s.color}"><input type="checkbox" checked disabled><i></i>${s.label}</label>`
+          ).join("")
+        }</div>`;
+      }
+    }
+    const heroToolbar = document.getElementById("heroToolbar");
+    if(heroToolbar){
+      heroToolbar.innerHTML = "";
+      heroToolbar.appendChild(inert(buildScaleSeg(()=>logScale, ()=>{})));
+      heroToolbar.appendChild(inert(buildRangeSeg("hero")));
+    }
+
+    // ---- the two main charts: headline+chart area already covered above - this closes the remaining
+    // gap (their own toolRow/toolbar rows, previously left for the real render to add, which grew the
+    // panel by that row's height the moment it landed).
     const cyclePanel = document.getElementById("cycleChartPanel");
-    if(cyclePanel) cyclePanel.innerHTML = `<div class="panel-head"><h3>Marktzyklen</h3></div>${spinner}`;
+    if(cyclePanel){
+      cyclePanel.innerHTML = `<div class="panel-head"><h3>Marktzyklen</h3></div><div class="cyc-tool-row"><div class="cyc-readout"><div class="cyc-readout-date">${skelBar(6)}</div><div class="cyc-readout-price">${skelBar(5)}</div><div class="cyc-readout-change">${skelBar(4)}</div></div></div>${spinner}`;
+      const cycToolbar = document.createElement("div");
+      cycToolbar.className = "card-toolbar";
+      cycToolbar.appendChild(inert(buildRangeSeg("cyclechart", {halvingBtn:false})));
+      cyclePanel.appendChild(cycToolbar);
+    }
     const powerLawPanel = document.getElementById("powerLawPanel");
-    if(powerLawPanel) powerLawPanel.innerHTML = `<div class="panel-head"><h3>BTC-Kurs (Power Law, Log-Log)</h3></div>${spinner}`;
+    if(powerLawPanel){
+      // Colors copied from renderPowerLaw's own layerToggleWrap/readout series - fixed regardless of
+      // data, same reasoning as the hero readout above.
+      const readoutRow = `<div style="display:flex; justify-content:flex-end;"><div class="readout"><div class="readout-date">Aktuell</div><div class="readout-row">${
+        [["BTC-Kurs","var(--c-price)"],["Power-Law-Fair-Value","var(--c-powerlaw)"]].map(([label,color])=>
+          `<div class="readout-item"><i class="readout-dot" style="background:${color}"></i><span class="readout-label">${label}</span><b class="readout-value mono">${skelBar(5)}</b><span class="readout-change mono">${skelBar(4)}</span></div>`
+        ).join("")
+      }</div></div></div>`;
+      const layerToggles = `<div class="overlay-toggles">${
+        [["Power Law","var(--c-powerlaw)",true],["Regenbogen","#e67e22",false]].map(([label,color,active])=>
+          `<label class="overlay-toggle-chip${active?" active":""}" style="--chip-color:${color}"><input type="checkbox" disabled ${active?"checked":""}><i></i>${label}</label>`
+        ).join("")
+      }</div>`;
+      powerLawPanel.innerHTML = `<div class="panel-head"><h3>BTC-Kurs (Power Law, Log-Log)</h3></div>${readoutRow}${layerToggles}${spinner}`;
+      const plToolbar = document.createElement("div");
+      plToolbar.className = "card-toolbar";
+      plToolbar.appendChild(inert(buildPowerLawAxisSeg("X", ()=>powerLawLogX, ()=>{})));
+      plToolbar.appendChild(inert(buildPowerLawAxisSeg("Y", ()=>powerLawLogY, ()=>{})));
+      plToolbar.appendChild(inert(buildRangeSeg("powerlaw")));
+      powerLawPanel.appendChild(plToolbar);
+    }
     const heroChart = document.getElementById("heroChart");
     if(heroChart) heroChart.innerHTML = spinner;
+  }
+
+  // Fades/grows a freshly-populated element in rather than letting it snap into place in one frame -
+  // for the sections renderSkeleton() above deliberately doesn't try to pre-size (see its own comment):
+  // their real shape depends on the data itself, so any placeholder here would just as likely guess
+  // wrong and cause its own jump. Safe to call on every render, not just the first: re-adding the same
+  // animation class retriggers it (the element was just freshly rebuilt from scratch by the caller
+  // anyway - see e.g. renderTiles' host.innerHTML = "" - so there's no risk of interrupting an
+  // in-progress user interaction).
+  function revealAnimated(el){
+    if(!el) return;
+    el.classList.remove("reveal-in");
+    void el.offsetWidth; // reflow, so re-adding the class below restarts the CSS animation
+    el.classList.add("reveal-in");
   }
 
   // The source/freshness info this used to always show as its own banner on the page now lives inside
