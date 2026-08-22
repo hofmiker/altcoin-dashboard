@@ -436,20 +436,24 @@
      enough, no JS-driven animation loop needed for either. */
   .cyc-zone{ transition: opacity .15s ease; }
   .cyc-zone-dim{ transition: opacity .15s ease; }
+  /* Positioning context for the fullscreen enter/exit buttons (position:absolute, see .fs-toggle-btn) -
+     mirrors .hero-panel's own explicit position:relative for the same reason. */
+  #cycleChartPanel{ position:relative; }
 
-  /* Single-button log/linear toggles for the Marktzyklen chart's own X/Y axes, styled after the sibling
-     btc/ project's own ".scale-btn" (button text names the state you'd switch TO, highlight applies
-     while currently in Log mode) - sit directly on the chart itself (absolutely positioned inside
-     .cyc-chart-svg-host, a zero-padding wrapper around just the <svg> so percentage offsets line up with
-     the viewBox's own coordinate fractions) rather than in the external toolbar row below, since the
-     user asked for them right at the axis they each control. */
+  /* Single-button log/linear toggles for the Marktzyklen chart's own X/Y axes - text is always "Log",
+     the .active class alone shows which axis is currently in log mode (same static-text convention as
+     the "Zyklus"/"Kurs" pills - see buildCycleAxisToggle). Only the Y toggle still sits directly on the
+     chart (absolutely positioned inside .cyc-chart-svg-host, a zero-padding wrapper around just the
+     <svg> so percentage offsets line up with the viewBox's own coordinate fractions), right above the
+     Y-axis value-label column it controls. The X toggle moved into the toolbar row instead, next to
+     "Zurück zu heute" (see renderCycleChart) - per explicit feedback, sitting on the chart itself put it
+     in the reader's way right where the X-axis labels/pan gesture live. */
   .cyc-chart-svg-host{ position:relative; }
-  /* Fixed width (not just padding) so the Log<->Linear text swap never resizes the button - it used to
-     visibly jump width on click. Neutral border/background like every other toggle button on this chart
-     (.halving-toggle-btn) rather than the brand-accent color tried earlier - that read as an odd one-off
-     the same coloring doesn't apply to anywhere else on the page. */
+  /* Neutral border/background like every other toggle button on this chart (.halving-toggle-btn) rather
+     than the brand-accent color tried earlier - that read as an odd one-off the same coloring doesn't
+     apply to anywhere else on the page. */
   .cyc-axis-toggle{
-    position:absolute; font:inherit; font-family:var(--font-display); font-size:11px; font-weight:700;
+    font:inherit; font-family:var(--font-display); font-size:11px; font-weight:700;
     padding:4px 0; width:46px; text-align:center; border-radius:6px; border:1px solid var(--border);
     background:var(--card); color:var(--ink-2); cursor:pointer;
     transition:border-color .15s ease, color .15s ease, background .15s ease; z-index:4; line-height:1.3;
@@ -459,10 +463,11 @@
   /* Anchored at (padL, padT) - the corner where the Y gridlines/labels start - but pulled fully above
      and to the left of it (not straddling the axis line the way a centered transform would) so it reads
      as sitting above the Y-axis's own value-label column, not on top of the axis itself. */
-  .cyc-axis-toggle-y{ transform:translate(-100%,-100%); margin:-6px 0 0 -4px; }
-  /* Anchored at (w-padR, h-padB) - the axis line's own right end - but pushed straight down past it so
-     it sits beside/below the rotated X-axis label row instead of vertically centered on the axis line. */
-  .cyc-axis-toggle-x{ transform:translate(-100%,0); margin-top:10px; }
+  .cyc-axis-toggle-y{ position:absolute; transform:translate(-100%,-100%); margin:-6px 0 0 -4px; }
+  /* Toolbar member now, not chart-overlaid - flex:none keeps it from stretching inside buildRangeSeg's
+     inline-flex group, and the slightly taller padding matches that group's other buttons
+     (.today-jump-btn/.halving-toggle-btn) instead of the tighter on-chart sizing above. */
+  .cyc-axis-toggle-x{ flex:none; padding:8px 0; }
 
   /* Row directly below the "Marktzyklen" headline and above the chart itself: the crosshair readout
      (date/price/change, see paintReadoutPill) on the left, the Zyklus/Kurs layer toggles on the right -
@@ -550,12 +555,13 @@
   .hero-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;}
   .hero-title-row{display:flex; align-items:center; gap:8px;}
 
-  /* ---- Fullscreen mode (pilot - MVRV Quantile Bands only for now) ---- */
+  /* ---- Fullscreen mode (MVRV Quantile Bands + Marktzyklen) ---- */
   /* Both buttons are absolutely positioned corners of the panel itself, not inline with the title row,
      so they stay in the exact same visual spot (top-right/top-left of the tile) whether the panel is at
      its normal in-flow size or fullscreen. Only one of the two is ever visible at a time (see
      .fullscreen-active below), toggled by a class rather than mounting/unmounting so neither button ever
-     needs rebuilding. */
+     needs rebuilding. Shared by every panel that opts in (.panel.fullscreen-active, not a hero-specific
+     class) - see initPanelFullscreen. */
   .fs-toggle-btn{
     position:absolute; top:18px; z-index:6; width:34px; height:34px; border-radius:9px;
     border:1.5px solid var(--border); background:var(--card); color:var(--ink-2);
@@ -564,27 +570,28 @@
   .fs-toggle-btn svg{width:16px; height:16px;}
   .fs-enter-btn{right:20px;}
   .fs-exit-btn{left:20px; display:none;}
-  .hero-panel.fullscreen-active .fs-enter-btn{display:none;}
-  .hero-panel.fullscreen-active .fs-exit-btn{display:inline-flex;}
+  .panel.fullscreen-active .fs-enter-btn{display:none;}
+  .panel.fullscreen-active .fs-exit-btn{display:inline-flex;}
   /* The "i" info button explains what the chart shows - redundant the instant that same explanation is
-     already sitting in plain text right under the headline (see .hero-fs-desc), so it hides rather than
+     already sitting in plain text right under the headline (see .fs-desc), so it hides rather than
      leaving two ways to read the same sentence on screen at once. */
-  .hero-panel.fullscreen-active #heroInfo{display:none;}
-  .hero-fs-desc{
+  .panel.fullscreen-active #heroInfo{display:none;}
+  #cycleChartPanel.fullscreen-active .panel-head .info-wrap{display:none;}
+  .fs-desc{
     display:none; margin:0; font-size:14px; color:var(--ink-2); line-height:1.6; max-width:800px;
     opacity:0; transform:translateY(-6px); transition:opacity .28s ease, transform .28s ease;
   }
-  .hero-panel.fullscreen-active .hero-fs-desc{display:block;}
-  .hero-panel.fullscreen-active .hero-fs-desc.show{opacity:1; transform:translateY(0);}
+  .panel.fullscreen-active .fs-desc{display:block;}
+  .panel.fullscreen-active .fs-desc.show{opacity:1; transform:translateY(0);}
   /* Only present while actively entering/leaving - a permanent transition on every .panel would make
      completely unrelated, JS-driven attribute changes elsewhere (renderAll* rebuilding this same panel's
      children on every state change) animate too, which is not what's being asked for here. */
-  .hero-panel.fullscreen-transitioning{
+  .panel.fullscreen-transitioning{
     transition: top .38s cubic-bezier(.22,.61,.36,1), left .38s cubic-bezier(.22,.61,.36,1),
       width .38s cubic-bezier(.22,.61,.36,1), height .38s cubic-bezier(.22,.61,.36,1),
       border-radius .38s cubic-bezier(.22,.61,.36,1);
   }
-  .hero-panel.fullscreen-active{
+  .panel.fullscreen-active{
     z-index:250; overflow-y:auto; border-radius:0 !important;
     padding:calc(64px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left));
   }
@@ -592,13 +599,19 @@
      height that fights the SVG's own viewBox ratio - that was tried first and stretched every letter of
      text non-uniformly the instant the fullscreen container's aspect ratio didn't happen to match the
      chart's normal 1000:380 shape (see chartHeight's own comment for the same lesson learned earlier,
-     elsewhere on this page). computeHeroFullscreenHeight() picks a viewBox height that already matches
+     elsewhere on this page). computePanelFullscreenHeight() picks a viewBox height that already matches
      the available space instead, so plain width:100%/height:auto renders undistorted here exactly like it
      does everywhere else - max-height is just a safety clamp against that estimate being slightly off.  */
-  .hero-panel.fullscreen-active #heroChart{flex:1 1 auto; display:flex; align-items:center; min-height:0;}
-  .hero-panel.fullscreen-active #heroChart .chart-wrap{width:100%; max-height:100%;}
-  .hero-panel.fullscreen-active #heroChart .chart-wrap svg{width:100%; height:auto; max-height:100%;}
-  .hero-fs-placeholder{flex:none;}
+  .panel.fullscreen-active #heroChart{flex:1 1 auto; display:flex; align-items:center; min-height:0;}
+  .panel.fullscreen-active #heroChart .chart-wrap{width:100%; max-height:100%;}
+  .panel.fullscreen-active #heroChart .chart-wrap svg{width:100%; height:auto; max-height:100%;}
+  /* Marktzyklen's own chart host - unlike #heroChart (a static wrapper div the hero panel never rebuilds),
+     #cycleChartHost is the .chart-wrap itself, recreated fresh on every renderCycleChart() call (that
+     panel fully tears down and rebuilds its children on every render - see renderCycleChart), so it's
+     targeted directly rather than via an extra static wrapper. */
+  .panel.fullscreen-active #cycleChartHost{flex:1 1 auto; width:100%; max-height:100%;}
+  .panel.fullscreen-active #cycleChartHost svg{width:100%; height:auto; max-height:100%;}
+  .fs-placeholder{flex:none;}
 
   .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
@@ -777,7 +790,7 @@
         </div>
         <div id="heroReadout"></div>
       </div>
-      <p class="hero-fs-desc" id="heroFsDesc"></p>
+      <p class="fs-desc" id="heroFsDesc"></p>
       <div id="heroToggles"></div>
       <div id="heroChart"></div>
       <div class="card-toolbar" id="heroToolbar"></div>
@@ -829,8 +842,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v261";
-  const EDIT_STAMP = "2026-08-22 21:10 UTC";
+  const EDIT_VERSION = "v262";
+  const EDIT_STAMP = "2026-08-22 21:37 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3483,9 +3496,11 @@
   // own intrinsic ratio already matches the available fullscreen space - width:100%/height:auto then
   // renders it undistorted at whatever size that turns out to be, same as every other chart on the page.
   // Returns null when not in fullscreen (or before layout has actually settled enough to measure), so
-  // callers fall back to the normal chartHeight().
-  function computeHeroFullscreenHeight(){
-    const panel = document.getElementById("heroPanel");
+  // callers fall back to the normal chartHeight(). Shared by every fullscreen-capable panel (hero, cycle
+  // chart) - chartHostId names the one child element to exclude from the "already-used vertical space"
+  // sum (the growable chart area itself, sized separately by the caller via this return value).
+  function computePanelFullscreenHeight(panelId, chartHostId){
+    const panel = document.getElementById(panelId);
     if(!panel || !panel.classList.contains("fullscreen-active")) return null;
     const panelRect = panel.getBoundingClientRect();
     const style = getComputedStyle(panel);
@@ -3495,7 +3510,7 @@
     const contentWidth = panelRect.width - padX;
     let usedHeight = 0, visibleSiblings = 0;
     [...panel.children].forEach(el=>{
-      if(el.id === "heroChart") return;
+      if(el.id === chartHostId) return;
       const r = el.getBoundingClientRect();
       if(r.height > 0){ usedHeight += r.height; visibleSiblings++; }
     });
@@ -3504,6 +3519,8 @@
     if(availablePx < 100 || contentWidth < 100) return null;
     return Math.max(200, Math.round(availablePx / (contentWidth/1000)));
   }
+  function computeHeroFullscreenHeight(){ return computePanelFullscreenHeight("heroPanel", "heroChart"); }
+  function computeCycleChartFullscreenHeight(){ return computePanelFullscreenHeight("cycleChartPanel", "cycleChartHost"); }
   function renderHero(view){
     const chartHost = document.getElementById("heroChart");
     const readoutHost = document.getElementById("heroReadout");
@@ -4664,7 +4681,7 @@
     // real device pixel size regardless of chart width - so the SAME label needs more viewBox
     // units on a narrower rendered chart (e.g. an iPad with the sidebar open) than on a wide
     // desktop one. 58 wasn't quite enough there in practice; 70 gives real headroom.
-    const w=1000, h=chartHeight(), padL=70, padR=14, padT=16, padB=46;
+    const w=1000, h=computeCycleChartFullscreenHeight()||chartHeight(), padL=70, padR=14, padT=16, padB=46;
 
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
     // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
@@ -4929,8 +4946,12 @@
   function buildCycleAxisToggle(extraClass, isLog, onToggle, title){
     const btn = document.createElement("button");
     btn.type = "button";
+    // Text always reads "Log" - the .active class alone signals whether that axis is currently in
+    // log mode, the same static-text-plus-active-class convention as the "Zyklus"/"Kurs" pills on
+    // this same chart (zBtn/priceBtn in renderCycleChart), rather than swapping to "Linear" to name
+    // the state a click would switch TO (the old behavior - confusing per explicit feedback).
     btn.className = "cyc-axis-toggle " + extraClass + (isLog ? " active" : "");
-    btn.textContent = isLog ? "Linear" : "Log";
+    btn.textContent = "Log";
     btn.title = title;
     btn.addEventListener("click", ()=> onToggle(!isLog));
     return btn;
@@ -4981,6 +5002,16 @@
     const fullClipPath = document.createElementNS(NS,"clipPath");
     fullClipPath.setAttribute("id", fullClipId);
     const fullClipRect = document.createElementNS(NS,"rect");
+    // 40 viewBox units is only "enough margin" at roughly the aspect ratio (rendered-width : 1000
+    // viewBox units) this was originally tuned against - fitChartTypography's own real-device-pixel font
+    // sizing means a label needs MORE viewBox units of overhang on a narrower rendered chart, same as its
+    // font-size itself does (both scale by 1/scaleX). A normal card's scaleX never strays far from that
+    // baseline, but the fullscreen mode's own very tall/narrow viewBox on a narrow mobile screen (see
+    // computeCycleChartFullscreenHeight) can push scaleX down to ~0.3 - a fixed 40-unit margin genuinely
+    // clipped the leading digits off "$140.0K" there ("$140.0K" rendering as "40.0K"). Marked with a class
+    // so fitChartTypography can re-derive this same margin from the REAL measured scaleX once the SVG is
+    // actually in the DOM (not available yet here, at pure-geometry build time).
+    fullClipRect.setAttribute("class", "cyc-full-clip-rect");
     fullClipRect.setAttribute("x",-fullClipMarginX); fullClipRect.setAttribute("y","0");
     fullClipRect.setAttribute("width",w+fullClipMarginX*2); fullClipRect.setAttribute("height",h);
     fullClipPath.appendChild(fullClipRect);
@@ -5594,20 +5625,23 @@
 
     const wrap = document.createElement("div");
     wrap.className = "chart-wrap";
+    // id used by both computeCycleChartFullscreenHeight (skips this child when summing "already used"
+    // vertical space) and the .panel.fullscreen-active #cycleChartHost CSS rules (grow-to-fill sizing) -
+    // see the fullscreen mechanism in initPanelFullscreen/initCycleChartFullscreen.
+    wrap.id = "cycleChartHost";
     // Zero-padding host around just the <svg> (chart-wrap itself has its own padding) so the axis
     // toggles' percentage-based left/top below line up exactly with the viewBox's own coordinate
     // fractions instead of chart-wrap's padded box.
     const svgHost = document.createElement("div");
     svgHost.className = "cyc-chart-svg-host";
     svgHost.appendChild(svg);
+    // Only the Y toggle sits on the chart itself now (directly above the Y-axis label column it
+    // controls) - the X toggle moved into the toolbar row next to "Zurück zu heute" (see
+    // renderCycleChart), so it isn't built here anymore.
     const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", logY, v=> animateCycleChartAxisChange(cycleChartLogX, v), "Y-Achse: Log/Linear umschalten");
     yToggle.style.left = (padL/w*100).toFixed(2)+"%";
     yToggle.style.top = (padT/h*100).toFixed(2)+"%";
     svgHost.appendChild(yToggle);
-    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", logX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
-    xToggle.style.left = ((w-padR)/w*100).toFixed(2)+"%";
-    xToggle.style.top = ((h-padB)/h*100).toFixed(2)+"%";
-    svgHost.appendChild(xToggle);
     wrap.appendChild(svgHost);
 
     return {svg, wrap, readoutEl};
@@ -5645,12 +5679,38 @@
     // .cyc-zoom-group content (not just its geometry) for the zoom-IN case, exactly like renderAllZoom's
     // own oldSvgClones does for buildLineChart's tiles (see animateZoomInWithOldContent).
     const oldSvgClone = animate ? panel.querySelector("svg")?.cloneNode(true) : null;
+    // cycleChartPanel rebuilds its whole child list on every render (unlike heroPanel's static markup),
+    // so the fullscreen enter/exit buttons and description have to be recreated here every time too -
+    // see initCycleChartFullscreen's own comment for why the click listeners still work across that.
+    const wasFullscreen = panel.classList.contains("fullscreen-active");
     panel.innerHTML = "";
+    const fsEnterBtn = document.createElement("button");
+    fsEnterBtn.type = "button"; fsEnterBtn.className = "fs-toggle-btn fs-enter-btn"; fsEnterBtn.id = "cycleChartFsEnter";
+    fsEnterBtn.setAttribute("aria-label","Vollbild"); fsEnterBtn.title = "Vollbild";
+    fsEnterBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+    panel.appendChild(fsEnterBtn);
+    const fsExitBtn = document.createElement("button");
+    fsExitBtn.type = "button"; fsExitBtn.className = "fs-toggle-btn fs-exit-btn"; fsExitBtn.id = "cycleChartFsExit";
+    fsExitBtn.setAttribute("aria-label","Vollbild verlassen"); fsExitBtn.title = "Vollbild verlassen";
+    fsExitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    panel.appendChild(fsExitBtn);
+    if(cycleChartFs) wireFullscreenButtons(fsEnterBtn, fsExitBtn, cycleChartFs);
+
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Marktzyklen</h3>`;
     panel.appendChild(headRow);
     attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings) - rein zur Orientierung, keine Kursprognose.`);
+    // Plain-text stand-in for the "i" info popover above (hidden in fullscreen - see the
+    // #cycleChartPanel.fullscreen-active .panel-head .info-wrap CSS rule), same as heroPanel's own
+    // .fs-desc. "show" is re-applied immediately (not faded in) when this render happens WHILE already
+    // fullscreen (e.g. the "Kurs"/"Zyklus" toggle re-rendering mid-session) - the fade-in transition only
+    // makes sense the first time fullscreen opens, driven from initPanelFullscreen's own enter().
+    const fsDesc = document.createElement("p");
+    fsDesc.className = "fs-desc" + (wasFullscreen ? " show" : "");
+    fsDesc.id = "cycleChartFsDesc";
+    fsDesc.textContent = `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs, mit Halving-Markierungen. "Zyklus" blendet Zonen und Halvings ein/aus, "Kurs" die BTC-Kurslinie selbst - die Log/Linear-Umschalter oben links bzw. unten rechts wechseln die jeweilige Achsenskala.`;
+    panel.appendChild(fsDesc);
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -5723,7 +5783,14 @@
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
-    toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
+    const rangeSeg = buildRangeSeg("cyclechart", {halvingBtn:false});
+    // X-axis log/linear toggle, appended right after "Zurück zu heute" inside the SAME flex group
+    // buildRangeSeg returns (not a separate toolbar child) so it sits directly beside that button,
+    // not just somewhere else in the row - per explicit feedback moving it off the chart itself
+    // (where only the Y toggle, right above the axis it controls, stays) into the toolbar instead.
+    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
+    rangeSeg.appendChild(xToggle);
+    toolbar.appendChild(rangeSeg);
     panel.appendChild(toolbar);
 
     cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
@@ -6910,6 +6977,20 @@
       // of only self-correcting the next time the reader moves the crosshair.
       const labelLayer = svg.querySelector(".per-series-label-layer");
       if(labelLayer && labelLayer.__refreshLabelScale) labelLayer.__refreshLabelScale();
+      // Marktzyklen's own generous Y/X-tick clip (see renderCycleChartDOM's fullClipRect) is a FIXED
+      // 40-viewBox-unit margin, tuned for the aspect ratios a normal in-flow card renders at - too tight
+      // once scaleX drops well below that baseline (the tall/narrow viewBox fullscreen mode can produce
+      // on a narrow mobile screen), where it started slicing the leading digits off long value labels
+      // instead of just catching genuine animation overshoot. Widened here by the same 1/scaleX factor
+      // used for font-size above, since it's driven by the exact same "same real-pixel content needs more
+      // viewBox units on a narrower render" cause - never narrower than the original 40 (only ever a
+      // no-op correction on ordinary, not-unusually-narrow cards).
+      const clipRect = svg.querySelector(".cyc-full-clip-rect");
+      if(clipRect){
+        const margin = Math.max(40, 40/scaleX);
+        clipRect.setAttribute("x", (-margin).toFixed(1));
+        clipRect.setAttribute("width", (1000+margin*2).toFixed(1));
+      }
     });
   }
 
@@ -7773,23 +7854,23 @@
     document.getElementById("sidebarCollapseBtn")?.addEventListener("click", closeSidebar);
     initSidebarOpenState();
     initHeroFullscreen();
+    initCycleChartFullscreen();
   }
 
-  // Fullscreen pilot for the MVRV Quantile Bands tile - see the .hero-panel.fullscreen-* rules in the
-  // stylesheet for what actually changes visually; this just drives the class + the position:fixed
-  // geometry the enter/exit transition animates between. A placeholder div left behind in the panel's
-  // original spot (matching its exact height) is what makes the exit transition land back in the right
-  // place even if the page scrolled or other content above/below reflowed while fullscreen was open -
-  // animating back to a stale, pre-fullscreen rect would otherwise overshoot or undershoot by however
-  // much the page moved underneath it in the meantime.
-  function initHeroFullscreen(){
-    const panel = document.getElementById("heroPanel");
-    const enterBtn = document.getElementById("heroFsEnter");
-    const exitBtn = document.getElementById("heroFsExit");
-    const desc = document.getElementById("heroFsDesc");
-    if(!panel || !enterBtn || !exitBtn || !desc) return;
-    desc.textContent = "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.";
-
+  // Fullscreen mechanism shared by every panel that offers it (MVRV Quantile Bands, Marktzyklen) - see
+  // the .panel.fullscreen-* rules in the stylesheet for what actually changes visually; this just drives
+  // the class + the position:fixed geometry the enter/exit transition animates between. A placeholder div
+  // left behind in the panel's original spot (matching its exact height) is what makes the exit
+  // transition land back in the right place even if the page scrolled or other content above/below
+  // reflowed while fullscreen was open - animating back to a stale, pre-fullscreen rect would otherwise
+  // overshoot or undershoot by however much the page moved underneath it in the meantime.
+  //
+  // Returns {enter, exit} closures holding this panel's own busy/placeholder/scroll-lock state, looked up
+  // fresh by panelId/descId on every call rather than captured once - required for a panel like
+  // cycleChartPanel that fully rebuilds its children (including the desc paragraph) on every render, and
+  // harmless for a panel like heroPanel whose elements never get replaced. The caller still has to
+  // (re-)attach these to whatever enter/exit BUTTON NODES currently exist - see wireFullscreenButtons.
+  function initPanelFullscreen(panelId, descId){
     const DURATION = 380;
     let placeholder = null;
     let busy = false;
@@ -7814,11 +7895,12 @@
     }
 
     function enter(){
-      if(busy || panel.classList.contains("fullscreen-active")) return;
+      const panel = document.getElementById(panelId);
+      if(!panel || busy || panel.classList.contains("fullscreen-active")) return;
       busy = true;
       const rect = panel.getBoundingClientRect();
       placeholder = document.createElement("div");
-      placeholder.className = "hero-fs-placeholder";
+      placeholder.className = "fs-placeholder";
       placeholder.style.height = rect.height+"px";
       panel.parentNode.insertBefore(placeholder, panel);
 
@@ -7833,22 +7915,25 @@
         panel.classList.add("fullscreen-active");
         panel.style.top = "0px"; panel.style.left = "0px";
         panel.style.width = "100vw"; panel.style.height = "100vh";
-        requestAnimationFrame(()=> desc.classList.add("show"));
+        const desc = descId && document.getElementById(descId);
+        if(desc) requestAnimationFrame(()=> desc.classList.add("show"));
       });
       setTimeout(()=>{
         panel.classList.remove("fullscreen-transitioning");
         busy = false;
         // Now that the panel genuinely fills the viewport, recompute the chart's own height to match -
-        // see computeHeroFullscreenHeight, which needs the fullscreen layout already settled to measure
+        // see computePanelFullscreenHeight, which needs the fullscreen layout already settled to measure
         // the real available space.
         if(FULL) renderAllImmediate();
       }, DURATION+30);
       document.addEventListener("keydown", onKeydown);
     }
     function exit(){
-      if(busy || !panel.classList.contains("fullscreen-active")) return;
+      const panel = document.getElementById(panelId);
+      if(!panel || busy || !panel.classList.contains("fullscreen-active")) return;
       busy = true;
-      desc.classList.remove("show");
+      const desc = descId && document.getElementById(descId);
+      if(desc) desc.classList.remove("show");
       const targetRect = placeholder ? placeholder.getBoundingClientRect() : panel.getBoundingClientRect();
       panel.classList.add("fullscreen-transitioning");
       panel.classList.remove("fullscreen-active");
@@ -7862,14 +7947,39 @@
         if(placeholder){ placeholder.remove(); placeholder = null; }
         busy = false;
         // Back to the normal in-flow card size - restores the regular chartHeight() aspect ratio now
-        // that computeHeroFullscreenHeight() will correctly return null again.
+        // that computePanelFullscreenHeight() will correctly return null again.
         if(FULL) renderAllImmediate();
       }, DURATION+30);
       document.removeEventListener("keydown", onKeydown);
     }
     function onKeydown(e){ if(e.key === "Escape") exit(); }
-    enterBtn.addEventListener("click", enter);
-    exitBtn.addEventListener("click", exit);
+    return {enter, exit};
+  }
+  function wireFullscreenButtons(enterBtn, exitBtn, fs){
+    if(enterBtn) enterBtn.addEventListener("click", fs.enter);
+    if(exitBtn) exitBtn.addEventListener("click", fs.exit);
+  }
+
+  function initHeroFullscreen(){
+    const panel = document.getElementById("heroPanel");
+    const enterBtn = document.getElementById("heroFsEnter");
+    const exitBtn = document.getElementById("heroFsExit");
+    const desc = document.getElementById("heroFsDesc");
+    if(!panel || !enterBtn || !exitBtn || !desc) return;
+    desc.textContent = "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.";
+    wireFullscreenButtons(enterBtn, exitBtn, initPanelFullscreen("heroPanel", "heroFsDesc"));
+  }
+
+  // Marktzyklen's own fullscreen buttons/description live INSIDE cycleChartPanel's own render output
+  // (see renderCycleChart) rather than baked into the static page HTML like heroPanel's - that panel
+  // fully tears down and rebuilds its children on every render, so a one-time getElementById+
+  // addEventListener at page load (heroPanel's approach) would bind to nodes the very next render throws
+  // away. cycleChartFs holds the stable enter/exit closures (and their busy/placeholder state) across
+  // every rebuild; renderCycleChart re-wires them to the freshly created buttons each time via
+  // wireFullscreenButtons.
+  let cycleChartFs = null;
+  function initCycleChartFullscreen(){
+    cycleChartFs = initPanelFullscreen("cycleChartPanel", "cycleChartFsDesc");
   }
 
   async function loadAndRender(force){
