@@ -669,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v233";
-  const EDIT_STAMP = "2026-08-21 20:01 UTC";
+  const EDIT_VERSION = "v234";
+  const EDIT_STAMP = "2026-08-21 20:03 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -2226,19 +2226,21 @@
     crossLabel.style.pointerEvents = "none";
     svg.appendChild(crossLabel);
 
-    // "After crosshair" veil - a single translucent card-colored rect over the segment from the
+    // "After crosshair" veil - a single translucent rect, colored to match the chart-wrap's own
+    // --inset background (not --card, which is a visibly different/brighter color and read as a white
+    // highlight rather than a fade - see .chart-wrap's own background rule), over the segment from the
     // crosshair's x to the window's right edge, fading everything underneath it (every series' line,
     // any area/gradient fill, band fills - all of it at once) toward the background instead of
     // recoloring any of it, marking that portion as "history relative to where you're looking" the same
     // way the reference design does but as a genuine opacity reduction rather than a flat gray
     // recolor. One rect covering the whole plot height is simpler and cheaper than retracing every
     // series' own path on each move, and naturally already matches the current theme since it just
-    // reuses the card's own background color. Lives outside zoomG, in the same always-at-rest final
+    // reuses the chart's own background color. Lives outside zoomG, in the same always-at-rest final
     // coordinates as the crosshair line/dots themselves, rather than trying to also animate through a
     // zoom/pan transition.
     const afterVeil = document.createElementNS(NS,"rect");
     afterVeil.setAttribute("y",padT); afterVeil.setAttribute("height", h-padT-padB);
-    afterVeil.setAttribute("fill","var(--card)"); afterVeil.setAttribute("opacity","0.55");
+    afterVeil.setAttribute("fill","var(--inset)"); afterVeil.setAttribute("opacity","0.55");
     afterVeil.style.pointerEvents = "none";
     svg.appendChild(afterVeil);
 
@@ -4977,15 +4979,15 @@
     paintZoneLabel();
     updateCycleZoneHighlight();
 
-    // Fades everything right of the crosshair toward the card background, exactly like buildLineChart's
-    // own afterVeil on every other chart - marks that stretch as "history relative to where you're
-    // looking" via a genuine opacity reduction rather than recoloring each series individually. Above
-    // the zones/price line (painted before it) but below the crosshair line/dot themselves, which stay
-    // crisp on top of it.
+    // Fades everything right of the crosshair toward the chart's own --inset background (not --card,
+    // see buildLineChart's own afterVeil comment for why), exactly like buildLineChart's own afterVeil
+    // on every other chart - marks that stretch as "history relative to where you're looking" via a
+    // genuine opacity reduction rather than recoloring each series individually. Above the zones/price
+    // line (painted before it) but below the crosshair line/dot themselves, which stay crisp on top of it.
     const afterVeil = document.createElementNS(NS,"rect");
     afterVeil.setAttribute("class","cyc-after-veil");
     afterVeil.setAttribute("y",padT); afterVeil.setAttribute("height", h-padT-padB);
-    afterVeil.setAttribute("fill","var(--card)"); afterVeil.setAttribute("opacity","0.55");
+    afterVeil.setAttribute("fill","var(--inset)"); afterVeil.setAttribute("opacity","0.55");
     afterVeil.style.pointerEvents = "none";
     svg.appendChild(afterVeil);
 
