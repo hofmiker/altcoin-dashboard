@@ -680,8 +680,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v236";
-  const EDIT_STAMP = "2026-08-22 06:09 UTC";
+  const EDIT_VERSION = "v237";
+  const EDIT_STAMP = "2026-08-22 06:42 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4247,7 +4247,13 @@
   // else (price line, zones, Y-axis autoscale) reads from that extended space.
   function computeCycleChartLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
-    const w=1000, h=chartHeight(), padL=58, padR=14, padT=16, padB=46;
+    // padL needs enough room for the widest realistic Y-axis label ("$140.0K"/"$600.0K" -
+    // fmtUSD's 7-character K-range case, the longest it produces - see the tick label's own
+    // x=padL-6, text-anchor="end") at fitChartTypography's fitted font size, which is a CONSTANT
+    // real device pixel size regardless of chart width - so the SAME label needs more viewBox
+    // units on a narrower rendered chart (e.g. an iPad with the sidebar open) than on a wide
+    // desktop one. 58 wasn't quite enough there in practice; 70 gives real headroom.
+    const w=1000, h=chartHeight(), padL=70, padR=14, padT=16, padB=46;
 
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
     // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
@@ -4588,19 +4594,29 @@
     clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
     clipPath.appendChild(clipRect);
     defs.appendChild(clipPath);
-    // A second, much more generous clip - the full SVG viewBox, not the tight plot rect above - just for
-    // the flags below. They live outside .cyc-zoom-group entirely (so their glyphs never stretch) and
-    // therefore never shared the plot clip either, so a zoom-out's live transform could carry one
-    // measurably past the card's own edge for a few frames while sliding in from off-screen before
-    // settling - genuinely visible outside the chart, not just a geometry oddity. Sized to the whole
-    // viewBox rather than the plot rect so a flag's normal, at-rest habit of overhanging the plot edge a
-    // little (see fitChartTypography) is never itself clipped - only a flag actually leaving the card.
+    // A second, much more generous clip - the full SVG viewBox (plus a left/right/bottom margin,
+    // see below), not the tight plot rect above - for the flags and the Y/X-axis tick lines/
+    // labels (see yTickLayer/xTickLayer/flagLayer below). They live outside .cyc-zoom-group
+    // entirely (so their glyphs/text never stretch) and therefore never shared the plot clip
+    // either, so a zoom-out's live transform could carry one measurably past the card's own edge
+    // for a few frames while sliding in from off-screen before settling - genuinely visible
+    // outside the chart, not just a geometry oddity. Sized to the whole viewBox rather than the
+    // plot rect so a flag's/label's normal, at-rest habit of overhanging the plot edge a little
+    // (see fitChartTypography) is never itself clipped - only something actually leaving the
+    // card. The MARGIN variant below exists because "at rest" still isn't always safely inside
+    // x=0..w for a Y-axis label specifically: it's right-anchored at the left plot edge, growing
+    // further left the longer the formatted value is, and fitChartTypography's real-device-pixel
+    // font sizing means the SAME label needs more viewBox units on a narrower rendered chart -
+    // clipping it at exactly x=0 (as this used to) could cut into a still perfectly normal label,
+    // not just a genuine animation overshoot (those slide across a large fraction of the
+    // 1000-unit-wide viewBox, far more than this margin covers).
     const fullClipId = "cyc-full-clip-" + Math.random().toString(36).slice(2,9);
+    const fullClipMarginX = 40;
     const fullClipPath = document.createElementNS(NS,"clipPath");
     fullClipPath.setAttribute("id", fullClipId);
     const fullClipRect = document.createElementNS(NS,"rect");
-    fullClipRect.setAttribute("x","0"); fullClipRect.setAttribute("y","0");
-    fullClipRect.setAttribute("width",w); fullClipRect.setAttribute("height",h);
+    fullClipRect.setAttribute("x",-fullClipMarginX); fullClipRect.setAttribute("y","0");
+    fullClipRect.setAttribute("width",w+fullClipMarginX*2); fullClipRect.setAttribute("height",h);
     fullClipPath.appendChild(fullClipRect);
     defs.appendChild(fullClipPath);
     // Diagonal-stripe fills for the speculative future zone tiles (see layout.projectedZones) - marks
