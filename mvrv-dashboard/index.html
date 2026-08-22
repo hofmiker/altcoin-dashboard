@@ -483,6 +483,17 @@
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-empty{padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;}
 
+  /* Static placeholder shown for the two panels that otherwise start out completely empty
+     (cycleChartPanel/powerLawPanel - see renderSkeleton) until the first real render replaces it -
+     sized to the exact real chart aspect ratio (1000:456, or 1000:1200 below the same 700px
+     breakpoint chartHeight() itself uses) so there's no layout jump when the real chart lands. */
+  .chart-wrap.skeleton{aspect-ratio:1000/456; display:flex; align-items:center; justify-content:center;}
+  @media (max-width:700px){ .chart-wrap.skeleton{aspect-ratio:1000/1200;} }
+  .skeleton-spinner{width:34px; height:34px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--ink-3); animation:skeletonSpin 0.9s linear infinite;}
+  @keyframes skeletonSpin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .skeleton-spinner{ animation:none; } }
+  .skeleton-error-text{color:var(--ink-3); font-size:12.5px; text-align:center; padding:0 20px;}
+
   /* The RSI/MACD indicator sub-panels stack directly beneath the overlay chart as one continuous block
      (see renderOverlay) - only the outermost container keeps the normal chart-wrap background/rounding,
      and each subsequent panel loses its own so the whole stack reads as one card, with a divider line
@@ -669,8 +680,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v235";
-  const EDIT_STAMP = "2026-08-22 05:18 UTC";
+  const EDIT_VERSION = "v236";
+  const EDIT_STAMP = "2026-08-22 06:09 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -6685,6 +6696,24 @@
     }catch(e){ return iso; }
   }
 
+  // Static placeholder for the two panels that otherwise start out completely empty until the first
+  // real render (renderCycleChart/renderPowerLaw both do panel.innerHTML = "" and rebuild from
+  // scratch, so this needs no explicit teardown - a successful load just overwrites it the same way
+  // it always overwrote whatever was there before). Called once, synchronously, before the first
+  // loadAndRender() - so on a slow connection the reader sees the real headline and a chart-shaped
+  // card immediately instead of blank white space for however long the fetch takes. #heroChart
+  // already sits inside heroPanel's own static markup (headline etc. baked into the HTML itself), so
+  // it only needs the same inner chart-wrap placeholder, not a whole panel-head too.
+  function renderSkeleton(){
+    const spinner = '<div class="chart-wrap skeleton"><div class="skeleton-spinner"></div></div>';
+    const cyclePanel = document.getElementById("cycleChartPanel");
+    if(cyclePanel) cyclePanel.innerHTML = `<div class="panel-head"><h3>Marktzyklen</h3></div>${spinner}`;
+    const powerLawPanel = document.getElementById("powerLawPanel");
+    if(powerLawPanel) powerLawPanel.innerHTML = `<div class="panel-head"><h3>BTC-Kurs (Power Law, Log-Log)</h3></div>${spinner}`;
+    const heroChart = document.getElementById("heroChart");
+    if(heroChart) heroChart.innerHTML = spinner;
+  }
+
   // The source/freshness info this used to always show as its own banner on the page now lives inside
   // the header's info popover instead (see wireControls' headerInfo setup) - #statusInfoContent there
   // gets the exact same HTML on every status change. The one exception is an actual error: that stays a
@@ -6704,6 +6733,14 @@
       }
     } else if(kind === "error"){
       html = `Daten konnten nicht geladen werden (${(extra && extra.message) || extra}) — weder live von Coin Metrics noch aus dem lokalen Snapshot. <button type="button" class="retry-btn">Erneut versuchen</button>`;
+      // Only ever matches if the skeleton placeholder (see renderSkeleton) is still there, i.e. this
+      // is the very first load and it failed outright - a successful load already replaced it with
+      // the real chart regardless of what a later reload/retry does here. Swaps the spinning ring for
+      // a short, static hint instead of leaving it spinning next to an error banner that says nothing
+      // is actually loading anymore.
+      document.querySelectorAll(".chart-wrap.skeleton").forEach(w=>{
+        w.innerHTML = '<div class="skeleton-error-text">Laden fehlgeschlagen</div>';
+      });
     }
     const infoEl = document.getElementById("statusInfoContent");
     if(infoEl) infoEl.innerHTML = html;
@@ -6920,6 +6957,13 @@
       el.title = "Live-Abruf von deploy-info.json fehlgeschlagen: " + (e && e.message ? e.message : e);
     }
   }
+
+  // Runs synchronously right here, not deferred to DOMContentLoaded below - this script tag sits
+  // after the panel markup in the document (see the <section> elements earlier in <body>), so
+  // they're already parsed and in the DOM by the time execution reaches this point, letting the
+  // skeleton paint as early as the page can possibly manage instead of waiting for the full
+  // DOMContentLoaded pass (images, remaining markup, etc.) to complete first.
+  renderSkeleton();
 
   document.addEventListener("DOMContentLoaded", function(){
     wireControls();
