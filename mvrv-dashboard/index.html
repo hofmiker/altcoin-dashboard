@@ -134,6 +134,11 @@
   }
   .sidebar.open{transform:translateX(0);}
   .sidebar-brand{display:flex; align-items:center; gap:9px; padding:4px 6px 16px; border-bottom:1px solid var(--border); margin-bottom:8px;}
+  /* Plain button reset (no default border/background/font) so the icon+title still reads exactly like
+     the old static text did - only now a real, keyboard-reachable control that jumps to the teaser
+     strip at the top of the page (see #sidebarBrandLink's own wiring), same destination the mobile
+     topbar's own #navBrand already jumps to. */
+  .sidebar-brand-link{display:flex; align-items:center; gap:9px; flex:1 1 auto; min-width:0; background:none; border:none; padding:0; margin:0; cursor:pointer; text-align:left; color:inherit; font:inherit;}
   .sidebar-brand h1{font-family:var(--font-display); font-size:17px; margin:0; font-weight:700; letter-spacing:-.01em; flex:1 1 auto; min-width:0;}
   /* Collapse trigger, lives right in the sidebar itself (mirrors the topbar's burger, which is the
      matching expand trigger once collapsed) - a plain chevron rather than a second burger icon, since a
@@ -244,6 +249,52 @@
   .stat .label{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700;}
   .stat .value{font-family:var(--font-display); font-size:26px; font-weight:700; margin-top:7px; font-variant-numeric:tabular-nums;}
   .stat .ctx{font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.4;}
+
+  /* Teaser tiles at the very top of the page (see renderStatStrip) - roughly double the plain .stat
+     card's footprint (both the min column width and the internal padding/type scale below), tinted in
+     the same color the corresponding chart further down uses for this metric (--stat-color, set inline
+     per tile from METRICS[key].color - the same canonical per-metric color the overlay panel's own
+     toggle chips already draw from), so the strip reads as a colorful "table of contents" rather than a
+     flat list of numbers. A plain <button> wouldn't let the label/value/ctx stack flow naturally without
+     fighting default button styling, so this stays a <div> with its own click handler instead - role
+     and tabindex below give it the same semantics/keyboard reachability a real button would have.
+     Same reasoning for the tap-to-preview interaction (see .stat.bounce below): a mobile reader has no
+     :hover at all to preview the tile before committing to the arrow's full navigation, so tapping the
+     tile body itself (as opposed to the arrow) plays a brief, obviously non-navigating highlight+bounce
+     instead. */
+  .stat-strip-teaser{grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;}
+  .stat-strip-teaser .panel-head{grid-column:1/-1;}
+  .stat-strip-teaser .stat{
+    position:relative; overflow:hidden; cursor:pointer;
+    background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 13%, var(--card));
+    border-color:color-mix(in srgb, var(--stat-color, var(--border)) 30%, var(--border));
+    border-radius:20px; padding:22px 54px 20px 22px;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .stat-strip-teaser .stat:hover{transform:translateY(-2px); box-shadow:0 8px 24px -8px color-mix(in srgb, var(--stat-color, #000) 35%, transparent);}
+  .stat-strip-teaser .stat .label{font-size:12.5px; color:color-mix(in srgb, var(--stat-color, var(--ink-3)) 70%, var(--ink-3));}
+  .stat-strip-teaser .stat .value{font-size:40px; font-weight:800; margin-top:8px; display:inline-block; transition:transform .1s linear;}
+  .stat-strip-teaser .stat .ctx{font-size:12.5px; margin-top:8px; min-height:1.4em;}
+  .stat-strip-teaser .stat.bounce .value{animation:statBounce .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.16);} 70%{transform:scale(.97);} 100%{transform:scale(1);} }
+  @media (prefers-reduced-motion: reduce){ .stat-strip-teaser .stat.bounce .value{animation:none;} }
+  .stat-arrow{
+    position:absolute; right:12px; bottom:12px; width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex:none;
+    background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 16%, var(--card));
+    border:1px solid color-mix(in srgb, var(--stat-color, var(--border)) 35%, var(--border));
+    color:color-mix(in srgb, var(--stat-color, var(--ink)) 80%, var(--ink));
+  }
+  .stat-arrow svg{width:13px; height:13px;}
+  .stat-arrow:hover{background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 26%, var(--card));}
+  @media (max-width:640px){
+    /* No column-count override here - the shared @media(max-width:700px){.strip{...1fr}} rule further
+       down already collapses this to a single column below that wider 700px breakpoint (same specificity,
+       later in the cascade, so it wins over anything narrower attempted here) - and single-column at
+       this width reads better anyway: fewer, bigger, more legible tiles rather than a cramped 2-up grid. */
+    .stat-strip-teaser .stat{padding:16px 46px 14px 16px;}
+    .stat-strip-teaser .stat .value{font-size:30px;}
+  }
 
   .narrative-card{
     background:color-mix(in srgb, var(--accent) 6%, var(--card)); border:1px solid var(--accent-bg); border-left:3px solid var(--accent);
@@ -588,8 +639,10 @@
 
 <nav class="sidebar" id="sectionNav" aria-label="Chart-Navigation">
   <div class="sidebar-brand">
-    <span class="brand-icon" aria-hidden="true">₿</span>
-    <h1>Bitcoin Dashboard</h1>
+    <button type="button" class="sidebar-brand-link" id="sidebarBrandLink" aria-label="Zur Übersicht springen" title="Zur Übersicht springen">
+      <span class="brand-icon" aria-hidden="true">₿</span>
+      <h1>Bitcoin Dashboard</h1>
+    </button>
     <span id="headerInfo"></span>
     <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Navigation einklappen" title="Navigation einklappen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4 9 12l6 8"/></svg>
@@ -620,13 +673,13 @@
 
     <div class="tab-status" id="statusBanner" style="display:none;"></div>
 
+    <section class="strip stat-strip-teaser" id="statStrip"></section>
+
     <section class="panel" id="cycleChartPanel"></section>
 
     <section class="panel" id="powerLawPanel"></section>
 
     <section class="panel overlay-panel" id="overlayPanel"></section>
-
-    <section class="strip" id="statStrip"></section>
 
     <section class="narrative-card" id="narrativeCard" style="display:none;">
       <div class="narrative-badge">✨ KI-generierte Einschätzung<span id="narrativeInfo"></span></div>
@@ -702,8 +755,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v240";
-  const EDIT_STAMP = "2026-08-22 07:12 UTC";
+  const EDIT_VERSION = "v241";
+  const EDIT_STAMP = "2026-08-22 10:30 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3065,6 +3118,22 @@
   // granted at all is dropped entirely rather than shown as an inert "nicht verfügbar" placeholder -
   // built as an array of {available, html} pairs, filtered down to just the available ones, instead of
   // always rendering all 8 regardless.
+  // Small downward-pointing chevron-in-a-corner - same glyph the landing page one level up (../index.html)
+  // uses for its own project-card "external link" badge (see .link-badge there: path d="M7 17L17 7"/
+  // path d="M8 7h9v9"), just rotated 135° so the same diagonal-plus-bracket shape points down into the
+  // page instead of up-and-out of it - explicit request to reuse that exact shape rather than a
+  // different arrow/chevron glyph invented fresh here.
+  const SCROLL_ARROW_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(135 12 12)"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></g></svg>`;
+
+  // Teaser strip at the very top of the page - one big, colorful card per always-or-conditionally
+  // available headline number, each tinted with the exact color (METRICS[key].color, or --critical for
+  // the ATH drawdown line, which predates METRICS and has no entry there) its own full chart further
+  // down the page already uses for that metric, and carrying a `target` this tile's own corner arrow
+  // scrolls to - see the arrow/bounce wiring below the template. Kept as a genuinely separate teaser
+  // layer rather than just reusing the metricsHost tiles at a smaller size: several of the numbers
+  // here (BTC-Kurs, Market/Realized Cap) don't have a matching 1:1 metricsHost tile at all, and this
+  // strip's whole point is being a compact, scan-at-a-glance jump table into the fuller charts, not a
+  // shrunk-down duplicate of any one of them.
   function renderStatStrip(){
     const el = document.getElementById("statStrip");
     const price = lastVal(FULL.price), mvrv = lastVal(FULL.mvrv), nupl = lastVal(FULL.nupl), z = lastVal(FULL.zscore);
@@ -3075,16 +3144,43 @@
     const nzPulse = zoneChangedSinceLastVisit("nupl", nz.label) ? " zone-pulse" : "";
     const zzPulse = FULL.hasZScore && zoneChangedSinceLastVisit("zscore", zz.label) ? " zone-pulse" : "";
     const stats = [
-      {available:true, html:`<div class="stat"><div class="label">BTC-Kurs</div><div class="value mono">${fmtUSD(price)}</div><div class="ctx">Letzter Tages-Schlusskurs</div></div>`},
-      {available:true, html:`<div class="stat"><div class="label">MVRV-Ratio</div><div class="value mono">${fmtRatio(mvrv)}</div><div class="ctx">${mz? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>`:"–"}</div></div>`},
-      {available:true, html:`<div class="stat"><div class="label">NUPL</div><div class="value mono">${fmtPctFrac(nupl)}</div><div class="ctx"><span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span></div></div>`},
-      {available:FULL.hasZScore, html:`<div class="stat"><div class="label">MVRV Z-Score</div><div class="value mono">${fmtRatio(z)}</div><div class="ctx"><span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span></div></div>`},
-      {available:true, html:`<div class="stat"><div class="label">Realized Price</div><div class="value mono">${fmtUSD(rp)}</div><div class="ctx">Ø On-Chain-Einstandspreis</div></div>`},
-      {available:FULL.hasMarketCap && FULL.hasRealizedCap, html:`<div class="stat"><div class="label">Market / Realized Cap</div><div class="value mono">${fmtUSD(mc)} / ${fmtUSD(rc)}</div><div class="ctx">Verhältnis = MVRV</div></div>`},
-      {available:true, html:`<div class="stat"><div class="label">Abstand zum ATH</div><div class="value mono">${fmtPctRaw(ath)}</div><div class="ctx">Rekordhoch = 0%</div></div>`},
-      {available:FULL.hasSupply, html:`<div class="stat"><div class="label">Circulating Supply</div><div class="value mono">${fmtBTC(sup)}</div><div class="ctx">Wachstum p.a.: ${fmtPctRaw(sg)}</div></div>`}
+      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSD(price), ctx:"Letzter Tages-Schlusskurs"},
+      {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–"},
+      {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`},
+      {available:FULL.hasZScore, color:"var(--c-zscore)", target:slugify("MVRV Z-Score"), label:"MVRV Z-Score", value:fmtRatio(z), ctx:`<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>`},
+      {available:true, color:"var(--c-realized)", target:slugify("Realized Price vs. Marktpreis"), label:"Realized Price", value:fmtUSD(rp), ctx:"Ø On-Chain-Einstandspreis"},
+      {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSD(mc)} / ${fmtUSD(rc)}`, ctx:"Verhältnis = MVRV"},
+      {available:true, color:"var(--critical)", target:slugify("Abstand zum Allzeithoch"), label:"Abstand zum ATH", value:fmtPctRaw(ath), ctx:"Rekordhoch = 0%"},
+      {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value:fmtBTC(sup), ctx:`Wachstum p.a.: ${fmtPctRaw(sg)}`}
     ];
-    el.innerHTML = stats.filter(s=>s.available).map(s=>s.html).join("");
+    el.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.filter(s=>s.available).map(s=>
+      `<div class="stat" style="--stat-color:${s.color}">
+        <div class="label">${s.label}</div>
+        <div class="value mono">${s.value}</div>
+        <div class="ctx">${s.ctx}</div>
+        <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
+      </div>`
+    ).join("");
+
+    // Tapping the tile body itself (not the arrow - see stopPropagation below) has nothing to navigate
+    // to on its own; it's purely the mobile stand-in for the :hover lift every tile already gets on
+    // desktop (see .stat-strip-teaser .stat:hover), so a reader gets some feedback that the tile is
+    // "live" before committing to the arrow's actual jump. Removing the class before re-adding it (a
+    // reflow forced by offsetWidth in between) restarts the CSS animation even on a second tap in a
+    // row, exactly like revealAnimated() above does for the same reason.
+    el.querySelectorAll(".stat").forEach(card=>{
+      card.addEventListener("click", ()=>{
+        card.classList.remove("bounce");
+        void card.offsetWidth;
+        card.classList.add("bounce");
+      });
+    });
+    el.querySelectorAll(".stat-arrow").forEach(btn=>{
+      btn.addEventListener("click", e=>{
+        e.stopPropagation();
+        document.getElementById(btn.dataset.scrollTarget)?.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+    });
   }
 
   // Fullscreen's own chart height - NOT a CSS height:100% override on the svg (that was tried and
@@ -5927,6 +6023,7 @@
     const list = document.getElementById("navLinks");
     if(!nav || !list) return;
     const sections = [
+      {id:"statStrip", label:"Übersicht"},
       {id:"cycleChartPanel", label:"Marktzyklen"},
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
@@ -6832,17 +6929,20 @@
     // ---- stat strip: the 5 stats every dataset always has (see renderStatStrip's own {available:...}
     // list) - the 3 conditional ones (Z-Score, Market/Realized Cap, Supply) are left for revealAnimated
     // to fade in later, same as the tile grid, since guessing wrong here would itself cause a shift.
+    // Colors copied from renderStatStrip's own per-tile --stat-color values (from METRICS[key].color,
+    // fixed regardless of data) so the teaser strip is already in its final tinted look before any
+    // number has loaded, not just plain cards that suddenly gain color once real data replaces them.
     const statStrip = document.getElementById("statStrip");
     if(statStrip){
       const stats = [
-        {label:"BTC-Kurs", ctx:"Letzter Tages-Schlusskurs"},
-        {label:"MVRV-Ratio", ctxSkel:true},
-        {label:"NUPL", ctxSkel:true},
-        {label:"Realized Price", ctx:"Ø On-Chain-Einstandspreis"},
-        {label:"Abstand zum ATH", ctx:"Rekordhoch = 0%"},
+        {label:"BTC-Kurs", color:"var(--c-price)", ctx:"Letzter Tages-Schlusskurs"},
+        {label:"MVRV-Ratio", color:"var(--c-mvrv)", ctxSkel:true},
+        {label:"NUPL", color:"var(--c-nupl)", ctxSkel:true},
+        {label:"Realized Price", color:"var(--c-realized)", ctx:"Ø On-Chain-Einstandspreis"},
+        {label:"Abstand zum ATH", color:"var(--critical)", ctx:"Rekordhoch = 0%"},
       ];
-      statStrip.innerHTML = stats.map(s=>
-        `<div class="stat"><div class="label">${s.label}</div><div class="value mono">${skelBar(6)}</div><div class="ctx">${s.ctxSkel ? skelBar(5) : s.ctx}</div></div>`
+      statStrip.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.map(s=>
+        `<div class="stat" style="--stat-color:${s.color}"><div class="label">${s.label}</div><div class="value mono">${skelBar(6)}</div><div class="ctx">${s.ctxSkel ? skelBar(5) : s.ctx}</div><span class="stat-arrow"></span></div>`
       ).join("");
     }
 
@@ -7026,11 +7126,15 @@
       requestAnimationFrame(()=>{ updateSectionNavActive(); navScrollTicking = false; });
     }, {passive:true});
 
-    // navBrand/navBurger/navScrim are static (outside the sidebar's own #navLinks, so renderSectionNav()
-    // never touches them) - wired once here, not per-render.
-    document.getElementById("navBrand")?.addEventListener("click", ()=>{
-      window.scrollTo({top:0, behavior:"smooth"});
-    });
+    // navBrand/sidebarBrandLink/navBurger/navScrim are static (outside the sidebar's own #navLinks, so
+    // renderSectionNav() never touches them) - wired once here, not per-render. Both logo variants (the
+    // always-visible sidebar one and the mobile topbar's collapsed-state one) jump to the teaser strip
+    // at the very top of the page, not just to window top:0 - functionally almost the same now that the
+    // strip IS the first thing in .wrap, but explicit and correct even if something above it (the error
+    // banner) is showing.
+    const scrollToOverview = ()=> document.getElementById("statStrip")?.scrollIntoView({behavior:"smooth", block:"start"});
+    document.getElementById("navBrand")?.addEventListener("click", scrollToOverview);
+    document.getElementById("sidebarBrandLink")?.addEventListener("click", scrollToOverview);
     document.getElementById("navBurger")?.addEventListener("click", e=>{
       e.stopPropagation();
       toggleSidebar();
