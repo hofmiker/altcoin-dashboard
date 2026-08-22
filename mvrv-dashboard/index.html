@@ -729,7 +729,7 @@
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
         <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
-        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei Arten von Orientierungshilfen, alle sichtbar als Schätzung markiert (blass/gestrichelt/schraffiert), keine Kursprognose: drei zusätzliche Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings), eine "Tunnel"-Linie, die durchgezogen entlang der äußeren Ecken sämtlicher bestätigter Zyklus-Hochs (Widerstand) bzw. -Tiefs (Unterstützung) verläuft und ab dem jeweils letzten realen Punkt gestrichelt mit gleicher Steigung wie die letzte reale Bewegung weiterläuft, und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor in denselben Halb-Zyklus-Abständen weiterführen. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort statt eines Kurses den geschätzten Korridor (Tunnel-Ober-/Untergrenze) an diesem Datum. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie eine Flächen-Verlaufsfüllung darunter (wie bei der Kachel "Realized Price vs. Marktpreis"), damit sie nicht kontextlos wirkt - die Linie selbst bleibt einfarbig.</p>
+        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei zusätzliche, blass markierte Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings) - reine Orientierungshilfe, keine Kursprognose. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie eine Flächen-Verlaufsfüllung darunter (wie bei der Kachel "Realized Price vs. Marktpreis"), damit sie nicht kontextlos wirkt - die Linie selbst bleibt einfarbig.</p>
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
@@ -762,8 +762,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v249";
-  const EDIT_STAMP = "2026-08-22 12:43 UTC";
+  const EDIT_VERSION = "v250";
+  const EDIT_STAMP = "2026-08-22 15:21 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1118,10 +1118,9 @@
   // separate opt-in layer, a multi-band "rainbow" coloring of the same underlying fit (off by default -
   // secondary/exploratory, not the primary reading).
   const powerLawLayerVisible = {powerlaw:true, rainbow:false};
-  // The "Marktzyklen" chart's two optional layers: "zyklus" (bull/bear background zones, this chart's
-  // own halving markers, and - in the "Alles" view - the projection tunnel/future zone tiles, see
-  // computeCycleChartLayout) and "price" (the BTC price line itself) - both on by default, since that's
-  // this chart's whole purpose. No power-law/rainbow regression here (that lives on the dedicated
+  // The "Marktzyklen" chart's two optional layers: "zyklus" (bull/bear background zones and this chart's
+  // own halving markers, see computeCycleChartLayout) and "price" (the BTC price line itself) - both on
+  // by default, since that's this chart's whole purpose. No power-law/rainbow regression here (that lives on the dedicated
   // Power-Law/Log-Log chart instead) - the axis domain autoscales to whatever real data the current
   // range/pan shows, same as every other chart, except in "Alles" where it deliberately reaches a bit
   // further to leave room for that projected corridor.
@@ -4468,53 +4467,28 @@
     function xOf(days){ return padL + (xVal(days)-xValMin)/(xValMax-xValMin)*(w-padL-padR); }
     // Inverse of xOf - screen x back to days-since-genesis - needed for hover positions past the last
     // real day (only reachable in the "Alles" view, where the domain itself reaches past daysMax into
-    // the projected corridor - see domainDaysMax above) and for solving where the projection tunnel
-    // lines (see buildCycleTunnel) cross the right edge of that extended domain.
+    // the projected-halvings space - see domainDaysMax above).
     function xInv(x){
       const frac = (x-padL)/(w-padL-padR);
       const val = xValMin + frac*(xValMax-xValMin);
       return logX ? Math.pow(10,val) : val;
     }
 
-    // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter) - computed here,
-    // ahead of the Y-domain below, because the projection tunnel's own extrapolated endpoint (see
-    // envelopeValAt/buildEnvelope further down) needs to be folded into that domain too - otherwise the
-    // "Alles" view's projected corridor silently got clipped at the plot's own top/bottom edge whenever
-    // it reached higher/lower than the real visible price range, since the clip rect is sized to exactly
-    // that domain.
+    // Cycle-high/-low flags (see cycleExtremesEffective/cycleTentativeExtremeAfter).
     const confirmedFlags = cycleExtremesEffective(FULL.price).map(pt=>({...pt, confirmed:true}));
     const tentativeFlag = cycleTentativeExtremeAfter(FULL.price, confirmedFlags);
     const cycleHighs = confirmedFlags.filter(f=>f.dir>0), cycleLows = confirmedFlags.filter(f=>f.dir<0);
 
     function yVal(price){ return logY ? Math.log10(price) : price; }
-    // Straight-line extrapolation of the last real segment between two same-direction corners (cycle
-    // highs for the "resistance" envelope, cycle lows for "support") - shared by the Y-domain padding
-    // below and the full tunnel construction further down (see buildEnvelope). A straight line in
-    // whatever the current xVal/yVal display space is has its extremes only at the two ends of its own
-    // parameter range, which is what lets the domain-padding step below just check the far end
-    // (domainDaysMax) rather than sampling the whole projected span.
-    function envelopeValAt(pts, days){
-      if(pts.length < 2) return null;
-      const a = pts[pts.length-2], b = pts[pts.length-1];
-      const ax = xVal(daysSinceGenesis(a.date)), bx = xVal(daysSinceGenesis(b.date));
-      const ay = yVal(a.value), by = yVal(b.value);
-      if(bx===ax) return null;
-      const slope = (by-ay)/(bx-ax);
-      const yv = by + slope*(xVal(days)-bx);
-      return logY ? Math.pow(10,yv) : yv;
-    }
 
+    // The Y-domain is always just the real visible price range (plus a small 0.06-log fixed pad) - it
+    // used to also stretch to fit the "tunnel" projection envelope's far-future endpoint (see the removed
+    // buildEnvelope/envelopeValAt), which is what made the "Alles"+Zyklus view's Y-axis gridlines go
+    // sparse: a handful of real "nice" dollar values had to share space with a domain reaching many times
+    // higher than any real price, per explicit feedback ("Y-Achse fehlen hier einige Linien" - see also
+    // the tunnel/projected-zone removal below, the actual cause).
     const priceLogVals = points.map(p=>Math.log10(p.price));
-    let yLogMin = Math.min(...priceLogVals) - 0.06, yLogMax = Math.max(...priceLogVals) + 0.06;
-    // Same "Zyklus"+"Alles" gate the full tunnel/projected-zones below use (see tunnelActive) - only
-    // there is there projected domain space for the tunnel to reach into in the first place.
-    if(cycleChartLayerVisible.zyklus && rangeDays === "all"){
-      [envelopeValAt(cycleHighs, domainDaysMax), envelopeValAt(cycleLows, domainDaysMax)].forEach(v=>{
-        if(v==null || !(v>0)) return;
-        const lv = Math.log10(v);
-        yLogMin = Math.min(yLogMin, lv-0.06); yLogMax = Math.max(yLogMax, lv+0.06);
-      });
-    }
+    const yLogMin = Math.min(...priceLogVals) - 0.06, yLogMax = Math.max(...priceLogVals) + 0.06;
     const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
     function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
 
@@ -4654,62 +4628,14 @@
       return out.filter(z => (Math.max(z.x0,z.x1)>=padL-1 && Math.min(z.x0,z.x1)<=w-padR+1));
     })() : [];
 
-    // "Tunnel": two envelope lines running along the outer corners of the real bull/bear zone boxes -
-    // through every confirmed cycle-high corner (resistance) and every confirmed cycle-low corner
-    // (support) - then continuing forward into the "Alles" view's own projected domain space (see
-    // domainDaysMax above) as a dashed extrapolation of the LAST real segment's own slope. Only that
-    // final segment's slope is projected, not a fit through all of history, since real cycle timing/
-    // magnitude varies too much for a single "principled" trend through everything to mean much - the
-    // projected part is explicitly a rough, speculative continuation of "whatever the last cycle was
-    // doing", the same spirit as the projected halvings below. Drawn as straight lines in whatever the
-    // CURRENT xVal/yVal display space is (log or linear per logX/logY) - the user's own description ("in
-    // der log-log Darstellung entsteht ein Tunnel") already anticipates that only the log-log view reads
-    // as a clean channel; other axis combinations still compute and render correctly, just without that
-    // particular visual. The projected segment reuses envelopeValAt (defined above, alongside the
-    // Y-domain padding that already made room for this same endpoint) rather than recomputing the slope
-    // a second time.
-    function buildEnvelope(pts){
-      if(pts.length < 2) return null;
-      const histPts = pts.map(p=>({x:xOf(daysSinceGenesis(p.date)), y:yOf(p.value)}));
-      const b = pts[pts.length-1];
-      const startDays = daysSinceGenesis(b.date);
-      return {startDays, startPrice:b.value, valAt: days=>envelopeValAt(pts, days), histPts,
-        x0:xOf(startDays), y0:yOf(b.value), x1:xOf(domainDaysMax), y1:yOf(envelopeValAt(pts, domainDaysMax))};
-    }
-    const tunnelActive = cycleChartLayerVisible.zyklus && rangeDays === "all";
-    const tunnel = tunnelActive ? {
-      upper: buildEnvelope(cycleHighs),
-      lower: buildEnvelope(cycleLows),
-    } : null;
-
-    // Speculative future zone tiles (see .cyc-zone-projected CSS) continuing the same bull/bear
-    // alternation past the real data, bounded by whichever tunnel envelope matches each leg's own
-    // direction - spaced at roughly one cycle "leg" (half a halving cycle: a bull run or a bear market,
-    // not a full halving-to-halving span) apart, for the same PROJECTED_ZONE_COUNT=3 legs the halving
-    // projection above already uses, so both projections read as covering the same rough future window.
-    const PROJECTED_ZONE_COUNT = 3;
+    // The "Tunnel" projection envelope (two lines through the real cycle-high/-low corners, extrapolated
+    // into the "Alles" view's projected future) and its dependent hatched future zone tiles have been
+    // removed per explicit feedback ("Entferne die Verbindungslinien im Chart") - kept as `null`/`[]`
+    // rather than deleted from the layout's return value so the (already defensively null-checked)
+    // downstream consumers - the crosshair's projected-corridor readout, the axis-toggle animation's
+    // tunnel-line sync - don't need their own separate follow-up changes.
+    const tunnel = null;
     const projectedZones = [];
-    if(tunnelActive && (tunnel.upper || tunnel.lower)){
-      const lastRealFlag = tentativeFlag || confirmedFlags[confirmedFlags.length-1];
-      if(lastRealFlag){
-        const leg = avgHalvingCycleDays()/2;
-        let curDays = daysSinceGenesis(lastRealFlag.date), curPrice = lastRealFlag.value, curDir = lastRealFlag.dir;
-        for(let i=0;i<PROJECTED_ZONE_COUNT;i++){
-          const nextDir = -curDir;
-          const nextDays = curDays+leg;
-          if(nextDays > domainDaysMax) break;
-          const env = nextDir>0 ? tunnel.upper : tunnel.lower;
-          if(!env) break;
-          const nextPrice = env.valAt(nextDays);
-          projectedZones.push({
-            x0:xOf(curDays), x1:xOf(nextDays),
-            yTop:yOf(Math.max(curPrice,nextPrice)), yBot:yOf(Math.min(curPrice,nextPrice)),
-            bull: nextDir>0, fromDays:curDays, toDays:nextDays, fromPrice:curPrice, toPrice:nextPrice,
-          });
-          curDays = nextDays; curPrice = nextPrice; curDir = nextDir;
-        }
-      }
-    }
 
     // A crosshairDate of type "number" (rather than the usual real-date string) means the reader was
     // hovering PAST the last real day - only reachable in the "Alles" view's own projected domain space
@@ -4805,24 +4731,6 @@
     fullClipRect.setAttribute("width",w+fullClipMarginX*2); fullClipRect.setAttribute("height",h);
     fullClipPath.appendChild(fullClipRect);
     defs.appendChild(fullClipPath);
-    // Diagonal-stripe fills for the speculative future zone tiles (see layout.projectedZones) - marks
-    // them as "projected, not real" at a glance the same way the faded/dashed projected halving lines
-    // and flag glyphs already do, without needing a legend to explain a second, unfamiliar zone color.
-    const hatchIdBull = "cyc-hatch-bull-" + Math.random().toString(36).slice(2,9);
-    const hatchIdBear = "cyc-hatch-bear-" + Math.random().toString(36).slice(2,9);
-    [[hatchIdBull,"var(--good)"],[hatchIdBear,"var(--critical)"]].forEach(([id,color])=>{
-      const pattern = document.createElementNS(NS,"pattern");
-      pattern.setAttribute("id",id); pattern.setAttribute("width","7"); pattern.setAttribute("height","7");
-      pattern.setAttribute("patternUnits","userSpaceOnUse"); pattern.setAttribute("patternTransform","rotate(45)");
-      const bg = document.createElementNS(NS,"rect");
-      bg.setAttribute("width","7"); bg.setAttribute("height","7"); bg.setAttribute("fill",color); bg.setAttribute("opacity","0.07");
-      pattern.appendChild(bg);
-      const stripe = document.createElementNS(NS,"line");
-      stripe.setAttribute("x1","0"); stripe.setAttribute("y1","0"); stripe.setAttribute("x2","0"); stripe.setAttribute("y2","7");
-      stripe.setAttribute("stroke",color); stripe.setAttribute("stroke-width","2.5"); stripe.setAttribute("opacity","0.4");
-      pattern.appendChild(stripe);
-      defs.appendChild(pattern);
-    });
     // Vertical area-fill gradient under the price line - same technique as buildLineChart's own s.area
     // (see the "Realized Price vs. Marktpreis" tile's BTC-Kurs series), fading from translucent near the
     // line to fully transparent at the chart's bottom edge. Only drawn when the price line is shown with
@@ -4925,45 +4833,6 @@
         rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(z.yBot-z.yTop,0));
         rect.setAttribute("fill", z.bull ? "var(--good)" : "var(--critical)"); rect.setAttribute("opacity","0.14");
         zoomGroup.appendChild(rect);
-      });
-      // Speculative future zone tiles (only ever populated in the "Alles" view - see
-      // computeCycleChartLayout) - same alternating bull/bear geometry as the real zones above, but
-      // hatched instead of solid so they read as a projection, not a claim about what will happen.
-      layout.projectedZones.forEach(z=>{
-        const rect = document.createElementNS(NS,"rect");
-        rect.setAttribute("class","cyc-zone-projected");
-        rect.setAttribute("x", Math.min(z.x0,z.x1)); rect.setAttribute("y", z.yTop);
-        rect.setAttribute("width", Math.max(Math.abs(z.x1-z.x0),0.01)); rect.setAttribute("height", Math.max(z.yBot-z.yTop,0));
-        rect.setAttribute("fill", `url(#${z.bull ? hatchIdBull : hatchIdBear})`);
-        const title = document.createElementNS(NS,"title");
-        title.textContent = `Geschätzte ${z.bull?"Bullen":"Bären"}-Phase (Fortsetzung der letzten Zyklen, keine Kursprognose)`;
-        rect.appendChild(title);
-        zoomGroup.appendChild(rect);
-      });
-      // Projection "tunnel" - envelope lines running along the outer corners of the real zone boxes
-      // (see buildEnvelope in computeCycleChartLayout) - a solid polyline through every real cycle-high
-      // (resistance) / cycle-low (support) corner in turn, then a dashed continuation of the last real
-      // segment's own slope into the projected future. Only reaches this far when at least two same-
-      // direction real corners exist to anchor it.
-      [["upper", layout.tunnel && layout.tunnel.upper], ["lower", layout.tunnel && layout.tunnel.lower]].forEach(([label, env])=>{
-        if(!env) return;
-        const histLine = document.createElementNS(NS,"path");
-        histLine.setAttribute("class","cyc-tunnel-line cyc-tunnel-line-hist"); histLine.dataset.tunnel = label;
-        histLine.setAttribute("d", pathD(env.histPts));
-        histLine.setAttribute("fill","none");
-        histLine.setAttribute("stroke","var(--ink-2)"); histLine.setAttribute("stroke-width","1.4");
-        histLine.setAttribute("stroke-linecap","round"); histLine.setAttribute("stroke-linejoin","round");
-        histLine.setAttribute("vector-effect","non-scaling-stroke");
-        zoomGroup.appendChild(histLine);
-
-        const projLine = document.createElementNS(NS,"line");
-        projLine.setAttribute("class","cyc-tunnel-line cyc-tunnel-line-proj"); projLine.dataset.tunnel = label;
-        projLine.setAttribute("x1",env.x0.toFixed(1)); projLine.setAttribute("y1",env.y0.toFixed(1));
-        projLine.setAttribute("x2",env.x1.toFixed(1)); projLine.setAttribute("y2",env.y1.toFixed(1));
-        projLine.setAttribute("stroke","var(--ink-2)"); projLine.setAttribute("stroke-width","1.4");
-        projLine.setAttribute("stroke-dasharray","1 4"); projLine.setAttribute("stroke-linecap","round");
-        projLine.setAttribute("vector-effect","non-scaling-stroke");
-        zoomGroup.appendChild(projLine);
       });
     }
     layout.halvings.forEach(hv=>{
@@ -5260,17 +5129,11 @@
     readoutEl.appendChild(readoutDate); readoutEl.appendChild(readoutPrice); readoutEl.appendChild(readoutChange);
     function paintReadoutPill(cr){
       if(cr.projected){
-        // No real price exists this far out - shows the tunnel envelope's own corridor bounds (see
-        // buildEnvelope in computeCycleChartLayout) instead of a single number, so hovering the future
-        // still reports something meaningful rather than just repeating the last real point.
-        const upperVal = layout.tunnel && layout.tunnel.upper ? layout.tunnel.upper.valAt(cr.days) : null;
-        const lowerVal = layout.tunnel && layout.tunnel.lower ? layout.tunnel.lower.valAt(cr.days) : null;
+        // No real price exists this far out - past the last real day, within the "Alles" view's extended
+        // domain reserved for the projected halving markers (see domainDaysMax in computeCycleChartLayout).
         readoutDate.textContent = "Projiziert: " + fmtDateOnly(cr.date);
-        // min/max, not "lower/upper" by name - this far out, the two envelope lines (see buildEnvelope)
-        // can themselves cross, since each just continues its own last real segment's slope independently
-        // with no floor requiring the "support" line to stay under the "resistance" one indefinitely.
-        readoutPrice.textContent = (upperVal!=null && lowerVal!=null) ? `${fmtUSD(Math.min(upperVal,lowerVal))}–${fmtUSD(Math.max(upperVal,lowerVal))}` : "–";
-        readoutChange.textContent = "geschätzter Korridor";
+        readoutPrice.textContent = "–";
+        readoutChange.textContent = "keine Kursdaten";
         readoutChange.className = "cyc-readout-change neutral";
       } else {
         // Baseline is the first point currently in view, same "what's the window's own starting price"
@@ -5398,7 +5261,7 @@
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>Marktzyklen</h3>`;
     panel.appendChild(headRow);
-    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings), eine "Tunnel"-Linie entlang der bisherigen Zyklus-Hochs bzw. -Tiefs (ab dem letzten realen Punkt gestrichelt fortgesetzt) und schraffierte Bullen-/Bärenkacheln, die diesen Tunnel als Korridor weiterführen - rein zur Orientierung, keine Kursprognose. Der Tooltip folgt dem Mauszeiger auch in diesen projizierten Bereich und zeigt dort den geschätzten Korridor statt eines echten Kurses.`);
+    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings) - rein zur Orientierung, keine Kursprognose.`);
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -5527,8 +5390,6 @@
     const xLabelEls = [...svg.querySelectorAll("text.axis-label-x[data-key]")];
     const yTickEls = [...svg.querySelectorAll("line.cyc-ytick[data-key]")];
     const yLabelEls = [...svg.querySelectorAll("text.axis-label:not(.axis-label-x)[data-key]")];
-    const tunnelHistEls = [...svg.querySelectorAll(".cyc-tunnel-line-hist[data-tunnel]")];
-    const tunnelProjEls = [...svg.querySelectorAll(".cyc-tunnel-line-proj[data-tunnel]")];
     const priceDot = svg.querySelector(".cyc-price-dot");
     const cross = svg.querySelector(".cyc-crosshair");
     const afterVeil = svg.querySelector(".cyc-after-veil");
@@ -5580,32 +5441,6 @@
         d += "L"+lerp(oldPts[oldPts.length-1].x,newPts[newPts.length-1].x).toFixed(1)+","+baseline.toFixed(1)+" Z";
         priceArea.setAttribute("d", d);
       }
-      // Tunnel envelope lines (only present in "Alles" - see tunnelHistEls/tunnelProjEls), matched by
-      // their own "upper"/"lower" tag (data-tunnel) rather than DOM order - same "previously frozen
-      // until the DOM rebuilt at the end" gap the price line/area fill above already had, fixed the same
-      // way. An axis toggle never changes which real corners anchor the tunnel, so old and new histPts
-      // are always the same length here.
-      tunnelHistEls.forEach(el=>{
-        const label = el.dataset.tunnel;
-        const ne = newLayout.tunnel && newLayout.tunnel[label];
-        if(!ne) return;
-        const oe = (oldLayout.tunnel && oldLayout.tunnel[label]) || ne;
-        if(oe.histPts.length !== ne.histPts.length){ el.setAttribute("d", pathD(ne.histPts)); return; }
-        let d = "";
-        ne.histPts.forEach((np,i)=>{
-          const op = oe.histPts[i];
-          d += (i===0?"M":"L") + lerp(op.x,np.x).toFixed(1) + "," + lerp(op.y,np.y).toFixed(1) + " ";
-        });
-        el.setAttribute("d", d);
-      });
-      tunnelProjEls.forEach(el=>{
-        const label = el.dataset.tunnel;
-        const ne = newLayout.tunnel && newLayout.tunnel[label];
-        if(!ne) return;
-        const oe = (oldLayout.tunnel && oldLayout.tunnel[label]) || ne;
-        el.setAttribute("x1", lerp(oe.x0,ne.x0).toFixed(1)); el.setAttribute("y1", lerp(oe.y0,ne.y0).toFixed(1));
-        el.setAttribute("x2", lerp(oe.x1,ne.x1).toFixed(1)); el.setAttribute("y2", lerp(oe.y1,ne.y1).toFixed(1));
-      });
       // Halvings/zones matched by date, not index - a range/pan change (unlike an axis toggle) can add
       // or drop entries on either side, so pairing by position alone could morph one real halving/zone
       // into a completely unrelated one. Anything with no match on the old side just snaps in at its
