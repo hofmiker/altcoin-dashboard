@@ -829,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v260";
-  const EDIT_STAMP = "2026-08-22 20:49 UTC";
+  const EDIT_VERSION = "v261";
+  const EDIT_STAMP = "2026-08-22 21:10 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5514,7 +5514,15 @@
           const scaleX = rect.width/w;
           const daysPerUnit = cycleDaysPerViewboxUnit();
           const clampedDelta = clampedCyclePanDaysDelta(rawDx, scaleX);
-          cyclePanDragLastDx = (clampedDelta/daysPerUnit) * scaleX;
+          // NOT *scaleX: confirmed by direct measurement (a 100px finger drag moved the content by
+          // exactly 100*scaleX real screen pixels when this multiplied by scaleX here too - a real,
+          // confirmed double-scaling bug, worse the narrower the rendered chart is since scaleX is
+          // further from 1 there) that a CSS "...px" transform on an element inside this SVG is itself
+          // ALREADY interpreted in the SVG's own viewBox-unit space, not real screen pixels - the SVG's
+          // own viewBox-to-viewport scaling applies on top of it. So this needs to stay a plain viewBox-
+          // unit value (matching computeCycleChartZoomMatrix's own e/f, which were never scaled either),
+          // not multiplied by scaleX a second time.
+          cyclePanDragLastDx = clampedDelta/daysPerUnit;
           zoomGroup.style.transition = "none";
           zoomGroup.style.transform = `translateX(${cyclePanDragLastDx.toFixed(1)}px)`;
           applyCycleXTickSync(cyclePanXTickTargets, 1, cyclePanDragLastDx);
@@ -5568,14 +5576,14 @@
       const dx = cyclePanDragLastDx;
       cyclePanDragStartX = null;
       if(rangeDays === "all" || dx === 0){ resetCyclePanDragVisuals(); return; }
-      const rect = svg.getBoundingClientRect();
-      const scaleX = rect.width>0 ? rect.width/w : 1;
+      // dx (cyclePanDragLastDx) is already a plain viewBox-unit value (see its own computation above),
+      // so converting back to days needs no scaleX - it was never a real-pixel value to begin with.
       const daysPerUnit = cycleDaysPerViewboxUnit();
-      const daysDelta = Math.round(dx/scaleX*daysPerUnit);
+      const daysDelta = Math.round(dx*daysPerUnit);
       if(daysDelta === 0){ resetCyclePanDragVisuals(); return; }
       panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
       // Tells the release animation exactly where this live drag visually left the content, in the same
-      // real-pixel terms it's already sitting at right now (see cyclePendingReleaseDx's own comment) -
+      // viewBox-unit terms it's already sitting at right now (see cyclePendingReleaseDx's own comment) -
       // read once, then always cleared, by animateCycleChartZoomFromLayout.
       cyclePendingReleaseDx = dx;
       renderAllZoom();
@@ -5611,9 +5619,11 @@
   // exactly - see there for the fuller rationale.
   let cycleChartPrevState = null;
   let cycleChartAnimatePending = false;
-  // Set by the 2-finger live-pan's touchend right before it calls renderAllZoom() - the exact real-pixel
-  // CSS translateX() the live drag already visually left .cyc-zoom-group at (see the hitRect touch
-  // handlers in renderCycleChartDOM). Without this, the release animation computed its own start matrix
+  // Set by the 2-finger live-pan's touchend right before it calls renderAllZoom() - the exact viewBox-
+  // unit CSS translateX() the live drag already visually left .cyc-zoom-group at (a CSS "...px" transform
+  // on an element inside this SVG is itself already in the SVG's own viewBox-unit space, not real screen
+  // pixels - see the hitRect touch handlers in renderCycleChartDOM). Without this, the release animation
+  // computed its own start matrix
   // purely from the old/new layouts' domains (computeCycleChartZoomMatrix) - a value derived independently
   // of, and not necessarily equal to, wherever the live drag had actually already moved the content to,
   // so the instant the DOM got rebuilt the content visibly snapped from "where the drag left it" to "where
@@ -6058,10 +6068,16 @@
   // (flags on the attribute path, geometry on the CSS path) risked the two updates landing in different
   // paint frames even though the numbers themselves are computed in perfect lockstep every frame - which
   // is exactly what read as the flags visibly stuttering/lagging a beat behind the smooth camera zoom.
+  // Same hard-hide safety net as applyCycleXTickSync (see CYC_XTICK_VISIBLE_MARGIN's own comment) -
+  // flags live outside .cyc-zoom-group too (so their glyph/label never stretch with the group's own
+  // scale), with only their own generous fullClipId margin trusted to bound them, which the live 2-finger
+  // pan's much larger raw drag distance can exceed the exact same way it did for the X-tick labels
+  // ("dasselbe Problem... bei den Icon[s]").
   function applyCycleFlagSync(targets, a, d, e, f){
     targets.forEach(t=>{
       const x = t.rawX*a + e, y = t.rawY*d + f;
       t.g.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      t.g.style.opacity = (x >= 70-CYC_XTICK_VISIBLE_MARGIN && x <= 1000-14+CYC_XTICK_VISIBLE_MARGIN) ? "" : "0";
     });
   }
   function collectCycleCrosshairSyncTarget(wrap, layout){
