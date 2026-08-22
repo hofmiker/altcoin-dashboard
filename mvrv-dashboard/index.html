@@ -267,7 +267,7 @@
   .stat-strip-teaser .stat{
     position:relative; overflow:hidden; cursor:pointer;
     display:flex; flex-direction:column; justify-content:space-between;
-    aspect-ratio:1/0.92;
+    aspect-ratio:1/0.92; container-type:inline-size;
     background:var(--stat-color, var(--card));
     border-color:color-mix(in srgb, var(--stat-color, var(--border)) 100%, black 18%);
     border-radius:20px; padding:22px 20px 18px 22px;
@@ -275,9 +275,13 @@
   }
   .stat-strip-teaser .stat:hover{transform:translateY(-2px); box-shadow:0 10px 28px -10px color-mix(in srgb, var(--stat-color, #000) 65%, black);}
   .stat-strip-teaser .stat .label{font-size:13px; font-weight:700; color:rgba(255,255,255,.85);}
-  .stat-strip-teaser .stat .value{font-size:56px; font-weight:800; margin-top:10px; display:inline-block; line-height:1; color:#fff; transition:transform .1s linear;}
+  /* Base size scales with the tile's own (container-query) width, not the viewport, so a wider tile -
+     fewer per row, more room - gets a genuinely bigger number instead of a size picked for the narrowest
+     case; fitValueText() below then only ever shrinks from there, per-tile, to guarantee a long full
+     number (no more K/M/B abbreviation, see fmtUSDFull/fmtBTCFull) never overflows its own tile. */
+  .stat-strip-teaser .stat .value{font-size:clamp(28px, 17cqw, 92px); font-weight:800; margin-top:10px; display:block; width:100%; white-space:nowrap; overflow:hidden; line-height:1; color:#fff; transition:transform .1s linear;}
   .stat-strip-teaser .stat .value .unit{font-size:.36em; font-weight:700; opacity:.82; margin:0 1px;}
-  .stat-strip-teaser .stat .value.compound{font-size:26px;}
+  .stat-strip-teaser .stat .value.compound{font-size:clamp(14px, 6.5cqw, 30px);}
   .stat-strip-teaser .stat .ctx{font-size:13px; margin-top:10px; min-height:1.4em; color:rgba(255,255,255,.85);}
   .stat-strip-teaser .stat.bounce .value{animation:statBounce .45s cubic-bezier(.34,1.56,.64,1);}
   @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.06);} 70%{transform:scale(.99);} 100%{transform:scale(1);} }
@@ -297,8 +301,6 @@
        later in the cascade, so it wins over anything narrower attempted here) - and single-column at
        this width reads better anyway: fewer, bigger, more legible tiles rather than a cramped 2-up grid. */
     .stat-strip-teaser .stat{padding:18px 18px 16px 18px; aspect-ratio:1/0.62;}
-    .stat-strip-teaser .stat .value{font-size:42px;}
-    .stat-strip-teaser .stat .value.compound{font-size:22px;}
   }
 
   .narrative-card{
@@ -760,8 +762,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v246";
-  const EDIT_STAMP = "2026-08-22 11:52 UTC";
+  const EDIT_VERSION = "v247";
+  const EDIT_STAMP = "2026-08-22 12:16 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1229,6 +1231,11 @@
   function fmtPctFrac(v){ return v==null||!isFinite(v) ? "–" : (v*100).toFixed(1)+"%"; }
   function fmtPctRaw(v){ return v==null||!isFinite(v) ? "–" : v.toFixed(1)+"%"; }
   function fmtBTC(v){ return v==null||!isFinite(v) ? "–" : (v/1e6).toFixed(3)+"M BTC"; }
+  // Full, un-abbreviated variants for the teaser strip only (see renderStatStrip) - explicit request
+  // to write the whole number instead of the "K"/"M"/"B"/"T" shorthand fmtUSD/fmtBTC use everywhere else
+  // (axis labels, tooltips, ...), where abbreviation is still the right call for space reasons.
+  function fmtUSDFull(v){ return v==null||!isFinite(v) ? "–" : (v<0?"-":"")+"$"+Math.round(Math.abs(v)).toLocaleString("en-US"); }
+  function fmtBTCFull(v){ return v==null||!isFinite(v) ? "–" : Math.round(v).toLocaleString("en-US")+" BTC"; }
   function fmtCompact(v){ return v==null||!isFinite(v) ? "–" : (Math.abs(v)>=1000? v.toFixed(0): v.toFixed(2)); }
   function fmtCount(v){
     if(v==null || !isFinite(v)) return "–";
@@ -3141,6 +3148,25 @@
     return {prefix:m[2]||"", num:(m[1]||"")+m[3], suffix:m[4]};
   }
 
+  // The base .value font-size (see the clamp(...) rule) already grows with the tile's own width via a
+  // container query, so short values (e.g. "1.22") get to use the room a wide tile offers. But cqw
+  // scaling only knows the tile's width, not how many characters the value actually needs - a long,
+  // un-abbreviated full number (fmtUSDFull/fmtBTCFull, e.g. "$1,270,384,910,204 / $633,912,847,283")
+  // would overflow at that same size. This shrinks just that one element, in 1px steps, until it fits
+  // its own tile - each tile ends up using exactly as much space as it individually needs/has, instead
+  // of every tile sharing one guessed-conservative font-size.
+  function fitValueText(el){
+    if(!el) return;
+    el.style.fontSize = "";
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    let guard = 0;
+    while(el.scrollWidth > el.clientWidth + 1 && size > 10 && guard < 80){
+      size -= 1;
+      el.style.fontSize = size + "px";
+      guard++;
+    }
+  }
+
   // Teaser strip at the very top of the page - one big, colorful card per always-or-conditionally
   // available headline number, each tinted with the exact color (METRICS[key].color, or --critical for
   // the ATH drawdown line, which predates METRICS and has no entry there) its own full chart further
@@ -3160,14 +3186,14 @@
     const nzPulse = zoneChangedSinceLastVisit("nupl", nz.label) ? " zone-pulse" : "";
     const zzPulse = FULL.hasZScore && zoneChangedSinceLastVisit("zscore", zz.label) ? " zone-pulse" : "";
     const stats = [
-      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSD(price), ctx:"Letzter Tages-Schlusskurs"},
+      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letzter Tages-Schlusskurs"},
       {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–"},
       {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`},
       {available:FULL.hasZScore, color:"var(--c-zscore)", target:slugify("MVRV Z-Score"), label:"MVRV Z-Score", value:fmtRatio(z), ctx:`<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>`},
-      {available:true, color:"var(--c-realized)", target:slugify("Realized Price vs. Marktpreis"), label:"Realized Price", value:fmtUSD(rp), ctx:"Ø On-Chain-Einstandspreis"},
-      {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSD(mc)} / ${fmtUSD(rc)}`, ctx:"Verhältnis = MVRV", compound:true},
+      {available:true, color:"var(--c-realized)", target:slugify("Realized Price vs. Marktpreis"), label:"Realized Price", value:fmtUSDFull(rp), ctx:"Ø On-Chain-Einstandspreis"},
+      {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSDFull(mc)} / ${fmtUSDFull(rc)}`, ctx:"Verhältnis = MVRV", compound:true},
       {available:true, color:"var(--critical)", target:slugify("Abstand zum Allzeithoch"), label:"Abstand zum ATH", value:fmtPctRaw(ath), ctx:"Rekordhoch = 0%"},
-      {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value:fmtBTC(sup), ctx:`Wachstum p.a.: ${fmtPctRaw(sg)}`}
+      {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value:fmtBTCFull(sup), ctx:`Wachstum p.a.: ${fmtPctRaw(sg)}`}
     ];
     el.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.filter(s=>s.available).map(s=>{
       const valueHtml = s.compound
@@ -3181,6 +3207,7 @@
         <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
       </div>`;
     }).join("");
+    el.querySelectorAll(".stat .value").forEach(fitValueText);
 
     // Tapping the tile body itself (not the arrow - see stopPropagation below) has nothing to navigate
     // to on its own; it's purely the mobile stand-in for the :hover lift every tile already gets on
