@@ -29,6 +29,7 @@
     --c-price:var(--bitcoin-accent); --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
+    --c-ms-big4:#b8860b; --c-ms-us:#2f6fb0; --c-ms-ez:#7a4fa0; --c-ms-jp:#c0392b; --c-ms-cn:#1f9d55;
     --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
     --font-body:"Inter", -apple-system, "Segoe UI", sans-serif;
   }
@@ -45,6 +46,7 @@
       --c-price:var(--bitcoin-accent); --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
       --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
       --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
+      --c-ms-big4:#e8b93f; --c-ms-us:#5b9bff; --c-ms-ez:#a888d6; --c-ms-jp:#e0655f; --c-ms-cn:#3ecf7e;
     }
   }
   :root[data-theme="dark"]{
@@ -72,6 +74,7 @@
     --c-price:var(--bitcoin-accent); --c-mvrv:#5a5fa6; --c-realized:#8b5e34; --c-nupl:#22935a; --c-zscore:#c73f39;
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
+    --c-ms-big4:#b8860b; --c-ms-us:#2f6fb0; --c-ms-ez:#7a4fa0; --c-ms-jp:#c0392b; --c-ms-cn:#1f9d55;
   }
 
   *{box-sizing:border-box}
@@ -475,6 +478,29 @@
   .cyc-readout-change.neg{ color:var(--critical); }
   .cyc-readout-change.neutral{ color:var(--ink-3); }
 
+  /* Geldmenge chart's tool row: a live legend (left, wraps freely) naming every currently-selected
+     line with its latest value/date, and the country dropdown (right) that controls which lines those
+     are - reuses .cyc-tool-row's own split layout. */
+  .ms-legend{ display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; }
+  .ms-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); white-space:nowrap; }
+  .ms-legend-item i{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
+  .ms-legend-item b{ font-family:var(--font-display); font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .ms-legend-date{ color:var(--ink-3); font-size:11px; }
+  .ms-legend-empty{ color:var(--ink-3); font-style:italic; }
+  .ms-dropdown{ position:relative; flex:none; }
+  .ms-dropdown > summary{ list-style:none; }
+  .ms-dropdown > summary::-webkit-details-marker{ display:none; }
+  .ms-dropdown[open] > summary{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .ms-dropdown-panel{
+    position:absolute; top:calc(100% + 6px); right:0; z-index:5; min-width:190px;
+    background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow);
+    padding:8px; display:flex; flex-direction:column; gap:2px;
+  }
+  .ms-dropdown-option{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; font-size:12.5px; color:var(--ink-2); cursor:pointer; }
+  .ms-dropdown-option:hover{ background:var(--inset); }
+  .ms-dropdown-option input{ margin:0; flex:none; }
+  .ms-dropdown-option i{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
+
   .panel{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:22px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:14px;}
   /* Chart headline sizing - doubled from the original 19px/26px per explicit feedback, then dialed back
      to 75% of that doubled size (28.5px/39px) once the full +100% read as too big in practice. Narrow
@@ -721,6 +747,8 @@
 
     <section class="panel" id="cycleChartPanel"></section>
 
+    <section class="panel" id="moneySupplyChartPanel"></section>
+
     <section class="panel" id="powerLawPanel"></section>
 
     <section class="panel overlay-panel" id="overlayPanel"></section>
@@ -771,6 +799,8 @@
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
         <p><b>Fear &amp; Greed Index</b> (Kacheln "Fear &amp; Greed Index" und "BTC-Kurs (Fear &amp; Greed-Zonen)") stammt separat von der <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>, ebenfalls kostenlos und nach demselben Live-dann-Snapshot-Muster (<span class="mono" style="font-size:12px;">data/feargreed/latest.json</span>, täglich per GitHub Action aktualisiert). Die Historie beginnt erst am 01.02.2018 — davor zeigt die Linie entsprechend keine Werte. Scheitern Live-Abruf und Snapshot beide, wird die Kachel als "nicht verfügbar" markiert statt den Rest der Seite zu blockieren.</p>
+        <p><b>Geldmenge (BTC-Kurs vs. Global M2 "Big 4"):</b> Überlagert den BTC-Kurs (links, log-/linear-umschaltbar) mit der M2-Geldmenge der vier größten Zentralbanken — USA, Eurozone, Japan, China (rechts, immer linear). Jede Landeswährung wird beim Abruf zum jeweils zeitnächsten Wechselkurs in US-Dollar umgerechnet; die Aggregatlinie "Big 4" summiert alle vier, wobei ein Land mit noch nicht gemeldetem aktuellstem Monat bis zu 6 Monate mit seinem letzten bekannten Wert fortgeschrieben wird, damit unterschiedliche Meldeverzögerungen die Summe nicht künstlich einbrechen lassen. Über den "Länder"-Umschalter am Chart lässt sich die Aggregatlinie ein-/ausblenden und jedes Land einzeln dazuschalten, unabhängig voneinander. Alle vier Reihen sind monatliche, keine tägliche Daten — die Linie verbindet die jeweils gemeldeten Monatswerte.</p>
+        <p><b>Datenquelle Geldmenge:</b> <a href="https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL" target="_blank" rel="noopener">FRED (Federal Reserve Economic Data)</a>, keyless CSV-Export (<span class="mono" style="font-size:12px;">fredgraph.csv</span>, derselbe Weg wie FREDs eigener "Download Data"-Button — kein API-Key nötig). Ein wöchentlicher GitHub-Action-Job (<span class="mono" style="font-size:12px;">.github/scripts/fetch_moneysupply.py</span>) holt je Land die M2-Reihe plus passenden Wechselkurs und schreibt einen geprüften Snapshot nach <span class="mono" style="font-size:12px;">data/moneysupply/latest.json</span>. Weder die exakte FRED-Serien-ID noch die Einheit (Millionen vs. Milliarden Landeswährung) jeder Reihe lässt sich vorab mit letzter Sicherheit verifizieren — der Job prüft deshalb bei jedem Lauf selbst, ob der umgerechnete USD-Wert eines Landes in einer plausiblen Größenordnung liegt, und lässt ein Land, das diese Prüfung nicht besteht, für den Lauf einfach aus (der vorherige, geprüfte Snapshot bleibt dann stehen), statt unplausible Zahlen zu veröffentlichen.</p>
       </div>
     </details>
 
@@ -799,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v251";
-  const EDIT_STAMP = "2026-08-22 15:38 UTC";
+  const EDIT_VERSION = "v252";
+  const EDIT_STAMP = "2026-08-22 18:27 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1167,6 +1197,24 @@
   // Which date the "Marktzyklen" chart's own crosshair sits on - mirrors powerLawCrosshairDate below
   // (own module-level date, not index, for the same reasons).
   let cycleChartCrosshairDate = null;
+
+  // ---------- "Geldmenge" chart (BTC-Kurs vs. Global M2 "Big 4") ----------
+  // Which line(s) are currently drawn - the aggregate ("big4") and/or any of the four countries
+  // individually, all independently toggle-able via the chart's own dropdown. Aggregate on, countries
+  // off by default (matches the original ask: an aggregate Big-4 overlay, with the option to drill into
+  // individual countries, not the other way around).
+  const moneySupplySelected = {big4:true, US:false, EZ:false, JP:false, CN:false};
+  const MONEY_SUPPLY_COUNTRY_ORDER = ["US","EZ","JP","CN"];
+  // Only the price axis gets a log/linear choice (mirrors every other price chart's own toggle) - the
+  // money-supply axis stays linear always: unlike BTC's price, the Big-4 sum only ever moves within
+  // roughly one order of magnitude over the whole dataset, so log would buy nothing but a less legible
+  // axis. The time axis stays plain linear too - there's no "power law" question being asked here.
+  let moneySupplyLogY = true;
+  // Every checkbox toggle rebuilds the whole panel (chart + legend + dropdown all depend on the same
+  // selection), which would otherwise recreate the <details> element fresh and closed each time - forcing
+  // the reader to reopen it after every single click instead of checking several countries in a row.
+  // Tracked here and restored on each rebuild so the dropdown only closes when the reader actually closes it.
+  let moneySupplyDropdownOpen = false;
   // Which bull/bear zone (if any) currently has its tap-to-annotate label pinned open - keyed by the
   // zone's own toDate (see computeCycleChartLayout's pushRun), not an array index, since that index's
   // meaning can shift between renders (a range/pan change adds or drops zones ahead of it).
@@ -1403,6 +1451,32 @@
       if(isFinite(v)) map.set(date, v);
     });
     return map;
+  }
+
+  // Global M2 "Big 4" (US/Eurozone/Japan/China), fetched monthly by fetch-moneysupply-data.yml from
+  // FRED's keyless CSV export and pre-converted to USD billions there (see .github/scripts/
+  // fetch_moneysupply.py) - unlike Fear & Greed there's no browser-fetchable live endpoint worth
+  // adding here, so this only ever reads the GitHub snapshot. Same non-fatal pattern as Fear & Greed:
+  // any failure just leaves the Money Supply chart showing "nicht verfügbar" rather than breaking the page.
+  const MS_SNAPSHOT_URL = "https://raw.githubusercontent.com/hofmiker/altcoin-dashboard/main/data/moneysupply/latest.json";
+  const MS_CACHE_KEY = "mvrvDashboard_moneysupply_cache_v1";
+
+  async function loadMoneySupplyData(force){
+    if(!force){
+      try{
+        const cached = JSON.parse(localStorage.getItem(MS_CACHE_KEY));
+        if(cached && Date.now() - cached.ts < CACHE_TTL && cached.data) return cached.data;
+      }catch(e){ /* ignore corrupt cache */ }
+    }
+    try{
+      const res = await fetch(MS_SNAPSHOT_URL);
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      try{ localStorage.setItem(MS_CACHE_KEY, JSON.stringify({ts:Date.now(), data})); }catch(e){ /* storage full/unavailable */ }
+      return data;
+    }catch(e){
+      return null;
+    }
   }
 
   // Coin Metrics' keyless community tier turned out to only reliably serve PriceUSD and CapMVRVCur —
@@ -6090,6 +6164,7 @@
     const sections = [
       {id:"statStrip", label:"Übersicht"},
       {id:"cycleChartPanel", label:"Marktzyklen"},
+      ...(FULL && FULL.hasMoneySupply ? [{id:"moneySupplyChartPanel", label:"Geldmenge"}] : []),
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
       {id:"heroPanel", label:"MVRV Bands"},
@@ -6157,6 +6232,288 @@
       if(el && el.getBoundingClientRect().top <= threshold+1.5) activeId = a.dataset.navTarget;
     }
     links.forEach(a=> a.classList.toggle("active", a.dataset.navTarget === activeId));
+  }
+
+  // ---------- "Geldmenge" chart (BTC-Kurs vs. Global M2 "Big 4") ----------
+  const MONEY_SUPPLY_META = {
+    big4: {label:"Big 4 (Aggregiert)", color:"var(--c-ms-big4)"},
+    US:   {label:"USA",       color:"var(--c-ms-us)"},
+    EZ:   {label:"Eurozone",  color:"var(--c-ms-ez)"},
+    JP:   {label:"Japan",     color:"var(--c-ms-jp)"},
+    CN:   {label:"China",     color:"var(--c-ms-cn)"},
+  };
+
+  // Both "big4" and each individual country come back from data/moneysupply/latest.json in slightly
+  // different shapes (see fetch_moneysupply.py) - normalized here to one common {date, valueUsdBn} shape
+  // so the rest of this chart never needs to care which one it's looking at.
+  function moneySupplySeriesData(key){
+    const ms = FULL.moneySupply;
+    if(!ms) return [];
+    if(key==="big4") return (ms.big4||[]).map(r=>({date:r.date, valueUsdBn:r.valueUsdBn}));
+    const c = ms.countries && ms.countries[key];
+    return c ? c.data.map(r=>({date:r.date, valueUsdBn:r.value})) : [];
+  }
+
+  // Pure geometry - mirrors computeCycleChartLayout/computePowerLawLayout's own split from DOM building,
+  // even though (unlike those two) this chart never animates between layouts: keeping the split anyway
+  // means a future zoom/pan animation could be added later the same way, and it keeps this function
+  // testable/readable on its own.
+  function computeMoneySupplyLayout(){
+    const allPoints = powerLawPoints();
+    const {points, daysMin, daysMax} = resolvePowerLawWindow(allPoints, rangeDays, panOffsetDays, 0);
+    const w=1000, h=chartHeight(), padL=70, padR=70, padT=16, padB=46;
+
+    function xOf(days){ return padL + (days-daysMin)/((daysMax-daysMin)||1)*(w-padL-padR); }
+
+    // BTC price, left axis - same log-with-small-pad domain as every other price chart here.
+    const priceLogVals = points.map(p=>Math.log10(p.price));
+    const yLogMin = Math.min(...priceLogVals)-0.06, yLogMax = Math.max(...priceLogVals)+0.06;
+    const priceValMin = moneySupplyLogY ? yLogMin : Math.pow(10,yLogMin);
+    const priceValMax = moneySupplyLogY ? yLogMax : Math.pow(10,yLogMax);
+    function yOfPrice(price){
+      const v = moneySupplyLogY ? Math.log10(price) : price;
+      return padT + (1-(v-priceValMin)/(priceValMax-priceValMin))*(h-padT-padB);
+    }
+    const pricePts = points.map(p=>({x:xOf(p.days), y:yOfPrice(p.price)}));
+    const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
+    const priceTicks = niceYTicks(priceMin, priceMax, moneySupplyLogY, 6)
+      .filter(v=> v>=priceMin && v<=priceMax)
+      .map(v=>({value:v, y:yOfPrice(v), label:fmtUSD(v)}));
+
+    // Money supply, right axis, always linear (see moneySupplyLogY's own comment) - domain fit only to
+    // whichever series are actually selected right now, and only their points within (a one-month-wide
+    // margin around) the visible window, so switching which country is shown re-fits the axis to it
+    // instead of keeping a domain sized for a series that's no longer even drawn.
+    const activeKeys = Object.keys(moneySupplySelected).filter(k=>moneySupplySelected[k]);
+    const seriesRaw = activeKeys.map(key=>({
+      key,
+      raw: moneySupplySeriesData(key)
+        .map(r=>({days:daysSinceGenesis(r.date), value:r.valueUsdBn}))
+        .filter(r=> isFinite(r.days) && r.value!=null)
+    }));
+    const visibleVals = [];
+    seriesRaw.forEach(s=> s.raw.forEach(r=>{ if(r.days>=daysMin-31 && r.days<=daysMax+1) visibleVals.push(r.value); }));
+    let moneyMin, moneyMax;
+    if(visibleVals.length){
+      moneyMin = Math.min(...visibleVals); moneyMax = Math.max(...visibleVals);
+      const pad = (moneyMax-moneyMin)*0.1 || moneyMax*0.05 || 1;
+      moneyMin -= pad; moneyMax += pad;
+    } else { moneyMin = 0; moneyMax = 1; }
+    function yOfMoney(v){ return padT + (1-(v-moneyMin)/((moneyMax-moneyMin)||1))*(h-padT-padB); }
+    const moneyTicks = niceLinearTicks(moneyMin, moneyMax, 5)
+      .filter(v=> v>=moneyMin && v<=moneyMax)
+      .map(v=>({value:v, y:yOfMoney(v), label:fmtUSD(v*1e9)}));
+
+    const moneySeries = seriesRaw.map(s=>{
+      const ptsInView = s.raw.filter(r=> r.days>=daysMin && r.days<=daysMax);
+      return {
+        key:s.key, meta:MONEY_SUPPLY_META[s.key],
+        pts: ptsInView.map(r=>({x:xOf(r.days), y:yOfMoney(r.value)})),
+        latest: s.raw.length ? s.raw[s.raw.length-1] : null
+      };
+    });
+
+    // X-axis ticks - same month/year granularity switch as computeCycleChartLayout's own xTicks.
+    const firstDate = new Date(GENESIS_MS+daysMin*86400000);
+    const lastDate = new Date(GENESIS_MS+daysMax*86400000);
+    const firstYear = firstDate.getUTCFullYear(), lastYear = lastDate.getUTCFullYear();
+    const MONTH_ABBR = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+    const xTicks = [];
+    if(rangeDays !== "all" && Number(rangeDays) <= 730){
+      const totalMonths = (lastYear-firstYear)*12 + (lastDate.getUTCMonth()-firstDate.getUTCMonth()) + 1;
+      const monthStep = Math.max(1, Math.round(totalMonths/6));
+      const startY = firstYear, startM = firstDate.getUTCMonth();
+      for(let i=0; ; i++){
+        const mm = startM + i*monthStep;
+        const yy = startY + Math.floor(mm/12);
+        const mIdx = ((mm%12)+12)%12;
+        const days = daysSinceGenesis(`${yy}-${String(mIdx+1).padStart(2,"0")}-01`);
+        if(days > daysMax) break;
+        if(days >= daysMin) xTicks.push({x:xOf(days), label:`${MONTH_ABBR[mIdx]} ${String(yy).slice(2)}`});
+      }
+    } else {
+      const yearStep = (lastYear-firstYear) > 12 ? 2 : 1;
+      for(let y=firstYear; y<=lastYear; y+=yearStep){
+        const days = daysSinceGenesis(`${y}-01-01`);
+        if(days < daysMin || days > daysMax) continue;
+        xTicks.push({x:xOf(days), label:String(y)});
+      }
+    }
+
+    return {w,h,padL,padR,padT,padB, pricePts, priceTicks, moneyTicks, moneySeries, xTicks, points};
+  }
+
+  function renderMoneySupplyChartDOM(layout){
+    const {w,h,padL,padR,padT,padB} = layout;
+    const svg = document.createElementNS(NS,"svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.setAttribute("role","img");
+
+    const clipId = "ms-plot-clip-" + Math.random().toString(36).slice(2,9);
+    const defs = document.createElementNS(NS,"defs");
+    const clipPath = document.createElementNS(NS,"clipPath");
+    clipPath.setAttribute("id", clipId);
+    const clipRect = document.createElementNS(NS,"rect");
+    clipRect.setAttribute("x",padL); clipRect.setAttribute("y",padT);
+    clipRect.setAttribute("width", w-padL-padR); clipRect.setAttribute("height", h-padT-padB);
+    clipPath.appendChild(clipRect);
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+
+    // Gridlines only from the price (left) axis - the money-supply (right) axis has its own independent
+    // domain, so its tick rows don't line up with the price ticks' rows; drawing a second, unrelated set
+    // of horizontal lines on top would just read as visual noise, not real structure.
+    layout.priceTicks.forEach(t=>{
+      const gl = document.createElementNS(NS,"line");
+      gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
+      gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(gl);
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--c-price)");
+      lbl.textContent = t.label;
+      svg.appendChild(lbl);
+    });
+    layout.moneyTicks.forEach(t=>{
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label");
+      lbl.setAttribute("x",w-padR+6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","start");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--c-ms-big4)");
+      lbl.textContent = t.label;
+      svg.appendChild(lbl);
+    });
+    layout.xTicks.forEach(t=>{
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label axis-label-x");
+      lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = t.label;
+      svg.appendChild(lbl);
+    });
+
+    const plotGroup = document.createElementNS(NS,"g");
+    plotGroup.setAttribute("clip-path", `url(#${clipId})`);
+    const priceLine = document.createElementNS(NS,"path");
+    priceLine.setAttribute("d", pathD(layout.pricePts));
+    priceLine.setAttribute("fill","none"); priceLine.setAttribute("stroke","var(--c-price)"); priceLine.setAttribute("stroke-width","1.6");
+    priceLine.setAttribute("vector-effect","non-scaling-stroke");
+    plotGroup.appendChild(priceLine);
+
+    layout.moneySeries.forEach(s=>{
+      if(s.pts.length<2) return;
+      const line = document.createElementNS(NS,"path");
+      line.setAttribute("d", pathD(s.pts));
+      line.setAttribute("fill","none"); line.setAttribute("stroke", s.meta.color); line.setAttribute("stroke-width", s.key==="big4"?"2.4":"1.8");
+      line.setAttribute("vector-effect","non-scaling-stroke");
+      plotGroup.appendChild(line);
+      const lastPt = s.pts[s.pts.length-1];
+      const dot = document.createElementNS(NS,"circle");
+      dot.setAttribute("cx",lastPt.x); dot.setAttribute("cy",lastPt.y); dot.setAttribute("r","3.5");
+      dot.setAttribute("fill", s.meta.color); dot.setAttribute("stroke","var(--card)"); dot.setAttribute("stroke-width","1.2");
+      plotGroup.appendChild(dot);
+    });
+    svg.appendChild(plotGroup);
+
+    return {svg};
+  }
+
+  function renderMoneySupplyChart(){
+    const panel = document.getElementById("moneySupplyChartPanel");
+    if(!panel) return;
+    panel.innerHTML = "";
+    // Whole panel hides itself, same as any other not-currently-available metric - display:none (not
+    // just an empty innerHTML) so the card's own padding/border doesn't leave a blank gap behind.
+    if(!FULL.hasMoneySupply){ panel.style.display = "none"; return; }
+    panel.style.display = "";
+
+    const headRow = document.createElement("div");
+    headRow.className = "panel-head";
+    headRow.innerHTML = `<h3>Geldmenge</h3>`;
+    panel.appendChild(headRow);
+    attachInfo(headRow, `Globale M2-Geldmenge der vier größten Zentralbanken ("Big 4": USA, Eurozone, Japan, China) über dem BTC-Kurs - jede Landeswährung zum jeweiligen USD-Kurs umgerechnet und zur Aggregatlinie summiert. Über den "Länder"-Umschalter oben rechts lässt sich die Aggregatlinie ein-/ausblenden und jedes Land einzeln dazuschalten. BTC-Kurs links (log/linear umschaltbar), Geldmenge rechts (immer linear - schwankt über die gesamte Historie nur um etwa eine Größenordnung, anders als der BTC-Kurs). Datenquelle: FRED (Federal Reserve Economic Data), monatlich aktualisiert; siehe Methodik unten für Details zu Reihen und Umrechnung.`);
+
+    const layout = computeMoneySupplyLayout();
+
+    const legendRow = document.createElement("div");
+    legendRow.className = "ms-legend";
+    Object.keys(moneySupplySelected).filter(k=>moneySupplySelected[k]).forEach(key=>{
+      const meta = MONEY_SUPPLY_META[key];
+      const s = layout.moneySeries.find(x=>x.key===key);
+      const latest = s && s.latest;
+      const item = document.createElement("span");
+      item.className = "ms-legend-item";
+      item.innerHTML = `<i style="background:${meta.color}"></i>${meta.label}` +
+        (latest ? ` <b>${fmtUSD(latest.value*1e9)}</b><span class="ms-legend-date">${fmtMonthYear(latest.days)}</span>` : ` <b>–</b>`);
+      legendRow.appendChild(item);
+    });
+    if(!legendRow.children.length){
+      legendRow.innerHTML = `<span class="ms-legend-item ms-legend-empty">Keine Linie ausgewählt - über "Länder" rechts mindestens eine auswählen.</span>`;
+    }
+
+    const dropdown = buildMoneySupplyDropdown();
+
+    const toolRow = document.createElement("div");
+    toolRow.className = "cyc-tool-row";
+    toolRow.appendChild(legendRow);
+    toolRow.appendChild(dropdown);
+    panel.appendChild(toolRow);
+
+    const wrap = document.createElement("div");
+    wrap.className = "chart-wrap";
+    const {svg} = renderMoneySupplyChartDOM(layout);
+    wrap.appendChild(svg);
+    panel.appendChild(wrap);
+    fitChartTypography();
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildScaleSeg(()=>moneySupplyLogY, v=>{moneySupplyLogY=v;}));
+    toolbar.appendChild(buildRangeSeg("moneysupplychart", {halvingBtn:false}));
+    panel.appendChild(toolbar);
+  }
+
+  // "Jun 2026"-style short label for a monthly data point's own date, distinct from fmtDateOnly's
+  // day-level DD.MM.YYYY - a full day here would falsely imply daily precision this data doesn't have.
+  const MONEY_SUPPLY_MONTH_ABBR = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  function fmtMonthYear(days){
+    const d = new Date(GENESIS_MS + days*86400000);
+    return ` (${MONEY_SUPPLY_MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCFullYear()})`;
+  }
+
+  function buildMoneySupplyDropdown(){
+    const details = document.createElement("details");
+    details.className = "ms-dropdown";
+    details.open = moneySupplyDropdownOpen;
+    details.addEventListener("toggle", ()=>{ moneySupplyDropdownOpen = details.open; });
+    const summary = document.createElement("summary");
+    summary.className = "halving-toggle-btn";
+    summary.textContent = "Länder";
+    details.appendChild(summary);
+    const panel = document.createElement("div");
+    panel.className = "ms-dropdown-panel";
+    ["big4", ...MONEY_SUPPLY_COUNTRY_ORDER].forEach(key=>{
+      const meta = MONEY_SUPPLY_META[key];
+      const label = document.createElement("label");
+      label.className = "ms-dropdown-option";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!moneySupplySelected[key];
+      cb.addEventListener("change", ()=>{
+        moneySupplySelected[key] = cb.checked;
+        renderMoneySupplyChart();
+      });
+      label.appendChild(cb);
+      const dot = document.createElement("i");
+      dot.style.background = meta.color;
+      label.appendChild(dot);
+      label.appendChild(document.createTextNode(meta.label));
+      panel.appendChild(label);
+    });
+    details.appendChild(panel);
+    return details;
   }
 
   function renderOverlay(view){
@@ -6396,6 +6753,7 @@
     renderTiles(view);
     renderPowerLaw();
     renderCycleChart();
+    renderMoneySupplyChart();
     fitChartTypography();
     renderSectionNav();
     // These four sections' real shape depends on which data ends up available (how many stat cards,
@@ -6406,7 +6764,7 @@
     // "avoid jumps, animate what's unavoidable" request: nothing so much as the elements that actually
     // grew still just instantly appears full-size, and nothing below them just instantly jumps down.
     if(isFirstRender){
-      ["statStrip","narrativeCard","metricsHost","overlayPanel"].forEach(id=> revealAnimated(document.getElementById(id)));
+      ["statStrip","narrativeCard","metricsHost","overlayPanel","moneySupplyChartPanel"].forEach(id=> revealAnimated(document.getElementById(id)));
       const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if(!reduceMotion) flipEls.forEach(el=>{
         if(!document.body.contains(el)) return;
@@ -7327,14 +7685,17 @@
   async function loadAndRender(force){
     setStatus("loading");
     try{
-      const [{rows, fromCache, source, fetchedAt}, fngResult] = await Promise.all([
+      const [{rows, fromCache, source, fetchedAt}, fngResult, moneySupply] = await Promise.all([
         loadData(force),
-        loadFearGreedData(force).catch(()=> ({rows:[]}))
+        loadFearGreedData(force).catch(()=> ({rows:[]})),
+        loadMoneySupplyData(force).catch(()=> null)
       ]);
       const parsed = parseRows(rows);
       if(parsed.length < 30) throw new Error("zu wenige gültige Datenpunkte");
       const fngMap = parseFearGreedRows(fngResult.rows);
       FULL = computeDerived(parsed, fngMap);
+      FULL.moneySupply = moneySupply;
+      FULL.hasMoneySupply = !!(moneySupply && moneySupply.countries && Object.keys(moneySupply.countries).length);
       setStatus("ok", {count:parsed.length, fromCache, source, fetchedAt, browserFetchedAt:new Date().toISOString()});
       renderAll();
     }catch(err){

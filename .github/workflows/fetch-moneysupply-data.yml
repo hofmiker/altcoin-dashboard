@@ -1,0 +1,52 @@
+name: Fetch Global Money Supply Data
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Monthly data, published with a lag by each central bank/IMF - a daily cron would just
+    # refetch the same numbers almost every day. Once a week is plenty to pick up a new month's
+    # release promptly without hammering FRED for nothing.
+    - cron: "22 7 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: fetch-moneysupply-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Global M2 "Big 4" (US, Eurozone, Japan, China) from FRED, keyless CSV export
+        id: fetch
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/fetch_moneysupply.py
+
+      - name: Commit snapshot and open PR (main is branch-protected, no direct push)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- data/moneysupply)" ]; then
+            echo "No data changes since last run, nothing to commit."
+            exit 0
+          fi
+          AS_OF=$(git diff -- data/moneysupply/latest.json | grep -m1 '"asOf"' | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || date -u +%Y-%m-%d)
+          BRANCH="moneysupply-data-${AS_OF}-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data/moneysupply
+          git commit -m "Update Global Money Supply data snapshot (as of ${AS_OF})"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Update Global Money Supply data snapshot (${AS_OF})" \
+            --body "Automated FRED (fredgraph.csv, keyless) fetch for US/Eurozone/Japan/China M2, converted to USD billions. Unit scale and plausibility are self-checked by the fetch script (see .github/scripts/fetch_moneysupply.py) - a country that fails validation is skipped rather than committed with bad numbers, so this diff only ever contains data that passed those checks." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin || echo "Could not auto-merge (likely needs a manual review/merge) - PR is open for that."
+          git push origin --delete "$BRANCH" || true
