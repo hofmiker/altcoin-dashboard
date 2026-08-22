@@ -762,8 +762,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v248";
-  const EDIT_STAMP = "2026-08-22 12:25 UTC";
+  const EDIT_VERSION = "v249";
+  const EDIT_STAMP = "2026-08-22 12:43 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4536,26 +4536,30 @@
     // shows a different round-value set slides existing rows to their new position instead of leaving
     // every row fixed in place.
     const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
-    let yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v)}));
+    let yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v), showLabel:true}));
     // Same round-dollar tick values in every mode (see niceYTicks) means their Y position can end up
     // extremely compressed in log mode over a wide multi-decade range (e.g. "Alles", spanning cents to
-    // six figures) - a single global $ step only has room to place its multiples within whatever narrow
-    // slice of the log-scale height the top of the range occupies, which can pack several tick labels
-    // close enough to visually overlap into unreadable text instead of just looking sparse. Thinned here
-    // by dropping any tick that would land closer than MIN_Y_TICK_GAP to the previous kept one (walking
-    // top to bottom) - a fixed viewBox-unit gap rather than a real-pixel one since this runs before the
-    // chart is ever in the live DOM (also reused for animation "old layout" reconstructions where it
-    // isn't), calibrated conservatively for a narrower rendered chart width where the same viewBox
-    // distance reads as fewer real pixels - so it may thin a bit more than strictly necessary on a wide
+    // six figures) - a single global $ step only has room to place several multiples' TEXT within
+    // whatever narrow slice of the log-scale height the top of the range occupies, close enough to
+    // visually overlap into unreadable labels. Per explicit feedback, that must never drop the GRIDLINE
+    // itself, only its text: every "nice" dollar value always gets its line, at the same constant $ step,
+    // in every mode - readers rely on that constancy to judge distances on the log axis too, and a
+    // matching tick COUNT in every mode is exactly what keeps the log<->linear toggle animation (see
+    // animateCycleChartFromLayout) sliding existing gridlines to a new row instead of ticks popping in
+    // or vanishing mid-transition. Only the LABEL is thinned - marked showLabel:false (not removed) - by
+    // walking top to bottom and requiring MIN_Y_TICK_GAP of clearance from the previous still-labeled
+    // tick's row. A fixed viewBox-unit gap rather than a real-pixel one since this runs before the chart
+    // is ever in the live DOM (also reused for animation "old layout" reconstructions where it isn't),
+    // calibrated conservatively for a narrower rendered chart width where the same viewBox distance reads
+    // as fewer real pixels - so it may hide a bit more label text than strictly necessary on a wide
     // desktop chart, but never risks leaving overlapping text there either.
     const MIN_Y_TICK_GAP = 20;
-    yTicks = yTicks
-      .slice()
-      .sort((a,b)=>a.y-b.y)
-      .reduce((kept,t)=>{
-        if(!kept.length || t.y-kept[kept.length-1].y >= MIN_Y_TICK_GAP) kept.push(t);
-        return kept;
-      }, []);
+    yTicks = yTicks.slice().sort((a,b)=>a.y-b.y);
+    let lastLabelY = null;
+    yTicks.forEach(t=>{
+      if(lastLabelY!==null && t.y-lastLabelY < MIN_Y_TICK_GAP) t.showLabel = false;
+      else lastLabelY = t.y;
+    });
     // Every tick (year-only or month-inclusive alike) carries a "YYYY-MM" key, not just a bare year - so
     // the zoom/axis-toggle animation's old->new tick matching (see collectCycleXTickSyncTargets and the
     // axis-toggle lerp) keeps working unchanged across a range change that crosses the 2-year threshold
@@ -4851,12 +4855,18 @@
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       yTickLayer.appendChild(gl);
-      const lbl = document.createElementNS(NS,"text");
-      lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
-      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
-      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
-      lbl.textContent = t.label;
-      yTickLayer.appendChild(lbl);
+      // The gridline above always exists at this tick's real dollar value (see the showLabel comment on
+      // yTicks) - only its text is conditional, so a value with no room for its number still keeps the
+      // same constant-step line every other value gets, and the animation's old/new tick sets always
+      // match 1:1 regardless of which mode's label thinning differs.
+      if(t.showLabel){
+        const lbl = document.createElementNS(NS,"text");
+        lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
+        lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
+        lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+        lbl.textContent = t.label;
+        yTickLayer.appendChild(lbl);
+      }
     });
     svg.appendChild(yTickLayer);
     // Unlike buildLineChart's own X date labels (deliberately screen-fixed, see the comment there), this
