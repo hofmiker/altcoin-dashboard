@@ -829,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v255";
-  const EDIT_STAMP = "2026-08-22 18:41 UTC";
+  const EDIT_VERSION = "v257";
+  const EDIT_STAMP = "2026-08-22 19:05 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5432,10 +5432,88 @@
     hitRect.addEventListener("mousemove", e=>{ handleMove(e.clientX); handleZoneHover(e.clientX, e.clientY); });
     hitRect.addEventListener("mouseleave", clearZoneHover);
     hitRect.addEventListener("click", e=> checkZoneTap(e.clientX, e.clientY));
-    hitRect.addEventListener("touchmove", e=>{ if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+
+    // Local linear approximation of the X mapping's slope (days per viewBox unit) around the plot's own
+    // center - exact even when cycleChartLogX makes xOf/xInv genuinely nonlinear, since a live 2-finger
+    // drag only needs to feel locally 1:1 with the fingers; the exact end position is resolved by the
+    // normal pan-triggered rebuild+animation on release (mirrors buildLineChart's own clampedPanDaysDelta,
+    // which gets to assume a constant slope only because ITS x-axis is always plain linear-by-day).
+    function cycleDaysPerViewboxUnit(){
+      const refX = padL + (w-padL-padR)/2;
+      return layout.xInv(refX+1) - layout.xInv(refX) || 1;
+    }
+    function clampedCyclePanDaysDelta(rawDx, scaleX){
+      const daysPerUnit = cycleDaysPerViewboxUnit();
+      const rawDelta = (rawDx/scaleX) * daysPerUnit;
+      const totalDataDays = (FULL.t[FULL.t.length-1] - FULL.t[0]) / 86400000;
+      const maxPanOffsetDays = Math.max(0, totalDataDays - (typeof rangeDays === "number" ? rangeDays : 0));
+      return Math.max(0, Math.min(maxPanOffsetDays, panOffsetDays + rawDelta)) - panOffsetDays;
+    }
+    let cyclePanDragStartX = null, cyclePanDragLastDx = 0;
+    let cyclePanXTickTargets = [], cyclePanFlagTargets = [], cyclePanCrosshairTarget = null;
+    function resetCyclePanDragVisuals(){
+      zoomGroup.style.transition = ""; zoomGroup.style.transform = "";
+      applyCycleXTickSync(cyclePanXTickTargets, 1, 0);
+      applyCycleFlagSync(cyclePanFlagTargets, 1, 1, 0, 0);
+      applyCycleCrosshairSync(cyclePanCrosshairTarget, 1, 1, 0, 0);
+    }
+    // Double-tap zooms straight into the next-finer timeframe (Alles -> 10J -> 5J -> ... -> 1M), same
+    // effect as tapping the next range button - tracked as plain closure state (not module-level) since a
+    // single tap never itself triggers a rebuild, so this survives across the short window between the
+    // two taps of a genuine double-tap without needing to persist past this render.
+    let lastTapAt = 0, lastTapX = 0, lastTapY = 0;
+    function nextFinerRangeValue(){
+      const current = rangeDays === "all" ? "all" : String(rangeDays);
+      const idx = RANGE_OPTIONS.findIndex(o=>o.value===current);
+      if(idx < 0 || idx >= RANGE_OPTIONS.length-1) return null;
+      return RANGE_OPTIONS[idx+1].value;
+    }
+    hitRect.addEventListener("touchmove", e=>{
+      if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); }
+      else if(e.touches.length===2 && cyclePanDragStartX!=null && rangeDays!=="all"){
+        const avgX = (e.touches[0].clientX + e.touches[1].clientX)/2;
+        const rawDx = avgX - cyclePanDragStartX;
+        const rect = svg.getBoundingClientRect();
+        if(rect.width>0){
+          const scaleX = rect.width/w;
+          const daysPerUnit = cycleDaysPerViewboxUnit();
+          const clampedDelta = clampedCyclePanDaysDelta(rawDx, scaleX);
+          cyclePanDragLastDx = (clampedDelta/daysPerUnit) * scaleX;
+          zoomGroup.style.transition = "none";
+          zoomGroup.style.transform = `translateX(${cyclePanDragLastDx.toFixed(1)}px)`;
+          applyCycleXTickSync(cyclePanXTickTargets, 1, cyclePanDragLastDx);
+          applyCycleFlagSync(cyclePanFlagTargets, 1, 1, cyclePanDragLastDx, 0);
+          applyCycleCrosshairSync(cyclePanCrosshairTarget, 1, 1, cyclePanDragLastDx, 0);
+        }
+        e.preventDefault();
+      }
+    }, {passive:false});
     hitRect.addEventListener("touchstart", e=>{
       e.preventDefault();
-      if(e.touches.length===1){ handleMove(e.touches[0].clientX); checkZoneTap(e.touches[0].clientX, e.touches[0].clientY); }
+      if(e.touches.length===1){
+        const t = e.touches[0];
+        const now = performance.now();
+        const dist = Math.hypot(t.clientX-lastTapX, t.clientY-lastTapY);
+        if(now-lastTapAt < 350 && dist < 40){
+          lastTapAt = 0; // consumed - a 3rd quick tap starts a fresh pair, doesn't chain into another zoom
+          const nextVal = nextFinerRangeValue();
+          if(nextVal != null){
+            rangeDays = nextVal === "all" ? "all" : parseInt(nextVal,10);
+            panOffsetDays = 0;
+            vibrateTick();
+            renderAllZoom();
+          }
+          return;
+        }
+        lastTapAt = now; lastTapX = t.clientX; lastTapY = t.clientY;
+        handleMove(t.clientX); checkZoneTap(t.clientX, t.clientY);
+      } else if(e.touches.length===2){
+        cyclePanDragStartX = (e.touches[0].clientX + e.touches[1].clientX)/2;
+        cyclePanDragLastDx = 0;
+        cyclePanXTickTargets = collectCycleXTickSyncTargets(wrap, layout);
+        cyclePanFlagTargets = collectCycleFlagSyncTargets(wrap, layout);
+        cyclePanCrosshairTarget = collectCycleCrosshairSyncTarget(wrap, layout);
+      }
     }, {passive:false});
     // A plain tap (no touchmove in between) never reaches any other handler here once the finger lifts -
     // touch-action:none plus touchstart's own preventDefault above still isn't enough on iOS Safari to
@@ -5443,7 +5521,21 @@
     // touchstart: two quick taps that both preventDefault on start but not on end still register as a
     // zoom gesture, magnifying the whole page around the second tap right where the crosshair had just
     // jumped to from the first one.
-    hitRect.addEventListener("touchend", e=> e.preventDefault(), {passive:false});
+    hitRect.addEventListener("touchend", e=>{
+      e.preventDefault();
+      if(cyclePanDragStartX == null || e.touches.length > 0) return; // wait for every finger to lift
+      const dx = cyclePanDragLastDx;
+      cyclePanDragStartX = null;
+      if(rangeDays === "all" || dx === 0){ resetCyclePanDragVisuals(); return; }
+      const rect = svg.getBoundingClientRect();
+      const scaleX = rect.width>0 ? rect.width/w : 1;
+      const daysPerUnit = cycleDaysPerViewboxUnit();
+      const daysDelta = Math.round(dx/scaleX*daysPerUnit);
+      if(daysDelta === 0){ resetCyclePanDragVisuals(); return; }
+      panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
+      renderAllZoom();
+    }, {passive:false});
+    hitRect.addEventListener("touchcancel", ()=>{ cyclePanDragStartX = null; resetCyclePanDragVisuals(); }, {passive:true});
     svg.appendChild(hitRect);
     svg.appendChild(zoneLabelLayer);
 
