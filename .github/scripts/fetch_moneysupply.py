@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
-"""Fetch Global M2 ("Big 4": US, Eurozone, Japan, China) from FRED's keyless CSV export
-(fredgraph.csv - no API key needed, same URL FRED's own "Download Data" button uses) and
-write data/moneysupply/latest.json for the mvrv-dashboard Money Supply chart.
+"""Fetch Global Broad Money ("Big 4": US, Eurozone, Japan, China) from FRED's keyless CSV export
+(fredgraph.csv - no API key needed, same URL FRED's own "Download Data" button uses) and write
+data/moneysupply/latest.json for the mvrv-dashboard Money Supply chart.
 
-Each country's M2 is converted to USD billions so the four are directly comparable/summable.
-Two things about this conversion can't be verified from outside a real network (this script
-only runs where FRED is actually reachable, i.e. inside the GitHub Actions runner):
+Each country's aggregate is converted to USD billions so the four are directly comparable/summable.
+Three things about this can't be verified from outside a real network (this script only runs where
+FRED is actually reachable, i.e. inside the GitHub Actions runner):
 
-1. Exact FRED series IDs. M2SL (US) is well-established. The IMF-sourced "MYAGM2<CC>M189*"
-   IDs used for EZ/JP/CN are less certain - some countries' series under that naming pattern
-   are discontinued, with an unconfirmed different ID actually carrying live data instead.
+1. Exact FRED series IDs, and whether they're still being updated. Confirmed empirically (a first
+   real run of this script, 2026-08-22): the IMF-sourced M2 series this script originally used for
+   Eurozone/Japan/China ("MYAGM2<CC>M189*") are all discontinued (last rows 2017/2017/2019) - only
+   the US M2 series (M2SL) is genuinely still live. Each non-US country therefore lists more than one
+   CANDIDATE series (see COUNTRIES below), tried in order - the OECD-sourced M3 ("Broad Money",
+   "*M657S") candidates are the ones actually expected to be live going forward, with the original
+   IMF M2 ID kept as a last-resort fallback. Using M3 instead of M2 for those countries is a
+   disclosed, deliberate substitution (see the frontend's methodology section), not a silent one -
+   this script records which measure/series actually got used per country in the output.
 2. The value's unit multiplier (millions vs. billions of national currency) isn't in the CSV
    itself, only in FRED's page metadata, which this script deliberately does not depend on.
+3. Whether a candidate that looks right by (1) and (2) is actually still being updated at all.
 
-Both are handled empirically rather than assumed: each country's converted value is checked
-against a rough real-world plausibility band (EXPECTED_USD_BN, generous: 0.35x-3x), trying
-both a "values are already billions" and a "values are millions" reading and keeping whichever
-one lands in-band. A country whose fetch fails outright or whose result lands in neither
-reading's band is skipped for this run (previous data in latest.json stays as-is, the
-dashboard keeps showing the last good snapshot) - never written with implausible numbers.
+All three are handled empirically rather than assumed: every candidate is fetched, checked for
+staleness (newest row not too old), and checked against a rough real-world plausibility band
+(EXPECTED_USD_BN, generous: 0.35x-3x) trying both a "values are already billions" and a "values are
+millions" reading - the first candidate that passes every check wins. A country where no candidate
+passes is skipped for this run (previous data in latest.json stays as-is) - never written with
+stale or implausible numbers. The aggregate ("big4") sums whichever countries currently have data
+(minimum 2, see MIN_COUNTRIES_FOR_AGGREGATE) rather than requiring all four, so it isn't held
+hostage by whichever single country's data source happens to be broken this week.
 """
 import csv
 import io
@@ -32,19 +41,45 @@ FRED_CSV_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={}"
 UA = "Mozilla/5.0 (compatible; altcoin-dashboard-moneysupply-fetch/1.0; +https://github.com/hofmiker/altcoin-dashboard)"
 OUT_PATH = "data/moneysupply/latest.json"
 
-# seriesId of the M2 aggregate + (optional) FX series converting its national currency to USD,
-# and a rough expected order-of-magnitude (USD billions, current-ish) used only for the unit
-# sanity check described in the module docstring above - not written to the output.
+# Each country lists candidate series in priority order - {id, measure, fx, fx_dir}. "fx"/"fx_dir"
+# apply to that candidate's OWN currency conversion (all candidates for one country share the same
+# national currency, so in practice these repeat, but keeping them per-candidate costs nothing and
+# stays correct if that ever isn't true). expected_usd_bn is a rough current order-of-magnitude used
+# only for the empirical unit-scale sanity check described in the module docstring - not written out.
 COUNTRIES = {
-    "US": {"label": "USA",        "m2": "M2SL",           "fx": None,      "fx_dir": None, "expected_usd_bn": 21500},
-    "EZ": {"label": "Eurozone",   "m2": "MYAGM2EZM196N",  "fx": "DEXUSEU", "fx_dir": "mul", "expected_usd_bn": 16000},
-    "JP": {"label": "Japan",      "m2": "MYAGM2JPM189S",  "fx": "DEXJPUS", "fx_dir": "div", "expected_usd_bn": 7500},
-    "CN": {"label": "China",      "m2": "MYAGM2CNM189N",  "fx": "DEXCHUS", "fx_dir": "div", "expected_usd_bn": 42000},
+    "US": {
+        "label": "USA", "expected_usd_bn": 21500,
+        "candidates": [
+            {"id": "M2SL", "measure": "M2", "fx": None, "fx_dir": None},
+        ],
+    },
+    "EZ": {
+        "label": "Eurozone", "expected_usd_bn": 16000,
+        "candidates": [
+            {"id": "MABMM301EZM657S", "measure": "M3", "fx": "DEXUSEU", "fx_dir": "mul"},
+            {"id": "MYAGM2EZM196N", "measure": "M2", "fx": "DEXUSEU", "fx_dir": "mul"},
+        ],
+    },
+    "JP": {
+        "label": "Japan", "expected_usd_bn": 7500,
+        "candidates": [
+            {"id": "MABMM301JPM657S", "measure": "M3", "fx": "DEXJPUS", "fx_dir": "div"},
+            {"id": "MYAGM2JPM189S", "measure": "M2", "fx": "DEXJPUS", "fx_dir": "div"},
+        ],
+    },
+    "CN": {
+        "label": "China", "expected_usd_bn": 42000,
+        "candidates": [
+            {"id": "MABMM301CNQ657S", "measure": "M3", "fx": "DEXCHUS", "fx_dir": "div"},
+            {"id": "MYAGM2CNM189N", "measure": "M2", "fx": "DEXCHUS", "fx_dir": "div"},
+        ],
+    },
 }
-MAX_AGE_DAYS = 400          # a series whose newest row is older than this is treated as dead/discontinued
-MIN_ROWS = 24                # need at least ~2 years of monthly rows to be worth showing
+MAX_AGE_DAYS = 400            # a series whose newest row is older than this is treated as dead/discontinued
+MIN_ROWS = 24                  # need at least ~2 years of rows to be worth showing
 PLAUSIBLE_LO, PLAUSIBLE_HI = 0.35, 3.0   # multiplicative band around expected_usd_bn
-FORWARD_FILL_MONTHS = 6       # how long a country's monthly value may be carried forward to fill the aggregate
+FORWARD_FILL_MONTHS = 6         # how long a country's monthly value may be carried forward to fill the aggregate
+MIN_COUNTRIES_FOR_AGGREGATE = 2  # "Big 4" only means something once at least this many actually have data
 
 
 def log(msg):
@@ -101,18 +136,18 @@ def fx_rate_for(fx_series, target_date):
     return after[0][1] if after else None
 
 
-def convert_series_to_usd_bn(m2_series, fx_series, fx_dir, expected_usd_bn):
+def convert_series_to_usd_bn(raw_series, fx_series, fx_dir, expected_usd_bn):
     """Returns (converted [(date, usd_bn)], scale_used) or (None, None) if no reading is plausible."""
-    def raw_usd(m2_val, m2_date):
+    def raw_usd(val, date_s):
         if fx_series is None:
-            return m2_val
-        fx = fx_rate_for(fx_series, m2_date)
+            return val
+        fx = fx_rate_for(fx_series, date_s)
         if fx is None or fx == 0:
             return None
-        return m2_val * fx if fx_dir == "mul" else m2_val / fx
+        return val * fx if fx_dir == "mul" else val / fx
 
-    latest_date, latest_m2 = m2_series[-1]
-    latest_raw = raw_usd(latest_m2, latest_date)
+    latest_date, latest_val = raw_series[-1]
+    latest_raw = raw_usd(latest_val, latest_date)
     if latest_raw is None:
         return None, None
 
@@ -120,13 +155,13 @@ def convert_series_to_usd_bn(m2_series, fx_series, fx_dir, expected_usd_bn):
         candidate_bn = latest_raw * scale
         if PLAUSIBLE_LO * expected_usd_bn <= candidate_bn <= PLAUSIBLE_HI * expected_usd_bn:
             converted = []
-            for d, v in m2_series:
+            for d, v in raw_series:
                 ru = raw_usd(v, d)
                 if ru is None:
                     continue
                 converted.append((d, round(ru * scale, 3)))
             return converted, name
-    log(f"    unit sanity check failed: latest={latest_raw:.1f} (raw) is implausible for "
+    log(f"      unit sanity check failed: latest={latest_raw:.1f} (raw) is implausible for "
         f"expected~{expected_usd_bn} in either billions or millions reading")
     return None, None
 
@@ -145,7 +180,9 @@ def to_month_series(series):
 
 def build_big4(country_month_series):
     """Forward-fills each country up to FORWARD_FILL_MONTHS to smooth out differing reporting
-    lags, then sums only the months where all four countries have a (real or filled) value."""
+    lags, then sums whichever countries have a (real or filled) value that month - not all four,
+    so one broken/lagging country doesn't blank out the whole aggregate (see
+    MIN_COUNTRIES_FOR_AGGREGATE for the floor on how few is still meaningful)."""
     all_months = sorted({m for s in country_month_series.values() for m in s})
     filled = {cc: {} for cc in country_month_series}
     for cc, series in country_month_series.items():
@@ -157,47 +194,57 @@ def build_big4(country_month_series):
                 filled[cc][m] = last_val
     big4 = []
     for m in all_months:
-        if all(m in filled[cc] for cc in filled):
-            total = sum(filled[cc][m] for cc in filled)
-            big4.append({"date": m + "-01", "valueUsdBn": round(total, 3)})
+        have = [cc for cc in filled if m in filled[cc]]
+        if len(have) >= MIN_COUNTRIES_FOR_AGGREGATE:
+            total = sum(filled[cc][m] for cc in have)
+            big4.append({"date": m + "-01", "valueUsdBn": round(total, 3), "countries": sorted(have)})
     return big4
+
+
+def fetch_country(cc, cfg, fx_cache):
+    for cand in cfg["candidates"]:
+        log(f"Fetching {cc} ({cfg['label']}): {cand['measure']} series {cand['id']}" +
+            (f", FX series {cand['fx']}" if cand["fx"] else " (already USD)"))
+        try:
+            raw_series = fetch_csv_series(cand["id"])
+        except Exception as e:
+            log(f"    candidate {cand['id']} failed: {e}")
+            continue
+        fx_series = None
+        if cand["fx"]:
+            if cand["fx"] not in fx_cache:
+                try:
+                    fx_cache[cand["fx"]] = fetch_csv_series(cand["fx"])
+                except Exception as e:
+                    log(f"    FX fetch ({cand['fx']}) failed: {e}")
+                    fx_cache[cand["fx"]] = None
+            fx_series = fx_cache[cand["fx"]]
+            if fx_series is None:
+                continue
+        converted, scale_used = convert_series_to_usd_bn(raw_series, fx_series, cand["fx_dir"], cfg["expected_usd_bn"])
+        if converted is None:
+            continue
+        log(f"  OK {cc}: {cand['measure']} {cand['id']}, {len(converted)} rows, latest {converted[-1][0]} = "
+            f"{converted[-1][1]:.0f} USD Bn (source values read as {scale_used})")
+        return {
+            "label": cfg["label"],
+            "measure": cand["measure"],
+            "seriesId": cand["id"],
+            "fxSeriesId": cand["fx"],
+            "unit": "USD Bn",
+            "data": [{"date": d, "value": v} for d, v in converted],
+        }
+    log(f"  SKIP {cc}: no candidate series passed (fetch/freshness/plausibility)")
+    return None
 
 
 def main():
     countries_out = {}
     fx_cache = {}
     for cc, cfg in COUNTRIES.items():
-        log(f"Fetching {cc} ({cfg['label']}): M2 series {cfg['m2']}" +
-            (f", FX series {cfg['fx']}" if cfg["fx"] else " (already USD)"))
-        try:
-            m2_series = fetch_csv_series(cfg["m2"])
-        except Exception as e:
-            log(f"  SKIP {cc}: M2 fetch failed: {e}")
-            continue
-        fx_series = None
-        if cfg["fx"]:
-            if cfg["fx"] not in fx_cache:
-                try:
-                    fx_cache[cfg["fx"]] = fetch_csv_series(cfg["fx"])
-                except Exception as e:
-                    log(f"  SKIP {cc}: FX fetch ({cfg['fx']}) failed: {e}")
-                    fx_cache[cfg["fx"]] = None
-            fx_series = fx_cache[cfg["fx"]]
-            if fx_series is None:
-                continue
-        converted, scale_used = convert_series_to_usd_bn(m2_series, fx_series, cfg["fx_dir"], cfg["expected_usd_bn"])
-        if converted is None:
-            log(f"  SKIP {cc}: no plausible USD conversion found")
-            continue
-        log(f"  OK {cc}: {len(converted)} rows, latest {converted[-1][0]} = {converted[-1][1]:.0f} USD Bn "
-            f"(source values read as {scale_used})")
-        countries_out[cc] = {
-            "label": cfg["label"],
-            "m2SeriesId": cfg["m2"],
-            "fxSeriesId": cfg["fx"],
-            "unit": "USD Bn",
-            "data": [{"date": d, "value": v} for d, v in converted],
-        }
+        result = fetch_country(cc, cfg, fx_cache)
+        if result:
+            countries_out[cc] = result
 
     if not countries_out:
         log("No country succeeded at all - aborting without writing anything.")
@@ -205,10 +252,11 @@ def main():
 
     month_series = {cc: to_month_series([(row["date"], row["value"]) for row in c["data"]])
                      for cc, c in countries_out.items()}
-    big4 = build_big4(month_series) if len(countries_out) == 4 else []
-    if len(countries_out) < 4:
-        log(f"Only {len(countries_out)}/4 countries succeeded - Big4 aggregate needs all four, "
-            f"leaving it empty this run (individual country lines are still written).")
+    big4 = build_big4(month_series) if len(countries_out) >= MIN_COUNTRIES_FOR_AGGREGATE else []
+    if len(countries_out) < MIN_COUNTRIES_FOR_AGGREGATE:
+        log(f"Only {len(countries_out)} countr{'y' if len(countries_out)==1 else 'ies'} succeeded - "
+            f"need >= {MIN_COUNTRIES_FOR_AGGREGATE} for a meaningful aggregate, leaving Big4 empty this run "
+            f"(individual country lines are still written).")
 
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     as_of = max(c["data"][-1]["date"] for c in countries_out.values())
