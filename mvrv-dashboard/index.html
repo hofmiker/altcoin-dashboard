@@ -669,8 +669,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v234";
-  const EDIT_STAMP = "2026-08-21 20:03 UTC";
+  const EDIT_VERSION = "v235";
+  const EDIT_STAMP = "2026-08-22 05:18 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3189,32 +3189,23 @@
     for(let v=Math.ceil(min/step)*step; v<=max+step*1e-9; v+=step) ticks.push(v);
     return ticks;
   }
-  // "Nice" Y-axis tick VALUES for either scale type - the value-axis equivalent of the X-axis's own
-  // fixed calendar-boundary ticks (whole years, or months once zoomed inside ~2 years - see
+  // "Nice" Y-axis tick VALUES - the value-axis equivalent of the X-axis's own fixed
+  // calendar-boundary ticks (whole years, or months once zoomed inside ~2 years - see
   // computeCycleChartLayout's xTicks), so a range/zoom change slides existing tick rows to a new
   // position (see collectCycleYTickSyncTargets/applyCycleYTickSync) instead of leaving every row fixed
-  // and only counting a number up/down inside it. Linear mode reuses niceLinearTicks directly - a round
-  // step like $10,000/$25,000 is "nice" regardless of which scale draws it. Log mode instead tries
-  // increasingly fine standard log-tick multiplier sets (bare decades, then the classic 1-2-5 pattern)
-  // per power of ten, since a LINEAR round step would leave most of a multi-decade log range (e.g.
-  // "Alles", spanning cents to six figures) with no gridlines at all below wherever the first big round
-  // number happens to land; only once even the finest log multiplier set still can't find 3 candidates
-  // inside a narrow enough window (proportionally close together prices, near-linear at that scale
-  // anyway) does it fall back to plain niceLinearTicks too.
+  // and only counting a number up/down inside it. Always the SAME round-dollar step (e.g.
+  // $10,000/$25,000, via niceLinearTicks) regardless of log/linear mode - only the PIXEL position (yOf,
+  // already log-aware) differs between the two, not the values themselves. That's deliberate: real
+  // gridlines at equal dollar steps compress toward the top on a log axis (an equal $ jump is a
+  // shrinking log-ratio jump as price rises) and read evenly spaced only in linear mode. An earlier
+  // version of this function instead computed a separate, multiplicative per-decade tick set (1/2/5 ×
+  // 10^d) specifically for log mode - closer to equal-RATIO spacing, so it rendered nearly evenly
+  // spaced on a log axis too, which is the opposite of the intended "denser near the top" log-chart
+  // look. The one accepted tradeoff: a single global linear step can't meaningfully cover a range
+  // spanning many decades (e.g. "Alles", cents to six figures) - most ticks end up bunched near the
+  // top with a long gridline-free stretch below, an inherent consequence of round-dollar steps over
+  // that wide a span, not a bug in the step selection itself.
   function niceYTicks(min, max, logMode, targetCount){
-    if(!logMode || !(min>0) || !(max>0)) return niceLinearTicks(min, max, targetCount);
-    const logMin = Math.log10(min), logMax = Math.log10(max);
-    const dLo = Math.floor(logMin), dHi = Math.ceil(logMax);
-    const MULT_SETS = [[1], [1,2,5], [1,2,3,4,5,6,7,8,9]];
-    for(const mults of MULT_SETS){
-      const out = [];
-      for(let d=dLo; d<=dHi; d++) for(const m of mults){
-        const v = m*Math.pow(10,d);
-        if(v>=min-1e-9 && v<=max+1e-9) out.push(v);
-      }
-      out.sort((a,b)=>a-b);
-      if(out.length>=Math.min(4,targetCount)) return out;
-    }
     return niceLinearTicks(min, max, targetCount);
   }
 
@@ -4340,13 +4331,32 @@
 
     // Nice round-value ticks (prototype - see niceYTicks - for eventually applying the same principle to
     // every chart's own Y-axis) - the value counterpart to the X-axis's own calendar-boundary ticks just
-    // below: fixed, genuinely round dollar values (e.g. every $10,000/$25,000, or a decade/1-2-5 log
-    // step) rather than 5 fixed screen FRACTIONS whose displayed number used to just count up/down as the
-    // window changed. Each tick keeps its own value as a stable key (see collectCycleYTickSyncTargets)
-    // so a zoom/pan/axis change that shows a different round-value set slides existing rows to their new
-    // position instead of leaving every row fixed in place.
+    // below: fixed, genuinely round dollar values (e.g. every $10,000/$25,000) rather than 5 fixed screen
+    // FRACTIONS whose displayed number used to just count up/down as the window changed. Each tick keeps
+    // its own value as a stable key (see collectCycleYTickSyncTargets) so a zoom/pan/axis change that
+    // shows a different round-value set slides existing rows to their new position instead of leaving
+    // every row fixed in place.
     const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
-    const yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v)}));
+    let yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v)}));
+    // Same round-dollar tick values in every mode (see niceYTicks) means their Y position can end up
+    // extremely compressed in log mode over a wide multi-decade range (e.g. "Alles", spanning cents to
+    // six figures) - a single global $ step only has room to place its multiples within whatever narrow
+    // slice of the log-scale height the top of the range occupies, which can pack several tick labels
+    // close enough to visually overlap into unreadable text instead of just looking sparse. Thinned here
+    // by dropping any tick that would land closer than MIN_Y_TICK_GAP to the previous kept one (walking
+    // top to bottom) - a fixed viewBox-unit gap rather than a real-pixel one since this runs before the
+    // chart is ever in the live DOM (also reused for animation "old layout" reconstructions where it
+    // isn't), calibrated conservatively for a narrower rendered chart width where the same viewBox
+    // distance reads as fewer real pixels - so it may thin a bit more than strictly necessary on a wide
+    // desktop chart, but never risks leaving overlapping text there either.
+    const MIN_Y_TICK_GAP = 20;
+    yTicks = yTicks
+      .slice()
+      .sort((a,b)=>a.y-b.y)
+      .reduce((kept,t)=>{
+        if(!kept.length || t.y-kept[kept.length-1].y >= MIN_Y_TICK_GAP) kept.push(t);
+        return kept;
+      }, []);
     // Every tick (year-only or month-inclusive alike) carries a "YYYY-MM" key, not just a bare year - so
     // the zoom/axis-toggle animation's old->new tick matching (see collectCycleXTickSyncTargets and the
     // axis-toggle lerp) keeps working unchanged across a range change that crosses the 2-year threshold
@@ -4617,40 +4627,53 @@
     defs.appendChild(priceAreaGrad);
     svg.appendChild(defs);
 
+    // Wrapped in the same generous full-viewBox clip as the flags below (see fullClipId above) - these
+    // tick lines/labels live outside .cyc-zoom-group entirely (so rotated/anchored text is only ever
+    // repositioned, never stretched, by the zoom transform - see collectCycleXTickSyncTargets/
+    // collectCycleYTickSyncTargets), which meant they previously had no clip at all. During a range/pan
+    // animation a tick sliding in from off-screen (e.g. a year label the new, narrower range doesn't
+    // keep) could sit well to the left of the plot for a few frames before settling or disappearing -
+    // genuinely visible spilling past the card's own left edge, not just past the plot's inner margin.
+    const yTickLayer = document.createElementNS(NS,"g");
+    yTickLayer.setAttribute("clip-path", `url(#${fullClipId})`);
     layout.yTicks.forEach(t=>{
       const gl = document.createElementNS(NS,"line");
       gl.setAttribute("class","cyc-ytick"); gl.dataset.key = t.key;
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(gl);
+      yTickLayer.appendChild(gl);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
       lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
-      svg.appendChild(lbl);
+      yTickLayer.appendChild(lbl);
     });
+    svg.appendChild(yTickLayer);
     // Unlike buildLineChart's own X date labels (deliberately screen-fixed, see the comment there), this
     // chart's year labels genuinely slide during a zoom/pan (see collectCycleXTickSyncTargets/
     // applyCycleXTickSync and the axis-toggle lerp below) - each one is tagged with its own "YYYY-MM" key
     // so that animation can match old-to-new by value, same as the halvings/flags. A short tick line (from
     // the plot's own bottom edge down to the label) reads as a real axis tick connecting the rotated text
     // back to the exact x-position it labels, mirroring the Y-axis' own gridlines-to-label relationship.
+    const xTickLayer = document.createElementNS(NS,"g");
+    xTickLayer.setAttribute("clip-path", `url(#${fullClipId})`);
     layout.xTicks.forEach(t=>{
       const tick = document.createElementNS(NS,"line");
       tick.setAttribute("class","cyc-xtick"); tick.dataset.key = t.key;
       tick.setAttribute("x1",t.x); tick.setAttribute("x2",t.x);
       tick.setAttribute("y1",h-padB); tick.setAttribute("y2",h-padB+8);
       tick.setAttribute("stroke","var(--ink-3)"); tick.setAttribute("stroke-width","1"); tick.setAttribute("vector-effect","non-scaling-stroke");
-      svg.appendChild(tick);
+      xTickLayer.appendChild(tick);
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label axis-label-x"); lbl.dataset.key = t.key;
       lbl.setAttribute("x",t.x); lbl.setAttribute("y",h-padB+14); lbl.setAttribute("text-anchor","end");
       lbl.setAttribute("transform",`rotate(-45 ${t.x} ${h-padB+14})`);
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
       lbl.textContent = t.label;
-      svg.appendChild(lbl);
+      xTickLayer.appendChild(lbl);
     });
+    svg.appendChild(xTickLayer);
 
     // Zones, halvings and the price line share a single group, transformed as one rigid unit during a
     // range/pan-change animation (see animateCycleChartZoomFromLayout/computeCycleChartZoomMatrix) - the
