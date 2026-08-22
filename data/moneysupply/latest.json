@@ -1,11 +1,12 @@
 {
-  "fetchedAt": "2026-08-22T18:28:38Z",
+  "fetchedAt": "2026-08-22T18:37:07Z",
   "source": "FRED (fredgraph.csv, keyless CSV export)",
   "asOf": "2026-06-01",
   "countries": {
     "US": {
       "label": "USA",
-      "m2SeriesId": "M2SL",
+      "measure": "M2",
+      "seriesId": "M2SL",
       "fxSeriesId": null,
       "unit": "USD Bn",
       "data": [
