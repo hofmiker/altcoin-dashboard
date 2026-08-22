@@ -829,8 +829,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v258";
-  const EDIT_STAMP = "2026-08-22 20:22 UTC";
+  const EDIT_VERSION = "v259";
+  const EDIT_STAMP = "2026-08-22 20:40 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5971,11 +5971,27 @@
     });
     return targets;
   }
+  // Same tolerance as renderCycleChartDOM's own fullClipMarginX (duplicated as a literal rather than
+  // threaded through as a parameter - both are the chart's fixed viewBox constants, never derived from
+  // live layout state). A tick/label sliding further than this - reachable from the 2-finger live pan,
+  // whose raw drag distance isn't itself bounded the way a range/pan-change animation's own start/end
+  // positions are - is hidden outright rather than left to the SVG clip-path alone: confirmed via
+  // real drag testing that a label can render visibly past the plot's edge, out into the card's own
+  // margin, before the clip-path's geometry actually catches it ("Jahreszahlen schieben ... über das
+  // Chart hinaus"). This is a hard, JS-computed guarantee that doesn't depend on getting that geometry
+  // exactly right.
+  const CYC_XTICK_VISIBLE_MARGIN = 40;
   function applyCycleXTickSync(targets, a, e){
     targets.forEach(t=>{
       const x = t.rawX*a + e;
-      if(t.kind==="tick"){ t.line.setAttribute("x1",x.toFixed(1)); t.line.setAttribute("x2",x.toFixed(1)); }
-      else { t.text.setAttribute("x", x.toFixed(1)); t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`); }
+      const visible = x >= 70-CYC_XTICK_VISIBLE_MARGIN && x <= 1000-14+CYC_XTICK_VISIBLE_MARGIN;
+      if(t.kind==="tick"){
+        t.line.setAttribute("x1",x.toFixed(1)); t.line.setAttribute("x2",x.toFixed(1));
+        t.line.style.opacity = visible ? "" : "0";
+      } else {
+        t.text.setAttribute("x", x.toFixed(1)); t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`);
+        t.text.style.opacity = visible ? "" : "0";
+      }
     });
   }
   // Y-tick equivalent of the X-tick sync pair above - same "nice round value" principle as the X-axis's
