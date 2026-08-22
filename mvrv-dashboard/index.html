@@ -262,38 +262,43 @@
      :hover at all to preview the tile before committing to the arrow's full navigation, so tapping the
      tile body itself (as opposed to the arrow) plays a brief, obviously non-navigating highlight+bounce
      instead. */
-  .stat-strip-teaser{grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;}
+  .stat-strip-teaser{grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;}
   .stat-strip-teaser .panel-head{grid-column:1/-1;}
   .stat-strip-teaser .stat{
     position:relative; overflow:hidden; cursor:pointer;
-    background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 13%, var(--card));
-    border-color:color-mix(in srgb, var(--stat-color, var(--border)) 30%, var(--border));
-    border-radius:20px; padding:22px 54px 20px 22px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    aspect-ratio:1/0.92;
+    background:var(--stat-color, var(--card));
+    border-color:color-mix(in srgb, var(--stat-color, var(--border)) 100%, black 18%);
+    border-radius:20px; padding:22px 20px 18px 22px;
     transition:transform .18s ease, box-shadow .18s ease;
   }
-  .stat-strip-teaser .stat:hover{transform:translateY(-2px); box-shadow:0 8px 24px -8px color-mix(in srgb, var(--stat-color, #000) 35%, transparent);}
-  .stat-strip-teaser .stat .label{font-size:12.5px; color:color-mix(in srgb, var(--stat-color, var(--ink-3)) 70%, var(--ink-3));}
-  .stat-strip-teaser .stat .value{font-size:40px; font-weight:800; margin-top:8px; display:inline-block; transition:transform .1s linear;}
-  .stat-strip-teaser .stat .ctx{font-size:12.5px; margin-top:8px; min-height:1.4em;}
-  .stat-strip-teaser .stat.bounce .value{animation:statBounce .5s cubic-bezier(.34,1.56,.64,1);}
-  @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.16);} 70%{transform:scale(.97);} 100%{transform:scale(1);} }
+  .stat-strip-teaser .stat:hover{transform:translateY(-2px); box-shadow:0 10px 28px -10px color-mix(in srgb, var(--stat-color, #000) 65%, black);}
+  .stat-strip-teaser .stat .label{font-size:13px; font-weight:700; color:rgba(255,255,255,.85);}
+  .stat-strip-teaser .stat .value{font-size:56px; font-weight:800; margin-top:10px; display:inline-block; line-height:1; color:#fff; transition:transform .1s linear;}
+  .stat-strip-teaser .stat .value .unit{font-size:.36em; font-weight:700; opacity:.82; margin:0 1px;}
+  .stat-strip-teaser .stat .value.compound{font-size:26px;}
+  .stat-strip-teaser .stat .ctx{font-size:13px; margin-top:10px; min-height:1.4em; color:rgba(255,255,255,.85);}
+  .stat-strip-teaser .stat.bounce .value{animation:statBounce .45s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.06);} 70%{transform:scale(.99);} 100%{transform:scale(1);} }
   @media (prefers-reduced-motion: reduce){ .stat-strip-teaser .stat.bounce .value{animation:none;} }
   .stat-arrow{
-    position:absolute; right:12px; bottom:12px; width:30px; height:30px; border-radius:50%;
+    position:absolute; right:14px; bottom:14px; width:34px; height:34px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; flex:none;
-    background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 16%, var(--card));
-    border:1px solid color-mix(in srgb, var(--stat-color, var(--border)) 35%, var(--border));
-    color:color-mix(in srgb, var(--stat-color, var(--ink)) 80%, var(--ink));
+    background:rgba(255,255,255,.2);
+    border:1px solid rgba(255,255,255,.4);
+    color:#fff;
   }
-  .stat-arrow svg{width:13px; height:13px;}
-  .stat-arrow:hover{background:color-mix(in srgb, var(--stat-color, var(--ink-3)) 26%, var(--card));}
+  .stat-arrow svg{width:14px; height:14px;}
+  .stat-arrow:hover{background:rgba(255,255,255,.32);}
   @media (max-width:640px){
     /* No column-count override here - the shared @media(max-width:700px){.strip{...1fr}} rule further
        down already collapses this to a single column below that wider 700px breakpoint (same specificity,
        later in the cascade, so it wins over anything narrower attempted here) - and single-column at
        this width reads better anyway: fewer, bigger, more legible tiles rather than a cramped 2-up grid. */
-    .stat-strip-teaser .stat{padding:16px 46px 14px 16px;}
-    .stat-strip-teaser .stat .value{font-size:30px;}
+    .stat-strip-teaser .stat{padding:18px 18px 16px 18px; aspect-ratio:1/0.62;}
+    .stat-strip-teaser .stat .value{font-size:42px;}
+    .stat-strip-teaser .stat .value.compound{font-size:22px;}
   }
 
   .narrative-card{
@@ -755,8 +760,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v245";
-  const EDIT_STAMP = "2026-08-22 10:34 UTC";
+  const EDIT_VERSION = "v246";
+  const EDIT_STAMP = "2026-08-22 11:52 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3125,6 +3130,17 @@
   // different arrow/chevron glyph invented fresh here.
   const SCROLL_ARROW_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(135 12 12)"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></g></svg>`;
 
+  // Splits a formatted stat string (e.g. "$64.2K", "-48.6%", "20.067M BTC") into a leading currency
+  // sign, the plain number (sign-of-value included, e.g. the "-" in "-48.6%"), and a trailing unit -
+  // so the teaser tile can render the number itself big and plakativ while $ / % / M / BTC stay small,
+  // per explicit request. Falls back to putting the whole string in `num` unchanged (no small parts)
+  // for anything that doesn't start with a sign/currency/digit, e.g. "–" when data is unavailable.
+  function splitStatValue(str){
+    const m = /^(-)?(\$)?([0-9][0-9.,]*)(.*)$/.exec(str);
+    if(!m) return {prefix:"", num:str, suffix:""};
+    return {prefix:m[2]||"", num:(m[1]||"")+m[3], suffix:m[4]};
+  }
+
   // Teaser strip at the very top of the page - one big, colorful card per always-or-conditionally
   // available headline number, each tinted with the exact color (METRICS[key].color, or --critical for
   // the ATH drawdown line, which predates METRICS and has no entry there) its own full chart further
@@ -3149,18 +3165,22 @@
       {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`},
       {available:FULL.hasZScore, color:"var(--c-zscore)", target:slugify("MVRV Z-Score"), label:"MVRV Z-Score", value:fmtRatio(z), ctx:`<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>`},
       {available:true, color:"var(--c-realized)", target:slugify("Realized Price vs. Marktpreis"), label:"Realized Price", value:fmtUSD(rp), ctx:"Ø On-Chain-Einstandspreis"},
-      {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSD(mc)} / ${fmtUSD(rc)}`, ctx:"Verhältnis = MVRV"},
+      {available:FULL.hasMarketCap && FULL.hasRealizedCap, color:"var(--c-mcap)", target:slugify("Market Cap vs. Realized Cap"), label:"Market / Realized Cap", value:`${fmtUSD(mc)} / ${fmtUSD(rc)}`, ctx:"Verhältnis = MVRV", compound:true},
       {available:true, color:"var(--critical)", target:slugify("Abstand zum Allzeithoch"), label:"Abstand zum ATH", value:fmtPctRaw(ath), ctx:"Rekordhoch = 0%"},
       {available:FULL.hasSupply, color:"var(--c-supply)", target:slugify("Supply-Wachstum (p.a.)"), label:"Circulating Supply", value:fmtBTC(sup), ctx:`Wachstum p.a.: ${fmtPctRaw(sg)}`}
     ];
-    el.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.filter(s=>s.available).map(s=>
-      `<div class="stat" style="--stat-color:${s.color}">
+    el.innerHTML = `<div class="panel-head"><h2>Übersicht</h2></div>` + stats.filter(s=>s.available).map(s=>{
+      const valueHtml = s.compound
+        ? `<div class="value mono compound">${s.value}</div>`
+        : (()=>{ const {prefix,num,suffix} = splitStatValue(s.value);
+            return `<div class="value mono">${prefix?`<span class="unit">${prefix}</span>`:""}${num}${suffix?`<span class="unit">${suffix}</span>`:""}</div>`; })();
+      return `<div class="stat" style="--stat-color:${s.color}">
         <div class="label">${s.label}</div>
-        <div class="value mono">${s.value}</div>
+        ${valueHtml}
         <div class="ctx">${s.ctx}</div>
         <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
-      </div>`
-    ).join("");
+      </div>`;
+    }).join("");
 
     // Tapping the tile body itself (not the arrow - see stopPropagation below) has nothing to navigate
     // to on its own; it's purely the mobile stand-in for the :hover lift every tile already gets on
