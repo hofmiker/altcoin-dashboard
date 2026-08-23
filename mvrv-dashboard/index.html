@@ -657,6 +657,25 @@
   .panel.fullscreen-active #cycleChartHost svg{width:100%; height:auto; max-height:100%;}
   .fs-placeholder{flex:none;}
 
+  /* Marktzyklen fullscreen: the bottom range-button toolbar used to be just another item flowing after
+     the chart inside the same scrolling panel - on a tall device with the on-screen keyboard/browser
+     chrome eating into the viewport, or simply a chart tall enough to push it past the fold, a reader
+     could never actually reach it, confirmed by a real iPad screenshot showing the toolbar cut off with
+     no way to scroll further down to it. Root cause: a touch drag starting ON the chart's own hit-area
+     is claimed for the crosshair, and iOS Safari's real touch-vs-scroll arbitration turned out NOT to
+     honor a same-gesture-conditional preventDefault() the way headless Chromium's did in testing - so
+     trying to fix this purely by teaching the chart's touch handlers to defer to a vertical swipe was
+     unreliable in practice on the one browser that actually matters here. Restructured instead so the
+     toolbar is never inside the part that scrolls at all: .cyc-scroll-body (everything above it - see
+     renderCycleChart) becomes its own independently-scrolling region, and the toolbar sits after it as a
+     plain, always-in-view sibling - the browser's own scroll arbitration inside .cyc-scroll-body no
+     longer needs to be reachable via touch-through-the-chart at all, because there's nothing past the
+     fold left to scroll to once the toolbar itself doesn't live in that region. */
+  .cyc-scroll-body{display:flex; flex-direction:column; gap:14px; min-height:0;}
+  #cycleChartPanel.fullscreen-active{overflow-y:hidden;}
+  #cycleChartPanel.fullscreen-active .cyc-scroll-body{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  #cycleChartPanel.fullscreen-active > .card-toolbar{flex:none;}
+
   .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
   .chart-empty{padding:30px 0; text-align:center; color:var(--ink-3); font-size:12.5px;}
@@ -987,8 +1006,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v280";
-  const EDIT_STAMP = "2026-08-23 10:20 UTC";
+  const EDIT_VERSION = "v281";
+  const EDIT_STAMP = "2026-08-23 10:46 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3658,19 +3677,33 @@
   function computePanelFullscreenHeight(panelId, chartHostId){
     const panel = document.getElementById(panelId);
     if(!panel || !panel.classList.contains("fullscreen-active")) return null;
+    const chartHost = document.getElementById(chartHostId);
+    if(!chartHost) return null;
     const panelRect = panel.getBoundingClientRect();
     const style = getComputedStyle(panel);
     const padX = (parseFloat(style.paddingLeft)||0) + (parseFloat(style.paddingRight)||0);
     const padY = (parseFloat(style.paddingTop)||0) + (parseFloat(style.paddingBottom)||0);
-    const gap = parseFloat(style.gap) || 0;
     const contentWidth = panelRect.width - padX;
-    let usedHeight = 0, visibleSiblings = 0;
-    [...panel.children].forEach(el=>{
-      if(el.id === chartHostId) return;
-      const r = el.getBoundingClientRect();
-      if(r.height > 0){ usedHeight += r.height; visibleSiblings++; }
-    });
-    usedHeight += gap * visibleSiblings;
+    // Sums every OTHER element's height at every nesting level between chartHost and panel itself - not
+    // just chartHost's immediate siblings. heroChart sits directly in heroPanel (one level, same as the
+    // original version of this function), but cycleChartHost now sits inside its own scrollable wrapper
+    // alongside a panel-level sticky toolbar (see .cyc-scroll-body) - walking up one level at a time and
+    // summing each level's own siblings (using THAT level's own gap) correctly accounts for both without
+    // needing two separate implementations.
+    let usedHeight = 0, node = chartHost;
+    while(node && node !== panel){
+      const parent = node.parentElement;
+      if(!parent) break;
+      const gap = parseFloat(getComputedStyle(parent).gap) || 0;
+      let visibleSiblings = 0;
+      [...parent.children].forEach(el=>{
+        if(el === node) return;
+        const r = el.getBoundingClientRect();
+        if(r.height > 0){ usedHeight += r.height; visibleSiblings++; }
+      });
+      usedHeight += gap * visibleSiblings;
+      node = parent;
+    }
     const availablePx = panelRect.height - padY - usedHeight;
     if(availablePx < 100 || contentWidth < 100) return null;
     return Math.max(200, Math.round(availablePx / (contentWidth/1000)));
@@ -5672,13 +5705,15 @@
     hitRect.setAttribute("width", w-padL-padR); hitRect.setAttribute("height", h-padT-padB);
     hitRect.setAttribute("fill","transparent"); hitRect.style.cursor = "crosshair";
     // "pan-y", not "none" like this chart's sibling hitRects (buildLineChart/power-law) - this one is the
-    // only chart that can end up needing to be scrolled PAST vertically while still on top of it (in
-    // fullscreen, where it fills nearly the whole viewport - see initPanelFullscreen/.panel.fullscreen-
-    // active's own overflow-y:auto). With "none", the browser never lets a vertical swipe starting here
-    // become a page/panel scroll at all (confirmed: touchstart fired here left panel.scrollTop untouched
-    // even after a full swipe, while the same swipe starting a few px above it, off this rect, scrolled
-    // fine) - "pan-y" hands vertical panning back to the browser natively while JS still owns horizontal
-    // gestures (crosshair drag), the standard fix for exactly this "horizontal-drag chart inside a
+    // only chart that can end up sitting inside a vertically-scrollable container while still needing
+    // single-finger drags for its own crosshair (in fullscreen, see .cyc-scroll-body). This alone turned
+    // out NOT to fix the actual reported bug on a real device (confirmed by an iPad screenshot: a swipe
+    // starting on the chart still never reached the toolbar below it, even with this in place) - the real
+    // fix is structural (see .cyc-scroll-body/computePanelFullscreenHeight: the toolbar simply no longer
+    // lives inside the part that scrolls at all). Kept anyway as a smaller, harmless secondary
+    // improvement for whenever .cyc-scroll-body's OWN content still exceeds the space above the toolbar
+    // and genuinely needs scrolling - "pan-y" hands vertical panning back to the browser natively while JS
+    // still owns horizontal gestures (crosshair drag), the standard fix for a "horizontal-drag chart inside a
     // vertically-scrollable container" conflict. Doesn't weaken the 2-finger pan/double-tap-zoom-
     // suppression logic below - those aren't single-finger vertical pans and are unaffected by this axis.
     hitRect.style.touchAction = "pan-y";
@@ -5952,11 +5987,25 @@
     panel.appendChild(fsExitBtn);
     if(cycleChartFs) wireFullscreenButtons(fsEnterBtn, fsExitBtn, cycleChartFs);
 
+    // Everything through the chart itself lives in its own scrollable wrapper, kept separate from the
+    // range-button toolbar built at the very end of this function (see that comment, and the .cyc-scroll-
+    // body/computePanelFullscreenHeight comments, for why) - a plain, non-scrolling flex column outside
+    // fullscreen (see .cyc-scroll-body's base rule), matching how these children used to sit directly in
+    // panel.
+    const scrollBody = document.createElement("div");
+    scrollBody.className = "cyc-scroll-body";
+    panel.appendChild(scrollBody);
+
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
     headRow.innerHTML = `<h3>4-Jahres-Zyklus</h3>`;
-    panel.appendChild(headRow);
-    attachInfo(headRow, `Bitcoins Blockbelohnung halbiert sich per Protokoll alle ~4 Jahre (zuletzt April 2024) und drosselt damit schlagartig das Angebot an neuen Coins. Historisch folgt darauf ein sich wiederholendes Muster: eine mehrjährige Aufwärtsphase von grob 3 Jahren bis zu einem neuen Zyklus-Hoch, danach ein deutlich kürzerer, aber steilerer Rückgang von etwa einem Jahr bis zum nächsten Zyklus-Tief - bevor das nächste Halving den nächsten Durchlauf einläutet. Eine Beobachtung aus den bisherigen vier Zyklen, keine Garantie für den nächsten. Dieser Chart zeichnet genau diesen Rhythmus nach: Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für die mehrjährige Aufwärtsphase von einem Tief zum nächsten Hoch, rot für den kürzeren Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("BTC"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings) - rein zur Orientierung, keine Kursprognose.`);
+    scrollBody.appendChild(headRow);
+    attachInfo(headRow, `
+      <p style="margin:0 0 10px;">Bitcoin tickt im Rhythmus des Halvings: Alle ~4 Jahre halbiert sich die Blockbelohnung per Protokoll (zuletzt April 2024) und drosselt schlagartig den Nachschub an neuen Coins.</p>
+      <p style="margin:0 0 10px;">Das historische Muster danach: rund 3 Jahre Aufwärtsphase bis zum nächsten Zyklus-Hoch, dann ein kürzerer, steilerer Rückgang von etwa einem Jahr bis zum nächsten Zyklus-Tief. Vier Zyklen bisher - keine Garantie für den fünften, aber ein Muster, das sich lohnt zu kennen.</p>
+      <p style="margin:0 0 10px;">Dieser Chart macht genau das sichtbar: grüne Zonen für jede Aufwärtsphase, rote für jeden Rückgang, jeweils zwischen den bestätigten Zyklus-Hochs und -Tiefs ("Zyklus"-Umschalter blendet Zonen und Halving-Markierungen ein/aus). Eine Zone antippen zeigt Dauer in Tagen und Höhe in Preisdifferenz, absolut und in Prozent.</p>
+      <p style="margin:0;">Die BTC-Kurslinie lässt sich separat ein-/ausblenden ("BTC") und zeigt immer nur die echte Kurshistorie, nie eine Projektion - läuft sie allein, ohne Zonen, bekommt sie eine Flächen-Verlaufsfüllung statt einer einfarbigen Linie. In der "Alles"-Ansicht reicht die Zeitachse noch etwas über das letzte Halving hinaus: drei geschätzte, blass markierte Halvings zur Orientierung, keine Kursprognose.</p>
+    `, {html:true});
     // Plain-text stand-in for the "i" info popover above (hidden in fullscreen - see the
     // #cycleChartPanel.fullscreen-active .panel-head .info-wrap CSS rule), same as heroPanel's own
     // .fs-desc. "show" is re-applied immediately (not faded in) when this render happens WHILE already
@@ -5965,15 +6014,15 @@
     const fsDesc = document.createElement("p");
     fsDesc.className = "fs-desc" + (wasFullscreen ? " show" : "");
     fsDesc.id = "cycleChartFsDesc";
-    fsDesc.textContent = `Bitcoins ~4-jähriger Auf-und-Ab-Rhythmus, angetrieben vom Halving (Angebotsdrosselung alle ~4 Jahre): historisch rund 3 Jahre Aufwärtsphase bis zum Zyklus-Hoch, dann ein kürzerer, steilerer Rückgang von etwa einem Jahr bis zum nächsten Zyklus-Tief. Bull-/Bärenmarkt-Zonen zwischen den bestätigten Hochs/Tiefs, mit Halving-Markierungen. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
-    panel.appendChild(fsDesc);
+    fsDesc.textContent = `Bitcoin tickt im Rhythmus des Halvings: alle ~4 Jahre halbiert sich die Blockbelohnung und drosselt den Nachschub an neuen Coins. Historisch folgen darauf rund 3 Jahre Aufwärtsphase, dann ein kürzerer, steilerer Rückgang von etwa einem Jahr. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
+    scrollBody.appendChild(fsDesc);
 
     const points = powerLawPoints();
     if(points.length < 2){
       const empty = document.createElement("div");
       empty.className = "chart-empty";
       empty.textContent = "Keine Daten verfügbar";
-      panel.appendChild(empty);
+      scrollBody.appendChild(empty);
       return;
     }
 
@@ -5990,7 +6039,7 @@
     const toolRow = document.createElement("div");
     toolRow.className = "cyc-tool-row";
     toolRow.appendChild(readoutEl);
-    panel.appendChild(toolRow);
+    scrollBody.appendChild(toolRow);
 
     // One unified row for every control this chart itself owns EXCEPT the X-axis toggle - the Y-axis
     // scale toggle and the two layer toggles. Per explicit feedback the X toggle belongs at the bottom
@@ -6039,9 +6088,9 @@
       renderCycleChart();
     });
     chartControlsRow.appendChild(btcBtn);
-    panel.appendChild(chartControlsRow);
+    scrollBody.appendChild(chartControlsRow);
 
-    panel.appendChild(wrap);
+    scrollBody.appendChild(wrap);
 
     // renderCycleChartDOM above just created every axis-label text fresh, at the same fixed
     // raw viewBox-unit font-size renderAllImmediate's own fitChartTypography pass normally corrects
@@ -6079,7 +6128,7 @@
     // height never got subtracted, so the chart was handed MORE vertical space than actually fits once
     // the full panel (chart + toolRow + toolbar together) is accounted for. Visible result: content
     // (the toolbar, and anything drawn near the plot's own bottom edge like a tapped zone's dimension
-    // label) rendered past where #cycleChartPanel's own overflow-y:auto scrolling can reach, because an
+    // label) rendered past where .cyc-scroll-body's own overflow-y:auto scrolling can reach, because an
     // SVG's own overflow:visible content spilling past ITS box doesn't expand an ancestor flex item's
     // layout size the way genuinely taller in-flow content would. Now that toolRow/toolbar actually
     // exist, a fresh measurement corrects this with one extra render pass - cheap, and only ever taken
