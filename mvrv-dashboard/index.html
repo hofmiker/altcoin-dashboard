@@ -841,8 +841,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v268";
-  const EDIT_STAMP = "2026-08-23 05:43 UTC";
+  const EDIT_VERSION = "v269";
+  const EDIT_STAMP = "2026-08-23 05:58 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5705,9 +5705,12 @@
   // so the instant the DOM got rebuilt the content visibly snapped from "where the drag left it" to "where
   // the animation's own math thinks it should start" before animating on to identity - a real, confirmed
   // extra jump right at the handoff ("der Pan ruckelt noch etwas nach"). Read once by
-  // animateCycleChartZoomFromLayout to override just the animation's OWN start-e (never its Y/scale
-  // components, which the live drag never touched either), then always cleared so it can't leak into an
-  // unrelated later animation (e.g. a plain range-button click, which has no live-drag state to honor).
+  // animateCycleChartZoomFromLayout and ADDED on top of the animation's own computed start-e (never its
+  // scale/Y components, which the live drag never touched either) - not used to overwrite it outright,
+  // which discards the domain-math term entirely and substitutes an unrelated value (see
+  // animateCycleChartZoomFromLayout's own comment for why addition is the mathematically exact
+  // composition here). Always cleared after one read so it can't leak into an unrelated later animation
+  // (e.g. a plain range-button click, which has no live-drag state to honor).
   let cyclePendingReleaseDx = null;
 
   function renderCycleChart(){
@@ -6386,10 +6389,23 @@
     // across its own window, so it can just start at the matrix that makes it look like the old view and
     // animate straight down to identity.
     const m = computeCycleChartZoomMatrix(oldLayout, newLayout);
-    // A 2-finger live-pan release overrides the computed start-e with the exact real-pixel offset the
-    // drag already visually left the content at (see cyclePendingReleaseDx's own comment) - never d/f
-    // (Y), which the live drag never touched either, so those keep coming from the real domain math above.
-    if(pendingReleaseDx != null) m.e = pendingReleaseDx;
+    // A 2-finger live-pan release ADDS the exact real-pixel offset the drag already visually left the
+    // content at (see cyclePendingReleaseDx's own comment) on TOP of the computed start-e, never
+    // overwrites it - m.e on its own already describes the affine map that makes the freshly-rebuilt NEW
+    // content look exactly like the OLD content sat AT REST (untranslated, e=0), which is only the
+    // right start state for a range-BUTTON click (no live drag preceded it, so "at rest" is exactly what
+    // was on screen). A live pan's last frame was that SAME old content ADDITIONALLY translated by
+    // pendingReleaseDx pixels (the drag itself never touches scale, only CSS translateX) - so replacing
+    // m.e outright discarded the entire domain-math term and substituted an unrelated one, instantly
+    // snapping the content to a wildly different position (confirmed: for a realistic multi-hundred-day
+    // pan the two values can differ by more than the plot's own width) the instant the fingers lifted,
+    // i.e. exactly the reported still-bouncy release. Adding instead composes correctly: since both
+    // renderings are affine in the same underlying (possibly log-scaled) variable, m(new_point) equals
+    // old_point exactly for every point, not just the two endpoints matched to solve for m - so
+    // m.e+pendingReleaseDx reproduces "old content, translated by the live drag" bit for bit, continuing
+    // seamlessly from the drag's very last frame with zero handoff jump (only a's/d's own domain-implied
+    // scale still eases in over the animation, same as a plain range-button zoom already does smoothly).
+    if(pendingReleaseDx != null) m.e += pendingReleaseDx;
     const flagTargets = collectCycleFlagSyncTargets(wrap, newLayout);
     const crosshairTarget = collectCycleCrosshairSyncTarget(wrap, newLayout);
     const xTickTargets = collectCycleXTickSyncTargets(wrap, newLayout);
