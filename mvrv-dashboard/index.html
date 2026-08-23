@@ -225,7 +225,7 @@
     color:var(--ink-3); font:700 10.5px/1 var(--font-display); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
     flex:none; padding:0; transition:border-color .15s ease, color .15s ease;
   }
-  .info-btn:hover, .info-btn[aria-expanded="true"]{border-color:var(--accent); color:var(--accent);}
+  .info-btn:hover, .info-btn[aria-expanded="true"]{border-color:var(--bitcoin-accent); color:var(--bitcoin-accent);}
   .info-pop{
     /* The header's own info button now lives inside the sidebar's brand row (see .sidebar-brand) - its
        popover flies out to the right into the main content area rather than being clipped to the
@@ -511,6 +511,12 @@
   .panel p{margin:0; font-size:13px; color:var(--ink-2); line-height:1.6;}
   .method-note{font-size:12px; color:var(--ink-3); font-style:italic; margin:0;}
   .panel-head{display:flex; align-items:center; gap:8px;}
+  /* Small bold section labels inside the Impressum panel (Version & Deployment / Quellen / Zweck der
+     Seite / ...) - deliberately smaller than .panel h2's big chart-headline styling, which would read as
+     a whole new page section rather than a subdivision of this one. */
+  .impressum-subhead{font-weight:700; color:var(--ink); font-size:13px; margin:0;}
+  .impressum-block{display:flex; flex-direction:column; gap:6px; padding-top:14px; border-top:1px solid var(--border);}
+  .impressum-block:first-of-type{padding-top:0; border-top:none;}
 
   details.panel{padding:0; overflow:hidden;}
   details.panel summary{
@@ -732,7 +738,7 @@
   </div>
   <div class="sidebar-links" id="navLinks"></div>
   <div class="sidebar-foot">
-    <a class="backlink" href="../index.html">← Alle Dashboards</a>
+    <a class="backlink" href="#impressumPanel">Impressum</a>
     <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
@@ -820,6 +826,49 @@
       Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung), Fear &amp; Greed Index: alternative.me.
     </footer>
 
+    <section class="panel" id="impressumPanel">
+      <div class="panel-head"><h2>Impressum</h2></div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Version &amp; Deployment</p>
+        <p>Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p>
+        <p id="editVersionInfo">Bearbeitungsstand: …</p>
+        <p id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Quellen</p>
+        <p><b>On-Chain- &amp; Kursdaten:</b> <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (frei zugänglich, kein API-Key).</p>
+        <p><b>Fear &amp; Greed Index:</b> <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>.</p>
+        <p><b>Geldmenge (M2/M3, USA/Eurozone/Japan/China):</b> <a href="https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL" target="_blank" rel="noopener">FRED (Federal Reserve Economic Data)</a>.</p>
+        <p>Details zu Berechnungsmethodik und Abruf-Mechanismus jeder Kennzahl siehe <a href="#detailsPanel">„Methodik, Formeln &amp; Datenquelle“</a> oben auf der Seite.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Zweck der Seite</p>
+        <p>Diese Seite dient der illustrativen Veranschaulichung von Bitcoin-On-Chain-Daten. Sie stellt keine Anlageberatung, keine Kauf- oder Verkaufsempfehlung und keine Finanz-, Steuer- oder Rechtsberatung dar. Historische Muster und Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Bitte recherchieren Sie eigenständig und ziehen Sie bei Bedarf professionelle Beratung hinzu, bevor Sie Finanzentscheidungen treffen.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Hinweis zu KI-generierten Inhalten</p>
+        <p>Die Inhalte dieser Seite wurden mit echten Daten befüllt. Die Seite selbst wurde jedoch teilweise mit Unterstützung von KI erstellt und befüllt. KI kann Fehler machen. Die Darstellungen wurden nach bestem Wissen und Gewissen von einem Menschen geprüft, eine Garantie für Fehlerfreiheit oder Vollständigkeit kann dennoch nicht übernommen werden.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Angaben gemäß § 5 TMG</p>
+        <p>[Platzhalter: Vollständiger Name]<br>[Platzhalter: Straße Hausnummer]<br>[Platzhalter: PLZ Ort]<br>[Platzhalter: Land]</p>
+        <p><b>Kontakt:</b><br>E-Mail: [Platzhalter: E-Mail-Adresse]</p>
+        <p><b>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:</b><br>[Platzhalter: Vollständiger Name, Anschrift wie oben]</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Haftungsausschluss</p>
+        <p><b>Haftung für Inhalte:</b> Die Inhalte dieser Seite wurden mit größtmöglicher Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte kann jedoch keine Gewähr übernommen werden. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf dieser Seite nach den allgemeinen Gesetzen verantwortlich; zur Überwachung übermittelter oder gespeicherter fremder Informationen sind wir jedoch nicht verpflichtet.</p>
+        <p><b>Haftung für Links:</b> Diese Seite enthält Links zu externen Webseiten Dritter (u. a. Datenquellen), auf deren Inhalte wir keinen Einfluss haben. Für diese fremden Inhalte übernehmen wir daher keine Gewähr. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter verantwortlich.</p>
+        <p><b>Urheberrecht:</b> Die durch die Seitenbetreiber erstellten Inhalte und Werke unterliegen dem Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.</p>
+      </div>
+    </section>
+
   </div>
 </div>
 
@@ -841,8 +890,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v269";
-  const EDIT_STAMP = "2026-08-23 05:58 UTC";
+  const EDIT_VERSION = "v270";
+  const EDIT_STAMP = "2026-08-23 06:10 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -7971,16 +8020,20 @@
     document.getElementById("themeToggle").addEventListener("click", ()=>{
       setTheme(currentTheme() === "dark" ? "light" : "dark");
     });
-    // The header's info popover carries three things that used to each be their own always-visible page
-    // element: what this page measures, the version/deploy topline (with its own live-freshness check,
-    // see loadDeployInfo - #deployInfo keeps working unchanged, it's just relocated here now), and the
-    // data source/freshness line setStatus() updates on every load (see #statusInfoContent there).
+    // The header's info popover used to also carry the version/deploy topline, the edit-version stamp
+    // and the live data-source/freshness line (setStatus()'s own #statusInfoContent) - per explicit
+    // feedback those read as clutter in a quick "what is this page" popover and now live in the
+    // Impressum section at the bottom of the page instead (#deployInfo/#statusInfoContent keep working
+    // unchanged there, found by the same ID regardless of where in the DOM they actually sit - see
+    // loadDeployInfo/setStatus). This popover is deliberately just the one-paragraph introduction now.
     attachInfo(document.getElementById("headerInfo"), `
       <div class="info-pop-section">Das Bitcoin Dashboard vereint die wichtigsten On-Chain-Kennzahlen an einem Ort: den halving-getriebenen 4-Jahres-Zyklus mit Bull-/Bärenmarkt-Zonen, das Power-Law-Fair-Value-Modell mit Regenbogen-Bändern und die MVRV-Bewertung (Markt- vs. Realized Price). Jeder Chart ist interaktiv und wird live aus echten On-Chain-Daten berechnet – direkt im Browser, ganz ohne Server im Hintergrund.</div>
-      <div class="info-pop-section">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></div>
-      <div class="info-pop-section">Bearbeitungsstand: <b>${EDIT_VERSION}</b> · ${EDIT_STAMP}</div>
-      <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
     `, {html:true});
+    // #editVersionInfo lives in the static Impressum markup at the bottom of the page (not a JS-built
+    // template string like the popover above, so EDIT_VERSION/EDIT_STAMP can't just be interpolated
+    // straight into the HTML) - populated here instead, once, on load.
+    const editVersionEl = document.getElementById("editVersionInfo");
+    if(editVersionEl) editVersionEl.innerHTML = `Bearbeitungsstand: <b>${EDIT_VERSION}</b> · ${EDIT_STAMP}`;
     attachInfo(document.getElementById("heroInfo"), "Fünf erweiternde Perzentil-Bänder (5 / 25 / 50 / 75 / 95 %) der historischen MVRV-Ratio, zurückgerechnet in Preislinien. Zeigt, ob BTC aktuell in einer historisch günstigen oder teuren Zone notiert.");
     attachInfo(document.getElementById("narrativeInfo"), "Automatisch aus den oben berechneten Kennzahlen zusammengesetzter Satz, keine redaktionelle oder KI-Analyse im eigentlichen Sinn und keine Anlageberatung. Der Geschichtsvergleich (\"zuletzt in Q…\") ist echt aus der Historie berechnet, keine Vermutung. Der kleine Chart zeigt den MVRV-Perzentil-Verlauf mit dem aktuellen Stand sowie, falls vorhanden, dem historischen Vergleichszeitpunkt.", {alignRight:true});
     // chartHeight() depends on viewport width, so rebuild charts on resize/rotation (debounced) to
@@ -8020,6 +8073,26 @@
     });
     document.getElementById("navScrim")?.addEventListener("click", closeSidebar);
     document.getElementById("sidebarCollapseBtn")?.addEventListener("click", closeSidebar);
+    // Same "smooth-scroll + dismiss the mobile overlay first" treatment renderSectionNav's own #navLinks
+    // anchors get (see there) - .backlink sits outside #navLinks (it's static, in .sidebar-foot) so it
+    // never picked that handler up on its own, and since it now jumps to the in-page Impressum section
+    // instead of navigating away entirely (like the old "← Alle Dashboards" link did), the same "leaves
+    // the mobile sidebar sitting open over the very content it just scrolled to" gap applies here too.
+    document.querySelector(".sidebar-foot .backlink")?.addEventListener("click", e=>{
+      e.preventDefault();
+      if(window.matchMedia("(max-width:899.98px)").matches) closeSidebar();
+      document.getElementById("impressumPanel")?.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+    // The Impressum's own "Quellen" block links straight to the methodology <details> further up the
+    // page (see #impressumPanel's markup) - a browser's own "auto-open a details element that's the
+    // direct target of a fragment link" behavior turned out NOT to reliably fire for a same-page anchor
+    // click here (confirmed: stayed collapsed), so opened explicitly instead of trusting that.
+    document.querySelector('#impressumPanel a[href="#detailsPanel"]')?.addEventListener("click", e=>{
+      e.preventDefault();
+      const details = document.getElementById("detailsPanel");
+      if(details) details.open = true;
+      details?.scrollIntoView({behavior:"smooth", block:"start"});
+    });
     initSidebarOpenState();
     initHeroFullscreen();
     initCycleChartFullscreen();
