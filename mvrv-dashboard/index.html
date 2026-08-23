@@ -254,8 +254,12 @@
      color/underline alone. */
   .panel a, .info-pop a, .tab-status a{color:var(--bitcoin-accent);}
   .panel a::after, .info-pop a::after, .tab-status a::after{
-    content:""; display:inline-block; width:9px; height:9px; margin-left:1px; flex:none;
-    vertical-align:-1px;
+    /* em-sized, not a fixed px value, per explicit feedback ("darf so hoch sein wie die Texthöhe") - this
+       icon shows up next to text at several different font-sizes across the page (13px body copy, 12.5px
+       popover text, ...), and em units track whichever one is actually in effect at each call site
+       automatically instead of needing a size variant per context. */
+    content:""; display:inline-block; width:0.85em; height:0.85em; margin-left:1px; flex:none;
+    vertical-align:-0.05em;
     background-color:currentColor;
     /* Bottom-left-to-top-right arrow with a stroked (not filled-triangle) head - a diagonal line plus an
        open corner bracket at its top-right end, exactly matching the shape a currentColor SVG stroke icon
@@ -743,6 +747,16 @@
       position:fixed; left:16px; right:16px; top:auto; bottom:calc(16px + env(safe-area-inset-bottom));
       width:auto; max-width:none; max-height:70vh; overflow-y:auto; z-index:50;
     }
+    /* The 4-Jahres-Zyklus toolbar (7 range buttons + "Zurück zu heute" + the X-axis Log/Linear toggle,
+       see renderCycleChart) is the widest single-row control group on the page - at desktop sizing it
+       overflowed a narrow phone's card width and wrapped onto an extra line, which then sat close enough
+       to the browser's own bottom chrome to read as broken rather than just "a second row". Shrinking
+       every button in it a bit here is enough to fit the whole row on one line down to the narrowest
+       viewports this site supports. */
+    .card-toolbar{gap:6px;}
+    .seg-sm button{font-size:10px; padding:4px 6px;}
+    .today-jump-btn{width:24px; height:24px; font-size:11px;}
+    .cyc-axis-toggle, .halving-toggle-btn{font-size:10px; padding:5px 7px;}
   }
 </style>
 </head>
@@ -971,8 +985,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v272";
-  const EDIT_STAMP = "2026-08-23 06:26 UTC";
+  const EDIT_VERSION = "v273";
+  const EDIT_STAMP = "2026-08-23 06:47 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4957,23 +4971,15 @@
     // whatever narrow slice of the log-scale height the top of the range occupies, close enough to
     // visually overlap into unreadable labels. Per explicit feedback, that must never drop the GRIDLINE
     // itself, only its text: every "nice" dollar value always gets its line, at the same constant $ step,
-    // in every mode - readers rely on that constancy to judge distances on the log axis too, and a
-    // matching tick COUNT in every mode is exactly what keeps the log<->linear toggle animation (see
-    // animateCycleChartFromLayout) sliding existing gridlines to a new row instead of ticks popping in
-    // or vanishing mid-transition. Only the LABEL is thinned - marked showLabel:false (not removed) - by
-    // walking top to bottom and requiring MIN_Y_TICK_GAP of clearance from the previous still-labeled
-    // tick's row. A fixed viewBox-unit gap rather than a real-pixel one since this runs before the chart
-    // is ever in the live DOM (also reused for animation "old layout" reconstructions where it isn't),
-    // calibrated conservatively for a narrower rendered chart width where the same viewBox distance reads
-    // as fewer real pixels - so it may hide a bit more label text than strictly necessary on a wide
-    // desktop chart, but never risks leaving overlapping text there either.
-    const MIN_Y_TICK_GAP = 20;
-    yTicks = yTicks.slice().sort((a,b)=>a.y-b.y);
-    let lastLabelY = null;
-    yTicks.forEach(t=>{
-      if(lastLabelY!==null && t.y-lastLabelY < MIN_Y_TICK_GAP) t.showLabel = false;
-      else lastLabelY = t.y;
-    });
+    // in every mode. Label THINNING itself no longer happens here - a fixed viewBox-unit gap can't tell
+    // whether it's guarding a wide desktop chart or a narrow, disproportionately TALL mobile one (mobile's
+    // own chartHeight() is 1200 vs desktop's 456, so the same viewBox-unit gap could read as anywhere from
+    // a few real pixels to several dozen - confirmed: labels were flat-out overlapping on mobile, not just
+    // a little tight). See applyCycleTickLabelThinning, run once the chart is actually in the live DOM and
+    // its real rendered scale is known, for the real fix. showLabel stays true for every tick here -
+    // gridline/label element COUNT is still identical across log/linear (needed for the toggle animation
+    // to slide existing elements to a new row instead of some popping in/out mid-transition), only
+    // visibility differs, and that's now handled entirely post-render.
     // Every tick (year-only or month-inclusive alike) carries a "YYYY-MM" key, not just a bare year - so
     // the zoom/axis-toggle animation's old->new tick matching (see collectCycleXTickSyncTargets and the
     // axis-toggle lerp) keeps working unchanged across a range change that crosses the 2-year threshold
@@ -5231,18 +5237,16 @@
       gl.setAttribute("x1",padL); gl.setAttribute("x2",w-padR); gl.setAttribute("y1",t.y); gl.setAttribute("y2",t.y);
       gl.setAttribute("stroke","var(--border)"); gl.setAttribute("stroke-width","1"); gl.setAttribute("vector-effect","non-scaling-stroke");
       yTickLayer.appendChild(gl);
-      // The gridline above always exists at this tick's real dollar value (see the showLabel comment on
-      // yTicks) - only its text is conditional, so a value with no room for its number still keeps the
-      // same constant-step line every other value gets, and the animation's old/new tick sets always
-      // match 1:1 regardless of which mode's label thinning differs.
-      if(t.showLabel){
-        const lbl = document.createElementNS(NS,"text");
-        lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
-        lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
-        lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
-        lbl.textContent = t.label;
-        yTickLayer.appendChild(lbl);
-      }
+      // The gridline above always exists at this tick's real dollar value (see the comment on yTicks) -
+      // the label element always exists too now (visibility is decided post-render, once the chart's real
+      // scale is known - see applyCycleTickLabelThinning), so the animation's old/new tick sets always
+      // match 1:1 regardless of which ones end up hidden in either mode.
+      const lbl = document.createElementNS(NS,"text");
+      lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
+      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.textContent = t.label;
+      yTickLayer.appendChild(lbl);
     });
     svg.appendChild(yTickLayer);
     // Unlike buildLineChart's own X date labels (deliberately screen-fixed, see the comment there), this
@@ -5978,6 +5982,11 @@
     // comment for why the horizontal-vs-rotated decision can only be made once each label's REAL rendered
     // width exists on the live DOM.
     applyCycleXTickOrientation(svg, layout);
+    // Needs both fitChartTypography's real font-size correction (glyph height/width) AND
+    // applyCycleXTickOrientation's final rotated-vs-horizontal decision (each X label's own real
+    // footprint depends on which one is active) already applied - see applyCycleTickLabelThinning's own
+    // comment for why this can't happen earlier, at pure-geometry layout-compute time.
+    applyCycleTickLabelThinning(svg);
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
@@ -6327,6 +6336,50 @@
         labels.forEach(l=>{ l.style.transition = "opacity .25s ease"; l.style.opacity = "1"; });
       });
     }
+  }
+  // Hides whichever Y/X-axis tick LABELS would visually collide with their nearest still-visible
+  // neighbor, measured against the chart's REAL rendered size - never the gridline/tick mark itself (Y's
+  // own gridlines always stay, per computeCycleChartLayout's own comment; an X label's short connector
+  // tick is hidden alongside it, since an unlabeled stub tick mark serves no purpose on its own). Must run
+  // after fitChartTypography (needs the real, already-corrected font size) and after
+  // applyCycleXTickOrientation (rotated vs horizontal changes each X label's own real footprint).
+  //
+  // Replaces an earlier attempt that thinned Y labels at pure-geometry layout-compute time, using a fixed
+  // viewBox-unit gap as a proxy for "will these collide on screen" - confirmed broken specifically on
+  // mobile: this chart's own chartHeight() returns 1200 there vs 456 on desktop, so the identical
+  // viewBox-unit gap could be a generous margin on one and a near-total overlap on the other (mobile
+  // screenshot showed adjacent $ labels flat-out overlapping). getBoundingClientRect() sidesteps that
+  // entirely by reading real screen pixels directly, correct for any viewport/scale/rotation without
+  // needing to know the current scaleX/scaleY at all.
+  function applyCycleTickLabelThinning(svg){
+    const yLabels = [...svg.querySelectorAll("text.axis-label:not(.axis-label-x)[data-key]")];
+    yLabels.forEach(l=>{ l.style.display = ""; });
+    yLabels.sort((a,b)=> a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+    let lastBottom = null;
+    yLabels.forEach(lbl=>{
+      const r = lbl.getBoundingClientRect();
+      if(lastBottom !== null && r.top < lastBottom + 2){
+        lbl.style.display = "none";
+      } else {
+        lastBottom = r.bottom;
+      }
+    });
+
+    const xLabels = [...svg.querySelectorAll("text.axis-label-x[data-key]")];
+    xLabels.forEach(l=>{ l.style.display = ""; });
+    xLabels.sort((a,b)=> a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+    let lastRight = null;
+    xLabels.forEach(lbl=>{
+      const r = lbl.getBoundingClientRect();
+      const tick = svg.querySelector(`line.cyc-xtick[data-key="${lbl.dataset.key}"]`);
+      if(lastRight !== null && r.left < lastRight + 4){
+        lbl.style.display = "none";
+        if(tick) tick.style.display = "none";
+      } else {
+        lastRight = r.right;
+        if(tick) tick.style.display = "";
+      }
+    });
   }
   function collectCycleXTickSyncTargets(wrap, layout){
     const targets = [];
