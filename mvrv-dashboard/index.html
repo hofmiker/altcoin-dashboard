@@ -842,8 +842,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v265";
-  const EDIT_STAMP = "2026-08-23 04:41 UTC";
+  const EDIT_VERSION = "v266";
+  const EDIT_STAMP = "2026-08-23 05:04 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5822,6 +5822,30 @@
     toolbar.appendChild(rangeSeg);
     panel.appendChild(toolbar);
 
+    // computeCycleChartFullscreenHeight() (called from inside computeCycleChartLayout above, BEFORE
+    // toolRow/toolbar existed - they're only built and appended afterward) measured "how much room is
+    // already used by this panel's other children" against an INCOMPLETE DOM: on a fresh fullscreen
+    // entry, panel.innerHTML="" had just wiped everything, so only the fs buttons/headRow/fsDesc were
+    // present yet, not toolRow's readout+Zyklus/Kurs row or this toolbar's range buttons - their real
+    // height never got subtracted, so the chart was handed MORE vertical space than actually fits once
+    // the full panel (chart + toolRow + toolbar together) is accounted for. Visible result: content
+    // (the toolbar, and anything drawn near the plot's own bottom edge like a tapped zone's dimension
+    // label) rendered past where #cycleChartPanel's own overflow-y:auto scrolling can reach, because an
+    // SVG's own overflow:visible content spilling past ITS box doesn't expand an ancestor flex item's
+    // layout size the way genuinely taller in-flow content would. Now that toolRow/toolbar actually
+    // exist, a fresh measurement corrects this with one extra render pass - cheap, and only ever taken
+    // once per fullscreen entry (cycleChartFsHeightCorrecting guards against recursing further; the
+    // second pass's own measurement is already complete, so it never re-triggers itself).
+    if(panel.classList.contains("fullscreen-active") && !cycleChartFsHeightCorrecting){
+      const freshH = computeCycleChartFullscreenHeight();
+      if(freshH != null && Math.abs(freshH - layout.h) > 4){
+        cycleChartFsHeightCorrecting = true;
+        renderCycleChart();
+        cycleChartFsHeightCorrecting = false;
+        return;
+      }
+    }
+
     cycleChartPrevState = {logX:cycleChartLogX, logY:cycleChartLogY, rangeDays, panOffsetDays};
     if(animate){
       // Clears whatever zone label/highlight the DOM just rebuilt above still shows - see
@@ -8026,6 +8050,10 @@
   function initCycleChartFullscreen(){
     cycleChartFs = initPanelFullscreen("cycleChartPanel", "cycleChartFsDesc");
   }
+  // Guards the one-shot self-correcting re-render at the end of renderCycleChart() against recursing more
+  // than once per call - see that render's own comment for why a first pass can under-measure the
+  // available fullscreen height.
+  let cycleChartFsHeightCorrecting = false;
 
   async function loadAndRender(force){
     setStatus("loading");
