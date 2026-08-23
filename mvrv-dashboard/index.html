@@ -440,34 +440,29 @@
      mirrors .hero-panel's own explicit position:relative for the same reason. */
   #cycleChartPanel{ position:relative; }
 
-  /* Single-button log/linear toggles for the Marktzyklen chart's own X/Y axes - text is always "Log",
-     the .active class alone shows which axis is currently in log mode (same static-text convention as
-     the "Zyklus"/"Kurs" pills - see buildCycleAxisToggle). Only the Y toggle still sits directly on the
-     chart (absolutely positioned inside .cyc-chart-svg-host, a zero-padding wrapper around just the
-     <svg> so percentage offsets line up with the viewBox's own coordinate fractions), right above the
-     Y-axis value-label column it controls. The X toggle moved into the toolbar row instead, next to
-     "Zurück zu heute" (see renderCycleChart) - per explicit feedback, sitting on the chart itself put it
-     in the reader's way right where the X-axis labels/pan gesture live. */
+  /* Single-button log/linear toggles for the Marktzyklen (4-Jahres-Zyklus) chart's own X/Y axes - text is
+     always "Log", the .active class alone shows which axis is currently in log mode (same static-text
+     convention as the "Zyklus"/"BTC" pills - see buildCycleAxisToggle). Both toggles now sit together with
+     those two pills in one unified row directly above the chart (see .cyc-controls-row below) rather than
+     scattered across the chart's own corners and the shared toolbar - per explicit feedback to bring every
+     control this chart owns into one place, and to make every one of them look like the same button
+     family (hence reusing .halving-toggle-btn's own metrics here almost verbatim instead of the smaller,
+     differently-rounded on-chart style this used to have). */
   .cyc-chart-svg-host{ position:relative; }
-  /* Neutral border/background like every other toggle button on this chart (.halving-toggle-btn) rather
-     than the brand-accent color tried earlier - that read as an odd one-off the same coloring doesn't
-     apply to anywhere else on the page. */
   .cyc-axis-toggle{
-    font:inherit; font-family:var(--font-display); font-size:11px; font-weight:700;
-    padding:4px 0; width:46px; text-align:center; border-radius:6px; border:1px solid var(--border);
-    background:var(--card); color:var(--ink-2); cursor:pointer;
-    transition:border-color .15s ease, color .15s ease, background .15s ease; z-index:4; line-height:1.3;
+    font:inherit; font-family:var(--font-display); font-size:11px; font-weight:600; padding:8px 11px;
+    border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--ink-2); cursor:pointer;
+    transition:border-color .15s ease, color .15s ease, background .15s ease; flex:none; white-space:nowrap;
   }
   .cyc-axis-toggle:hover{ color:var(--ink); border-color:var(--ink-3); }
   .cyc-axis-toggle.active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
-  /* Anchored at (padL, padT) - the corner where the Y gridlines/labels start - but pulled fully above
-     and to the left of it (not straddling the axis line the way a centered transform would) so it reads
-     as sitting above the Y-axis's own value-label column, not on top of the axis itself. */
-  .cyc-axis-toggle-y{ position:absolute; transform:translate(-100%,-100%); margin:-6px 0 0 -4px; }
-  /* Toolbar member now, not chart-overlaid - flex:none keeps it from stretching inside buildRangeSeg's
-     inline-flex group, and the slightly taller padding matches that group's other buttons
-     (.today-jump-btn/.halving-toggle-btn) instead of the tighter on-chart sizing above. */
-  .cyc-axis-toggle-x{ flex:none; padding:8px 0; }
+  /* One left-aligned row for every control this chart itself owns (both axis toggles, "Zyklus", "BTC") -
+     directly above the chart, below the readout row. */
+  .cyc-controls-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:2px; }
+  /* BTC-branded accent (var(--c-price), the same color the price line itself always uses) instead of the
+     neutral ink every other toggle here inverts to - only while active, so it doesn't read as a warning
+     color when the BTC line is hidden. */
+  .cyc-btc-btn.active{ background:var(--c-price); color:#fff; border-color:var(--c-price); }
 
   /* Row directly below the "Marktzyklen" headline and above the chart itself: the crosshair readout
      (date/price/change, see paintReadoutPill) on the left, the Zyklus/Kurs layer toggles on the right -
@@ -583,6 +578,10 @@
   }
   .panel.fullscreen-active .fs-desc{display:block;}
   .panel.fullscreen-active .fs-desc.show{opacity:1; transform:translateY(0);}
+  /* Headline/body copy read a little small once blown up to a full viewport - a modest bump (not a full
+     re-scale) for fullscreen specifically, per explicit feedback. */
+  .panel.fullscreen-active h3{ font-size:34px; }
+  .panel.fullscreen-active .fs-desc{ font-size:16px; }
   /* Only present while actively entering/leaving - a permanent transition on every .panel would make
      completely unrelated, JS-driven attribute changes elsewhere (renderAll* rebuilding this same panel's
      children on every state change) animate too, which is not what's being asked for here. */
@@ -807,7 +806,7 @@
         <p><b>NUPL</b> (Net Unrealized Profit/Loss) = (Market Cap − Realized Cap) ÷ Market Cap = 1 − 1/MVRV. Anteil des Netzwerks, der aktuell im nicht realisierten Gewinn sitzt.</p>
         <p><b>MVRV Z-Score</b> = (Market Cap − Realized Cap) ÷ Standardabweichung(Market Cap), Standardabweichung erweiternd über die gesamte bisherige Historie berechnet. Filtert MVRV-Extremwerte relativ zur historischen Volatilität.</p>
         <p><b>MVRV-Perzentil</b>: Rang der aktuellen MVRV-Ratio unter allen bisherigen MVRV-Werten (0–100 %), ebenfalls erweiternd berechnet — unabhängig von der absoluten MVRV-Skala und direkt vergleichbar mit den Quantile-Bands-Zonen oben.</p>
-        <p><b>Marktzyklen (Bull-/Bärenmarkt-Zonen):</b> Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei zusätzliche, blass markierte Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings) - reine Orientierungshilfe, keine Kursprognose. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie eine Flächen-Verlaufsfüllung darunter (wie bei der Kachel "Realized Price vs. Marktpreis"), damit sie nicht kontextlos wirkt - die Linie selbst bleibt einfarbig.</p>
+        <p><b>4-Jahres-Zyklus (Bull-/Bärenmarkt-Zonen):</b> Bitcoins Blockbelohnung halbiert sich per Protokoll etwa alle vier Jahre und drosselt damit das Angebot an neuen Coins schlagartig - historisch der Auslöser für den wiederkehrenden, rund vierjährigen Rhythmus aus Bullen- und Bärenmarkt, den dieser Chart nachzeichnet. Ein Zyklus-Hoch bzw. -Tief gilt erst dann als bestätigt, wenn der Kurs sich seit dem bisherigen Extrempunkt um mindestens 75 % in die Gegenrichtung bewegt hat — deutlich über der üblichen ~20 %-Schwelle für einen "Bärenmarkt" im engeren Sinn, damit reguläre mehrwöchige Schwankungen (die bei Bitcoin regelmäßig 20–50 % erreichen, ohne einen echten Zyklus-Wendepunkt darzustellen) nicht fälschlich als Zyklus-Wende gezählt werden. Verifiziert gegen die reale Kurshistorie: 75 % reproduziert exakt die acht üblicherweise genannten Zyklus-Hochs/-Tiefs (u. a. 2011-06/2011-11, 2017-12/2018-12, 2021-11/2022-11) ohne zusätzliches Rauschen. Der jeweils letzte, noch nicht auf diese Weise bestätigte Extrempunkt wird als "bisheriges" Hoch/Tief mit gestricheltem Rahmen markiert, nicht als endgültig. Jede Zone verbindet exakt ihre beiden Randpunkte (Hoch-/Tief-Preis), nicht die volle Charthöhe — eine größere Kursbewegung erscheint dadurch auch als größere Fläche. Der reale Kurs selbst wird nie in die Zukunft projiziert. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus und zeigt dort drei zusätzliche, blass markierte Halvings (geschätzt aus der durchschnittlichen Zyklusdauer der bisherigen vier Halvings) - reine Orientierungshilfe, keine Kursprognose. Die BTC-Kurslinie selbst lässt sich unabhängig von den Zonen ein-/ausblenden; läuft sie dabei ganz ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie eine Flächen-Verlaufsfüllung darunter (wie bei der Kachel "Realized Price vs. Marktpreis"), damit sie nicht kontextlos wirkt - die Linie selbst bleibt einfarbig.</p>
         <p class="method-note">Eigene Annäherung an das Konzept (u. a. bekannt von bitcoinmagazinepro.com / LookIntoBitcoin), keine 1:1-Kopie proprietärer Charts. Zonen-Schwellenwerte (Kapitulation/Euphorie etc.) sind gängige Näherungswerte, keine exakten Grenzen. Die ersten rund zwei Handelswochen ab 2010-07-18 sind aus der gesamten Datenreihe entfernt: Realized Cap war zu dem Zeitpunkt mangels bewegter Coins praktisch bei null, was die MVRV kurzzeitig auf über das 140-fache trieb — ein Methodik-Artefakt, kein reales Marktgeschehen.</p>
         <p><b>Datenquelle:</b> <a href="https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD&frequency=1d&page_size=10000" target="_blank" rel="noopener">Coin Metrics Community API</a> — kostenlos, kein API-Key. Angefragt werden <span class="mono" style="font-size:12px;">PriceUSD, CapMVRVCur, CapRealUSD, SplyCur, CapMrktCurUSD</span>; welche davon Coin Metrics ohne Zugangsdaten tatsächlich herausgibt, kann sich ändern (bestätigt: <span class="mono" style="font-size:12px;">CapRealUSD</span> liefert aktuell "not available with supplied credentials"). Der tägliche Abruf-Job testet das bei jedem Lauf einzeln pro Metrik und verwendet nur, was wirklich freigegeben ist — Kennzahlen, die das nicht mehr abdeckt, werden auf der Seite ehrlich als "nicht verfügbar" markiert statt geschätzt.</p>
         <p>Coin Metrics erlaubt zwar direkte Navigation zur API-URL, blockiert aber Cross-Origin-<span class="mono" style="font-size:12px;">fetch()</span>-Aufrufe aus dem Browser einer fremden Domain wie dieser GitHub-Pages-Seite. Ein direkter Live-Abruf wird deshalb zwar versucht, schlägt aber in der Praxis meist fehl. Die eigentliche Datenquelle ist ein täglicher, unveränderter Snapshot (<span class="mono" style="font-size:12px;">data/mvrv/latest.json</span>), den eine GitHub Action serverseitig per curl von derselben API holt und mit Datum versieht. Welche Quelle gerade aktiv ist und wann sie abgeholt wurde, steht immer oben im Status-Banner.</p>
@@ -842,8 +841,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v266";
-  const EDIT_STAMP = "2026-08-23 05:04 UTC";
+  const EDIT_VERSION = "v267";
+  const EDIT_STAMP = "2026-08-23 05:34 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4812,6 +4811,16 @@
     // every row fixed in place.
     const priceMin = Math.pow(10,yLogMin), priceMax = Math.pow(10,yLogMax);
     let yTicks = niceYTicks(priceMin, priceMax, logY, 6).map(v=>({value:v, y:yOf(v), label:fmtUSD(v), key:String(v), showLabel:true}));
+    // A $0 baseline, for orientation - only in linear mode (0 is undefined on a log scale, and niceLinearTicks
+    // never generates it on its own: its first tick is always the smallest step-multiple >= min, and priceMin
+    // here is always some positive value, however small, never exactly 0). Extrapolated the same way any other
+    // tick's y-position already is (yOf isn't clamped to the visible price range), so it naturally renders at
+    // the plot's own bottom edge in a wide/"Alles" view (where the domain floor is already a near-zero
+    // fraction of a cent) and just as naturally falls outside the clip in a zoomed-in view where $0 is nowhere
+    // near - no extra visibility logic needed, same clip-path every other tick already relies on.
+    if(!logY && !yTicks.some(t=>t.value===0)){
+      yTicks.push({value:0, y:yOf(0), label:"$0", key:"0", showLabel:true});
+    }
     // Same round-dollar tick values in every mode (see niceYTicks) means their Y position can end up
     // extremely compressed in log mode over a wide multi-decade range (e.g. "Alles", spanning cents to
     // six figures) - a single global $ step only has room to place several multiples' TEXT within
@@ -4993,7 +5002,7 @@
   }
 
   function renderCycleChartDOM(layout){
-    const {w,h,padL,padR,padT,padB, points, logX, logY} = layout;
+    const {w,h,padL,padR,padT,padB, points} = layout;
     const svg = document.createElementNS(NS,"svg");
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
     svg.setAttribute("preserveAspectRatio","none");
@@ -5660,13 +5669,12 @@
     const svgHost = document.createElement("div");
     svgHost.className = "cyc-chart-svg-host";
     svgHost.appendChild(svg);
-    // Only the Y toggle sits on the chart itself now (directly above the Y-axis label column it
-    // controls) - the X toggle moved into the toolbar row next to "Zurück zu heute" (see
-    // renderCycleChart), so it isn't built here anymore.
-    const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", logY, v=> animateCycleChartAxisChange(cycleChartLogX, v), "Y-Achse: Log/Linear umschalten");
-    yToggle.style.left = (padL/w*100).toFixed(2)+"%";
-    yToggle.style.top = (padT/h*100).toFixed(2)+"%";
-    svgHost.appendChild(yToggle);
+    // Neither axis toggle is built here anymore - the Y toggle used to sit absolutely positioned above
+    // the Y-axis label column, inside this very svgHost, and the X toggle used to sit in the bottom
+    // toolbar next to "Zurück zu heute". Both now live together with the Zyklus/BTC buttons in one plain
+    // HTML row renderCycleChart builds directly above the chart - per explicit feedback to bring every
+    // one of this chart's own controls into a single unified row instead of scattering them around the
+    // chart's corners and the shared toolbar.
     wrap.appendChild(svgHost);
 
     return {svg, wrap, readoutEl};
@@ -5727,9 +5735,9 @@
 
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
-    headRow.innerHTML = `<h3>Marktzyklen</h3>`;
+    headRow.innerHTML = `<h3>4-Jahres-Zyklus</h3>`;
     panel.appendChild(headRow);
-    attachInfo(headRow, `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("Kurs"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings) - rein zur Orientierung, keine Kursprognose.`);
+    attachInfo(headRow, `Bitcoins Blockbelohnung halbiert sich per Protokoll alle ~4 Jahre (zuletzt April 2024) und drosselt damit schlagartig das Angebot an neuen Coins - historisch der Auslöser für den immer wiederkehrenden, rund vierjährigen Rhythmus aus Bullen- und Bärenmarkt, den dieser Chart nachzeichnet. Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs (siehe "Zyklus"-Umschalter, der auch die Halving-Markierungen mit ein-/ausblendet) - grün für den Anstieg von einem Tief zum nächsten Hoch, rot für den Rückgang danach. Jede Zone verbindet exakt ihre beiden Randpunkte (Ober-/Unterkante bei den jeweiligen Hoch-/Tief-Preisen), nicht die volle Charthöhe. Antippen einer Zone zeigt ihre Breite in Tagen und Höhe in Preisdifferenz (absolut und %). Die BTC-Kurslinie selbst lässt sich separat ein-/ausblenden ("BTC"-Umschalter) und zeigt ausschließlich die echte Kurshistorie, nie eine Preisprojektion - läuft sie ohne die Zyklus-Zonen als einzige Farbe im Chart, bekommt sie stattdessen eine Flächen-Verlaufsfüllung darunter (wie bei "Realized Price vs. Marktpreis") statt einer eingefärbten Linie. In der "Alles"-Ansicht reicht die Zeitachse zusätzlich noch etwas über das letzte reale Halving hinaus: 3 geschätzte, blass markierte Halvings (Ø Zyklusdauer der bisherigen Halvings) - rein zur Orientierung, keine Kursprognose.`);
     // Plain-text stand-in for the "i" info popover above (hidden in fullscreen - see the
     // #cycleChartPanel.fullscreen-active .panel-head .info-wrap CSS rule), same as heroPanel's own
     // .fs-desc. "show" is re-applied immediately (not faded in) when this render happens WHILE already
@@ -5738,7 +5746,7 @@
     const fsDesc = document.createElement("p");
     fsDesc.className = "fs-desc" + (wasFullscreen ? " show" : "");
     fsDesc.id = "cycleChartFsDesc";
-    fsDesc.textContent = `Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs, mit Halving-Markierungen. "Zyklus" blendet Zonen und Halvings ein/aus, "Kurs" die BTC-Kurslinie selbst - die Log/Linear-Umschalter oben links bzw. unten rechts wechseln die jeweilige Achsenskala.`;
+    fsDesc.textContent = `Bitcoins ~4-jähriger Auf-und-Ab-Rhythmus, angetrieben vom Halving (Angebotsdrosselung alle ~4 Jahre): Bull-/Bärenmarkt-Zonen zwischen den bestätigten Zyklus-Hochs/-Tiefs, mit Halving-Markierungen. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
     panel.appendChild(fsDesc);
 
     const points = powerLawPoints();
@@ -5751,10 +5759,32 @@
     }
 
     const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
-    const {wrap, readoutEl} = renderCycleChartDOM(layout);
+    const {svg, wrap, readoutEl} = renderCycleChartDOM(layout);
 
-    const layerToggleWrap = document.createElement("div");
-    layerToggleWrap.className = "overlay-toggles";
+    // Readout (date/price/change) alone now - one row, directly below the headline and above the chart
+    // itself. Previously an SVG overlay pinned to the chart's own top-right corner; per explicit feedback
+    // that placement was wrong (it sat over the plot), so it's plain HTML now, positioned here instead.
+    // The layer/axis toggles that used to share this row moved into their own row below (see
+    // chartControlsRow) - per explicit feedback, every one of this chart's own controls belongs together
+    // in a single left-aligned row directly above the chart, not split between here and the chart's
+    // corners/the shared toolbar.
+    const toolRow = document.createElement("div");
+    toolRow.className = "cyc-tool-row";
+    toolRow.appendChild(readoutEl);
+    panel.appendChild(toolRow);
+
+    // One unified row for every control this chart itself owns - the two axis-scale toggles (Y then X,
+    // matching reading order top-to-bottom/left-to-right of the axes they control) and the two layer
+    // toggles. All four share the same .halving-toggle-btn sizing/shape/radius now (see that class and
+    // .cyc-axis-toggle's own reduced rule) instead of the Y/X toggles' previous smaller, differently
+    // rounded on-chart style - per explicit feedback to make every button at this chart look like one
+    // consistent family.
+    const chartControlsRow = document.createElement("div");
+    chartControlsRow.className = "cyc-controls-row";
+    const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", cycleChartLogY, v=> animateCycleChartAxisChange(cycleChartLogX, v), "Y-Achse: Log/Linear umschalten");
+    chartControlsRow.appendChild(yToggle);
+    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
+    chartControlsRow.appendChild(xToggle);
     // One compact pill now covers both the bull/bear zone shading AND this chart's halving markers
     // (previously two separate controls - a rounded "Zyklus-Zonen" chip up here plus a distinct "Zyklen"
     // button down in the toolbar) - same compact rectangular shape as the time-range buttons rather than
@@ -5773,53 +5803,44 @@
       showHalvings = next;
       renderAll();
     });
-    layerToggleWrap.appendChild(zBtn);
+    chartControlsRow.appendChild(zBtn);
     // Separate on/off for the price line itself - shown with "Zyklus" so the reader can look at just the
     // zone/halving/tunnel structure with no price line cluttering it, or vice versa. When it's the ONLY
     // thing visible (Zyklus off), it has no bull/bear color context left at all, so renderCycleChartDOM
     // gives it an area-fill gradient underneath it instead of a flat, contextless line in that case.
-    const priceBtn = document.createElement("button");
-    priceBtn.type = "button";
-    priceBtn.className = "halving-toggle-btn" + (cycleChartLayerVisible.price ? " active" : "");
-    priceBtn.title = "BTC-Kurslinie ein-/ausblenden";
-    priceBtn.textContent = "Kurs";
-    priceBtn.addEventListener("click", ()=>{
+    // Renamed from the earlier generic "Kurs" and given the BTC/price accent color (.cyc-btc-btn, active
+    // state only - see that class) rather than the neutral ink every other toggle here uses, per explicit
+    // feedback that this one specifically names and represents the BTC price line, unlike its siblings.
+    const btcBtn = document.createElement("button");
+    btcBtn.type = "button";
+    btcBtn.className = "halving-toggle-btn cyc-btc-btn" + (cycleChartLayerVisible.price ? " active" : "");
+    btcBtn.title = "BTC-Kurslinie ein-/ausblenden";
+    btcBtn.textContent = "BTC";
+    btcBtn.addEventListener("click", ()=>{
       cycleChartLayerVisible.price = !cycleChartLayerVisible.price;
       renderCycleChart();
     });
-    layerToggleWrap.appendChild(priceBtn);
-
-    // Readout (date/price/change) on the left, layer toggles on the right - one row, directly below the
-    // headline and above the chart itself. Previously an SVG overlay pinned to the chart's own top-right
-    // corner; per explicit feedback that placement was wrong (it sat over the plot), so it's plain HTML
-    // now, positioned here instead.
-    const toolRow = document.createElement("div");
-    toolRow.className = "cyc-tool-row";
-    toolRow.appendChild(readoutEl);
-    toolRow.appendChild(layerToggleWrap);
-    panel.appendChild(toolRow);
+    chartControlsRow.appendChild(btcBtn);
+    panel.appendChild(chartControlsRow);
 
     panel.appendChild(wrap);
 
     // renderCycleChartDOM above just created every axis-label text fresh, at the same fixed
     // raw viewBox-unit font-size renderAllImmediate's own fitChartTypography pass normally corrects
     // right after - but that pass only runs from renderAllImmediate itself. Every OTHER path that
-    // rebuilds this chart's DOM (the "Kurs" toggle's direct renderCycleChart() call, and both
+    // rebuilds this chart's DOM (the "BTC" toggle's direct renderCycleChart() call, and both
     // animateCycleChartZoomFromLayout/animateCycleChartFromLayout below, which only interpolate
     // position, never font-size) used to skip it entirely, leaving labels stuck at that small raw
     // size - most visible on a narrower card, where "raw size" and "real fitted size" diverge most.
     fitChartTypography();
+    // Needs the font-size fitChartTypography above just applied - see applyCycleXTickOrientation's own
+    // comment for why the horizontal-vs-rotated decision can only be made once each label's REAL rendered
+    // width exists on the live DOM.
+    applyCycleXTickOrientation(svg, layout);
 
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
-    const rangeSeg = buildRangeSeg("cyclechart", {halvingBtn:false});
-    // X-axis log/linear toggle, appended right after "Zurück zu heute" inside the SAME flex group
-    // buildRangeSeg returns (not a separate toolbar child) so it sits directly beside that button,
-    // not just somewhere else in the row - per explicit feedback moving it off the chart itself
-    // (where only the Y toggle, right above the axis it controls, stays) into the toolbar instead.
-    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
-    rangeSeg.appendChild(xToggle);
-    toolbar.appendChild(rangeSeg);
+    toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
     panel.appendChild(toolbar);
 
     // computeCycleChartFullscreenHeight() (called from inside computeCycleChartLayout above, BEFORE
@@ -6013,7 +6034,8 @@
         const x = lerp(ot ? ot.x : nt.x, nt.x);
         const y = el.getAttribute("y");
         el.setAttribute("x",x.toFixed(1));
-        el.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${y})`);
+        if(cycleXTickRotated) el.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${y})`);
+        else el.removeAttribute("transform");
       });
       // Y-ticks, matched by their own dollar value same as the X-ticks above (see niceYTicks) - a
       // log<->linear Y toggle reshapes the whole price axis, so every gridline/label genuinely slides to
@@ -6110,6 +6132,56 @@
   // both get carried by the exact same live transform every frame. The label's rotate() pivot is tied to
   // its own x, not just the x attribute, so that has to move in lockstep too or the text would visibly
   // shear away from its own tick line as it slides.
+  // Switches this chart's own X-axis tick labels between the default rotated (-45deg) look and a plain
+  // horizontal one, whichever currently fits - per explicit feedback, horizontal reads easier and should
+  // be used whenever there's genuinely enough room, falling back to the diagonal style only once ticks
+  // are packed too tight for horizontal text to avoid overlapping its neighbors. Measured here (called
+  // from renderCycleChart right after fitChartTypography), not at pure-geometry layout-compute time,
+  // because it needs each label's REAL rendered width via getComputedTextLength() - only meaningful once
+  // the real, fitted font-size is already on the live DOM; measuring against the raw pre-fit size would
+  // give the wrong answer on every chart narrower or wider than whatever that raw size happened to be
+  // tuned for. cycleXTickRotated is shared module state (not local) so the live-pan/zoom-animation sync
+  // helpers below (applyCycleXTickSync, animateCycleChartFromLayout's own xLabelEls loop) know which of
+  // the two label geometries they're currently animating, instead of assuming the old permanently-rotated
+  // one.
+  let cycleXTickRotated = null;
+  function applyCycleXTickOrientation(svg, layout){
+    const labels = [...svg.querySelectorAll("text.axis-label-x[data-key]")];
+    if(!labels.length) return;
+    const xs = layout.xTicks.map(t=>t.x).sort((a,b)=>a-b);
+    let minGap = Infinity;
+    for(let i=1;i<xs.length;i++) minGap = Math.min(minGap, xs[i]-xs[i-1]);
+    const maxLabelWidth = Math.max(0, ...labels.map(l=>l.getComputedTextLength()));
+    // Horizontal text needs its own full width plus a little breathing room from its neighbors; the
+    // rotated style only ever needs its much narrower diagonal footprint, hence the fallback threshold.
+    const rotated = isFinite(minGap) ? (maxLabelWidth + 8) > minGap : false;
+    const changed = cycleXTickRotated !== null && cycleXTickRotated !== rotated;
+    cycleXTickRotated = rotated;
+    labels.forEach(lbl=>{
+      const t = layout.xTicks.find(tt=>tt.key===lbl.dataset.key);
+      if(!t) return;
+      if(rotated){
+        lbl.setAttribute("text-anchor","end");
+        lbl.setAttribute("y", layout.h-layout.padB+14);
+        lbl.setAttribute("transform", `rotate(-45 ${t.x} ${layout.h-layout.padB+14})`);
+      } else {
+        lbl.setAttribute("text-anchor","middle");
+        lbl.setAttribute("y", layout.h-layout.padB+16);
+        lbl.removeAttribute("transform");
+      }
+    });
+    // Crossfade rather than trying to interpolate position smoothly between the two orientations - a
+    // rotated, end-anchored label and a horizontal, middle-anchored one don't share a geometry a plain
+    // lerp could animate between meaningfully, so this fades the (already-final-position) new look in
+    // instead. Only on an actual change, never on the first render (cycleXTickRotated was still null),
+    // so page load never fades anything in unnecessarily.
+    if(changed){
+      labels.forEach(l=>{ l.style.transition = "none"; l.style.opacity = "0"; });
+      requestAnimationFrame(()=>{
+        labels.forEach(l=>{ l.style.transition = "opacity .25s ease"; l.style.opacity = "1"; });
+      });
+    }
+  }
   function collectCycleXTickSyncTargets(wrap, layout){
     const targets = [];
     wrap.querySelectorAll("line.cyc-xtick[data-key]").forEach(line=>{
@@ -6140,7 +6212,9 @@
         t.line.setAttribute("x1",x.toFixed(1)); t.line.setAttribute("x2",x.toFixed(1));
         t.line.style.opacity = visible ? "" : "0";
       } else {
-        t.text.setAttribute("x", x.toFixed(1)); t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`);
+        t.text.setAttribute("x", x.toFixed(1));
+        if(cycleXTickRotated) t.text.setAttribute("transform", `rotate(-45 ${x.toFixed(1)} ${t.y})`);
+        else t.text.removeAttribute("transform");
         t.text.style.opacity = visible ? "" : "0";
       }
     });
@@ -6478,7 +6552,7 @@
     if(!nav || !list) return;
     const sections = [
       {id:"statStrip", label:"Übersicht"},
-      {id:"cycleChartPanel", label:"Marktzyklen"},
+      {id:"cycleChartPanel", label:"4-Jahres-Zyklus"},
       ...(FULL && FULL.hasMoneySupply ? [{id:"moneySupplyChartPanel", label:"Geldmenge"}] : []),
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
@@ -7778,7 +7852,7 @@
     // panel by that row's height the moment it landed).
     const cyclePanel = document.getElementById("cycleChartPanel");
     if(cyclePanel){
-      cyclePanel.innerHTML = `<div class="panel-head"><h3>Marktzyklen</h3></div><div class="cyc-tool-row"><div class="cyc-readout"><div class="cyc-readout-date">${skelBar(6)}</div><div class="cyc-readout-price">${skelBar(5)}</div><div class="cyc-readout-change">${skelBar(4)}</div></div></div>${spinner}`;
+      cyclePanel.innerHTML = `<div class="panel-head"><h3>4-Jahres-Zyklus</h3></div><div class="cyc-tool-row"><div class="cyc-readout"><div class="cyc-readout-date">${skelBar(6)}</div><div class="cyc-readout-price">${skelBar(5)}</div><div class="cyc-readout-change">${skelBar(4)}</div></div></div>${spinner}`;
       const cycToolbar = document.createElement("div");
       cycToolbar.className = "card-toolbar";
       cycToolbar.appendChild(inert(buildRangeSeg("cyclechart", {halvingBtn:false})));
@@ -7877,7 +7951,7 @@
     // see loadDeployInfo - #deployInfo keeps working unchanged, it's just relocated here now), and the
     // data source/freshness line setStatus() updates on every load (see #statusInfoContent there).
     attachInfo(document.getElementById("headerInfo"), `
-      <div class="info-pop-section">Das Bitcoin Dashboard vereint die wichtigsten On-Chain-Kennzahlen an einem Ort: Marktzyklen mit Bull-/Bärenmarkt-Zonen, das Power-Law-Fair-Value-Modell mit Regenbogen-Bändern und die MVRV-Bewertung (Markt- vs. Realized Price). Jeder Chart ist interaktiv und wird live aus echten On-Chain-Daten berechnet – direkt im Browser, ganz ohne Server im Hintergrund.</div>
+      <div class="info-pop-section">Das Bitcoin Dashboard vereint die wichtigsten On-Chain-Kennzahlen an einem Ort: den halving-getriebenen 4-Jahres-Zyklus mit Bull-/Bärenmarkt-Zonen, das Power-Law-Fair-Value-Modell mit Regenbogen-Bändern und die MVRV-Bewertung (Markt- vs. Realized Price). Jeder Chart ist interaktiv und wird live aus echten On-Chain-Daten berechnet – direkt im Browser, ganz ohne Server im Hintergrund.</div>
       <div class="info-pop-section">Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></div>
       <div class="info-pop-section">Bearbeitungsstand: <b>${EDIT_VERSION}</b> · ${EDIT_STAMP}</div>
       <div class="info-pop-section" id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</div>
