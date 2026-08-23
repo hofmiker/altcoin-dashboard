@@ -842,8 +842,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v262";
-  const EDIT_STAMP = "2026-08-22 21:37 UTC";
+  const EDIT_VERSION = "v263";
+  const EDIT_STAMP = "2026-08-23 04:07 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1246,7 +1246,10 @@
   function clearCycleZoneAnnotation(){
     cycleChartActiveZoneKey = null;
     cycleChartHoverZoneKey = null;
-    const svg = document.querySelector("#cycleChartPanel svg");
+    // Scoped to .chart-wrap, not just "svg" anywhere in the panel - see animateCycleChartFromLayout's own
+    // comment on the same fix for why an unscoped query breaks now that the fullscreen buttons' own small
+    // icon <svg>s sit earlier in the panel's DOM order than the real chart svg.
+    const svg = document.querySelector("#cycleChartPanel .chart-wrap svg");
     if(!svg) return;
     const layer = svg.querySelector(".cyc-zone-label-layer");
     if(layer) layer.innerHTML = "";
@@ -5677,8 +5680,12 @@
     if(!panel) return;
     // Snapshotted before the rebuild wipes it - animateCycleChartZoomFromLayout needs the OLD svg's own
     // .cyc-zoom-group content (not just its geometry) for the zoom-IN case, exactly like renderAllZoom's
-    // own oldSvgClones does for buildLineChart's tiles (see animateZoomInWithOldContent).
-    const oldSvgClone = animate ? panel.querySelector("svg")?.cloneNode(true) : null;
+    // own oldSvgClones does for buildLineChart's tiles (see animateZoomInWithOldContent). Scoped to
+    // .chart-wrap, not just "svg" anywhere in the panel - the fullscreen enter/exit buttons below each
+    // carry their own small icon <svg> and, being earlier in DOM order than the real chart svg, an
+    // unscoped query would grab one of THOSE instead (empty result: no .cyc-zoom-group, so the zoom-in
+    // case silently lost its old content and any chart-wide "svg" lookup here breaks the same way).
+    const oldSvgClone = animate ? panel.querySelector(".chart-wrap svg")?.cloneNode(true) : null;
     // cycleChartPanel rebuilds its whole child list on every render (unlike heroPanel's static markup),
     // so the fullscreen enter/exit buttons and description have to be recreated here every time too -
     // see initCycleChartFullscreen's own comment for why the click listeners still work across that.
@@ -5833,7 +5840,12 @@
     animateCycleChartFromLayout(oldLayout);
   }
   function animateCycleChartFromLayout(oldLayout){
-    const svg = document.querySelector("#cycleChartPanel svg");
+    // Scoped to .chart-wrap, not just "svg" anywhere in the panel - see the fullscreen buttons' own small
+    // icon <svg>s (added ahead of the real chart svg in DOM order), which an unscoped query here would
+    // grab instead: every element lookup below (.cyc-price-line, .cyc-halving, flags, ticks, ...) would
+    // then silently find nothing, so the whole per-frame log/linear morph animated zero elements instead
+    // of the axis change just snapping straight to renderCycleChart's already-rebuilt final state.
+    const svg = document.querySelector("#cycleChartPanel .chart-wrap svg");
     if(!svg) return;
     const newLayout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
 
