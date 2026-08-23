@@ -1006,8 +1006,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v283";
-  const EDIT_STAMP = "2026-08-23 11:11 UTC";
+  const EDIT_VERSION = "v284";
+  const EDIT_STAMP = "2026-08-23 17:14 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5513,6 +5513,7 @@
       g.setAttribute("class","cyc-zone-arrow-label"); g.dataset.zoneKey = z.toDate;
       g.style.transform = `translate(${midX.toFixed(1)}px,${midY.toFixed(1)}px)`;
       const label = document.createElementNS(NS,"text");
+      label.setAttribute("class","cyc-zone-arrow-label-text");
       label.setAttribute("text-anchor","middle"); label.setAttribute("dominant-baseline","middle");
       label.setAttribute("font-size","13"); label.setAttribute("font-weight","700");
       label.setAttribute("fill",color);
@@ -5580,7 +5581,18 @@
       const g = document.createElementNS(NS,"g");
       g.setAttribute("class","cyc-zone-dim");
       g.style.opacity = "0";
-      const GAP = 6, RUN = 15, ARR = 6.5;
+      // Called on demand (tap/hover), unlike every other label on this chart - never touched by
+      // fitChartTypography's one-time post-render pass, which only corrects what already exists in the
+      // DOM right after renderCycleChartDOM runs. Every fixed-looking constant below (gap/run/arrowhead
+      // size, font-size, background-pill dimensions, per-character width estimate) is therefore divided
+      // by this SAME real-render scaleX fitChartTypography itself uses, computed fresh here - otherwise
+      // all of it renders at its literal viewBox-unit size, correct only at the ~1000px-wide normal card
+      // scaleX≈1 sits at; in fullscreen (scaleX≈1.9+) that rendered visibly oversized, confirmed by a
+      // real screenshot. Plain strokes (mkLine) don't need this - vector-effect="non-scaling-stroke"
+      // already keeps those constant - only filled/sized/text geometry does.
+      const scaleX = (svg.getBoundingClientRect().width || w) / w;
+      const sc = v => v/scaleX;
+      const GAP = sc(6), RUN = sc(15), ARR = sc(6.5);
       const mkLine = (x1_,y1_,x2_,y2_,dash)=>{
         const l = document.createElementNS(NS,"line");
         l.setAttribute("x1",x1_.toFixed(1)); l.setAttribute("y1",y1_.toFixed(1));
@@ -5606,16 +5618,17 @@
       // neutral card+border pill styling as the MVRV Quantile Bands per-series tooltip pills, for a
       // consistent look across both charts.
       const mkLabel = (x_,y_,anchor,text)=>{
-        const textW = text.length*7.1 + 12;
+        const textW = text.length*sc(7.1) + sc(12);
         const bg = document.createElementNS(NS,"rect");
         const bx = anchor==="middle" ? x_-textW/2 : anchor==="end" ? x_-textW : x_;
-        bg.setAttribute("x",bx.toFixed(1)); bg.setAttribute("y",(y_-12).toFixed(1));
-        bg.setAttribute("width",textW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","5");
+        bg.setAttribute("x",bx.toFixed(1)); bg.setAttribute("y",(y_-sc(12)).toFixed(1));
+        bg.setAttribute("width",textW.toFixed(1)); bg.setAttribute("height",sc(17).toFixed(1)); bg.setAttribute("rx",sc(5).toFixed(1));
         bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke","var(--border)"); bg.setAttribute("stroke-width","1");
+        bg.setAttribute("vector-effect","non-scaling-stroke");
         g.appendChild(bg);
         const t = document.createElementNS(NS,"text");
         t.setAttribute("x",x_.toFixed(1)); t.setAttribute("y",y_.toFixed(1));
-        t.setAttribute("text-anchor",anchor); t.setAttribute("font-size","13"); t.setAttribute("font-weight","700");
+        t.setAttribute("text-anchor",anchor); t.setAttribute("font-size",sc(13).toFixed(2)); t.setAttribute("font-weight","700");
         t.setAttribute("fill",textColor); t.textContent = text;
         g.appendChild(t);
       };
@@ -5652,23 +5665,24 @@
       {
         const zoneColor = z.bull ? "var(--good)" : "var(--critical)";
         const anchorRight = rightSign>0;
-        const vLabelX = vDimX+rightSign*5;
-        const textW = heightLabel.length*7.1 + 12;
-        const boxW = textW + 12;
+        const vLabelX = vDimX+rightSign*sc(5);
+        const textW = heightLabel.length*sc(7.1) + sc(12);
+        const boxW = textW + sc(12);
         const boxX = anchorRight ? vLabelX : vLabelX-boxW;
-        const boxY = (z.yTop+z.yBot)/2 - 8.5;
+        const boxY = (z.yTop+z.yBot)/2 - sc(8.5);
         const bg = document.createElementNS(NS,"rect");
         bg.setAttribute("x",boxX.toFixed(1)); bg.setAttribute("y",boxY.toFixed(1));
-        bg.setAttribute("width",boxW.toFixed(1)); bg.setAttribute("height","17"); bg.setAttribute("rx","5");
+        bg.setAttribute("width",boxW.toFixed(1)); bg.setAttribute("height",sc(17).toFixed(1)); bg.setAttribute("rx",sc(5).toFixed(1));
         bg.setAttribute("fill","var(--card)"); bg.setAttribute("stroke","var(--border)"); bg.setAttribute("stroke-width","1");
+        bg.setAttribute("vector-effect","non-scaling-stroke");
         g.appendChild(bg);
         const dot = document.createElementNS(NS,"circle");
-        dot.setAttribute("cx",(boxX+9).toFixed(1)); dot.setAttribute("cy",(boxY+8.5).toFixed(1)); dot.setAttribute("r","3");
+        dot.setAttribute("cx",(boxX+sc(9)).toFixed(1)); dot.setAttribute("cy",(boxY+sc(8.5)).toFixed(1)); dot.setAttribute("r",sc(3).toFixed(2));
         dot.setAttribute("fill", zoneColor);
         g.appendChild(dot);
         const t = document.createElementNS(NS,"text");
-        t.setAttribute("x",(boxX+16).toFixed(1)); t.setAttribute("y",((z.yTop+z.yBot)/2+4.5).toFixed(1));
-        t.setAttribute("text-anchor","start"); t.setAttribute("font-size","13"); t.setAttribute("font-weight","700");
+        t.setAttribute("x",(boxX+sc(16)).toFixed(1)); t.setAttribute("y",((z.yTop+z.yBot)/2+sc(4.5)).toFixed(1));
+        t.setAttribute("text-anchor","start"); t.setAttribute("font-size",sc(13).toFixed(2)); t.setAttribute("font-weight","700");
         t.setAttribute("fill",textColor); t.textContent = heightLabel;
         g.appendChild(t);
       }
@@ -5698,7 +5712,16 @@
       paintZoneLabel();
       updateCycleZoneHighlight();
     }
-    paintZoneLabel();
+    // NOT called here (unlike updateCycleZoneHighlight, a plain attribute-only update with no such
+    // dependency) - paintZoneLabel's own scaleX correction (see its comment) needs svg.getBoundingClientRect()
+    // to report the REAL rendered width, which is always 0 for a still-detached element at this point in
+    // construction (svg/wrap/scrollBody haven't been attached to the live document yet - that only happens
+    // once renderCycleChart appends `wrap` further down). Calling it here unconditionally - as this used to -
+    // silently fell back to an uncorrected scaleX of 1 every time a render happened while a zone's dimension
+    // label was already active (any range/axis/BTC-toggle rebuild, not just the initial mount), baking in a
+    // visibly oversized label in fullscreen that no later interaction ever re-corrected. renderCycleChart
+    // instead calls the returned paintZoneLabel reference below, right after fitChartTypography() - the same
+    // "must run post-attachment" spot that function's own neighboring comment already documents.
     updateCycleZoneHighlight();
 
     // Fades everything right of the crosshair toward the chart's own --inset background (not --card,
@@ -5826,7 +5849,11 @@
       cycleChartCrosshairDate = pt.date;
       paintCrosshair({date:pt.date, price:pt.price, isLatest: lo===points.length-1, x:layout.xOf(pt.days), y:layout.yOf(pt.price)});
     }
-    hitRect.addEventListener("mousemove", e=>{ handleMove(e.clientX); handleZoneHover(e.clientX, e.clientY); });
+    // cycleMouseDragActive gates this - while a click-drag pan (added further down) is in progress, the
+    // pointer no longer means "follow the crosshair here", it means "pan by this many pixels", exactly
+    // the same exclusion touch's own 2-finger pan already gets against its single-finger handleMove.
+    let cycleMouseDragActive = false;
+    hitRect.addEventListener("mousemove", e=>{ if(cycleMouseDragActive) return; handleMove(e.clientX); handleZoneHover(e.clientX, e.clientY); });
     hitRect.addEventListener("mouseleave", clearZoneHover);
     hitRect.addEventListener("click", e=> checkZoneTap(e.clientX, e.clientY));
 
@@ -5855,6 +5882,80 @@
       applyCycleCrosshairSync(cyclePanCrosshairTarget, 1, 1, 0, 0);
       applyCycleZoneArrowLabelSync(cyclePanZoneArrowLabelTargets, 1, 1, 0, 0);
     }
+    // Desktop mouse equivalent of the 2-finger touch pan below - a plain single-button click-drag, using
+    // the exact same shared pan state/sync targets/release logic (cyclePanDragStartX/cyclePanDragLastDx,
+    // resetCyclePanDragVisuals, cycleDaysPerViewboxUnit/clampedCyclePanDaysDelta) so both input methods
+    // animate identically and can't drift apart. Listens on window, not hitRect, for move/up once a drag
+    // has actually started - the standard drag-outside-the-element pattern, since a real mouse drag
+    // routinely leaves the plot's own bounds before the button is released, unlike touch (which naturally
+    // stays anchored to whichever element the finger first went down on regardless of screen position).
+    // Registered/torn down per drag (not once per render) specifically to avoid ever accumulating
+    // duplicate window-level listeners across the many re-renders this chart goes through.
+    function handleCycleMouseDragMove(e){
+      if(!cycleMouseDragActive) return;
+      const rawDx = e.clientX - cyclePanDragStartX;
+      const rect = svg.getBoundingClientRect();
+      if(rect.width>0){
+        const scaleX = rect.width/w;
+        const daysPerUnit = cycleDaysPerViewboxUnit();
+        const clampedDelta = clampedCyclePanDaysDelta(rawDx, scaleX);
+        cyclePanDragLastDx = clampedDelta/daysPerUnit;
+        zoomGroup.style.transition = "none";
+        zoomGroup.style.transform = `translateX(${cyclePanDragLastDx.toFixed(1)}px)`;
+        applyCycleXTickSync(cyclePanXTickTargets, 1, cyclePanDragLastDx);
+        applyCycleFlagSync(cyclePanFlagTargets, 1, 1, cyclePanDragLastDx, 0);
+        applyCycleCrosshairSync(cyclePanCrosshairTarget, 1, 1, cyclePanDragLastDx, 0);
+        applyCycleZoneArrowLabelSync(cyclePanZoneArrowLabelTargets, 1, 1, cyclePanDragLastDx, 0);
+      }
+      e.preventDefault();
+    }
+    function endCycleMouseDrag(){
+      window.removeEventListener("mousemove", handleCycleMouseDragMove);
+      window.removeEventListener("mouseup", endCycleMouseDrag);
+      if(!cycleMouseDragActive) return;
+      cycleMouseDragActive = false;
+      const dx = cyclePanDragLastDx;
+      cyclePanDragStartX = null;
+      if(rangeDays === "all" || dx === 0){ resetCyclePanDragVisuals(); return; }
+      // Mirrors touchend's own days-delta/pendingReleaseDx handoff exactly - see that handler's own
+      // comment (and cyclePendingReleaseDx's module-level one) for why this can't just re-derive the
+      // release position from panOffsetDays alone.
+      const daysPerUnit = cycleDaysPerViewboxUnit();
+      const daysDelta = Math.round(dx*daysPerUnit);
+      if(daysDelta === 0){ resetCyclePanDragVisuals(); return; }
+      panOffsetDays = Math.max(0, panOffsetDays + daysDelta);
+      cyclePendingReleaseDx = dx;
+      renderAllZoom();
+    }
+    hitRect.addEventListener("mousedown", e=>{
+      if(e.button !== 0 || rangeDays === "all") return;
+      cycleMouseDragActive = true;
+      cyclePanDragStartX = e.clientX;
+      cyclePanDragLastDx = 0;
+      cyclePanXTickTargets = collectCycleXTickSyncTargets(wrap, layout);
+      cyclePanFlagTargets = collectCycleFlagSyncTargets(wrap, layout);
+      cyclePanCrosshairTarget = collectCycleCrosshairSyncTarget(wrap, layout);
+      cyclePanZoneArrowLabelTargets = collectCycleZoneArrowLabelSyncTargets(wrap, layout);
+      window.addEventListener("mousemove", handleCycleMouseDragMove);
+      window.addEventListener("mouseup", endCycleMouseDrag);
+      e.preventDefault();
+    });
+    // Desktop mouse equivalent of the touch double-tap-to-zoom below - the browser's own native dblclick
+    // already debounces the two clicks correctly, so this needs none of touchstart's manual tap-timing
+    // bookkeeping (lastTapAt/lastTapX/lastTapY), just the same "zoom into the next-finer range, centered
+    // on the clicked date" effect.
+    hitRect.addEventListener("dblclick", e=>{
+      const nextVal = nextFinerRangeValue();
+      if(nextVal == null) return;
+      const nextRangeDays = nextVal === "all" ? "all" : parseInt(nextVal,10);
+      const rect = svg.getBoundingClientRect();
+      const scaleX = rect.width>0 ? rect.width/w : 1;
+      const svgX = (e.clientX-rect.left)/scaleX;
+      const clickedDays = layout.xInv(svgX);
+      rangeDays = nextRangeDays;
+      panOffsetDays = centeredPanOffsetForRange(clickedDays, nextRangeDays);
+      renderAllZoom();
+    });
     // Double-tap zooms straight into the next-finer timeframe (Alles -> 10J -> 5J -> ... -> 1M), same
     // effect as tapping the next range button - tracked as plain closure state (not module-level) since a
     // single tap never itself triggers a rebuild, so this survives across the short window between the
@@ -6012,7 +6113,7 @@
     // chart's corners and the shared toolbar.
     wrap.appendChild(svgHost);
 
-    return {svg, wrap, readoutEl};
+    return {svg, wrap, readoutEl, paintZoneLabel};
   }
 
   // What renderCycleChart() last rendered with - captured at the end of every call so the NEXT one can
@@ -6039,7 +6140,7 @@
   // (e.g. a plain range-button click, which has no live-drag state to honor).
   let cyclePendingReleaseDx = null;
 
-  function renderCycleChart(){
+  function renderCycleChart(forcedOldSvgClone){
     const prevState = cycleChartPrevState;
     const animate = cycleChartAnimatePending && !!prevState;
     cycleChartAnimatePending = false;
@@ -6053,7 +6154,13 @@
     // carry their own small icon <svg> and, being earlier in DOM order than the real chart svg, an
     // unscoped query would grab one of THOSE instead (empty result: no .cyc-zoom-group, so the zoom-in
     // case silently lost its old content and any chart-wide "svg" lookup here breaks the same way).
-    const oldSvgClone = animate ? panel.querySelector(".chart-wrap svg")?.cloneNode(true) : null;
+    // forcedOldSvgClone (only ever passed by the fullscreen height-correction self-call further down)
+    // overrides the normal derivation - by the time that self-call runs, THIS panel's own DOM has
+    // already been wiped and rebuilt once already, so re-deriving from "whatever's live now" would
+    // capture the just-built (merely wrong-HEIGHT, not wrong-RANGE) new content instead of the true
+    // previous range's content the animation actually needs to start from.
+    const oldSvgClone = forcedOldSvgClone !== undefined ? forcedOldSvgClone
+      : (animate ? panel.querySelector(".chart-wrap svg")?.cloneNode(true) : null);
     // cycleChartPanel rebuilds its whole child list on every render (unlike heroPanel's static markup),
     // so the fullscreen enter/exit buttons and description have to be recreated here every time too -
     // see initCycleChartFullscreen's own comment for why the click listeners still work across that.
@@ -6111,7 +6218,7 @@
     }
 
     const layout = computeCycleChartLayout(cycleChartLogX, cycleChartLogY, cycleChartCrosshairDate);
-    const {svg, wrap, readoutEl} = renderCycleChartDOM(layout);
+    const {svg, wrap, readoutEl, paintZoneLabel} = renderCycleChartDOM(layout);
 
     // Readout (date/price/change) alone now - one row, directly below the headline and above the chart
     // itself. Previously an SVG overlay pinned to the chart's own top-right corner; per explicit feedback
@@ -6184,6 +6291,10 @@
     // position, never font-size) used to skip it entirely, leaving labels stuck at that small raw
     // size - most visible on a narrower card, where "raw size" and "real fitted size" diverge most.
     fitChartTypography();
+    // Re-paints any zone dimension label that survived this rebuild (e.g. a range/BTC/axis-toggle click
+    // while one was already pinned) now that svg is actually attached and fitChartTypography has run - see
+    // paintZoneLabel's own comment in renderCycleChartDOM for why it can't just run there unconditionally.
+    paintZoneLabel();
     // Needs the font-size fitChartTypography above just applied - see applyCycleXTickOrientation's own
     // comment for why the horizontal-vs-rotated decision can only be made once each label's REAL rendered
     // width exists on the live DOM.
@@ -6222,7 +6333,18 @@
       const freshH = computeCycleChartFullscreenHeight();
       if(freshH != null && Math.abs(freshH - layout.h) > 4){
         cycleChartFsHeightCorrecting = true;
-        renderCycleChart();
+        // Restores the animate intent THIS call already consumed at its own top (cycleChartAnimatePending
+        // was reset to false there) - without this, the self-call below always computed animate=false for
+        // itself (cycleChartPrevState/prevState is untouched at this point, but the pending FLAG was
+        // already cleared), so a range/pan change that happened to land in fullscreen - which this height
+        // correction runs on every single time, not just once ever, since toolRow/chartControlsRow/toolbar
+        // never exist yet at the point computeCycleChartLayout's own first pass measures them - silently
+        // never played its animation at all: confirmed via a real Playwright trace, .cyc-zoom-group's own
+        // transform stayed the empty string across every frame of a range change while in fullscreen, the
+        // literal "im Vollbildmodus animiert fast nichts" complaint. oldSvgClone is threaded through as
+        // forcedOldSvgClone rather than left to re-derive - see that parameter's own comment for why.
+        cycleChartAnimatePending = animate;
+        renderCycleChart(oldSvgClone);
         cycleChartFsHeightCorrecting = false;
         return;
       }
@@ -7564,27 +7686,44 @@
       const rect = svg.getBoundingClientRect();
       if(!rect.width) return;
       const scaleX = rect.width / 1000;
+      // Fullscreen already scales up the headline/copy text around the chart itself (see
+      // .panel.fullscreen-active h3/.fs-desc) - axis labels stayed at the same constant real-pixel size
+      // as the normal card, which reads correct in isolation but visibly small next to everything else
+      // that DID grow, on the much bigger fullscreen canvas (confirmed per explicit feedback). A ~20%
+      // bump for every target size below closes that gap without needing per-label special-casing.
+      const fsBoost = svg.closest(".panel.fullscreen-active") ? 1.2 : 1;
       // Date labels get their own, slightly smaller constant size than the y-axis value labels - a
       // "YYYY-MM" string is much longer than a typical value tick, so the same 12.5px would need more
       // horizontal room than narrow cards have to spare even angled (see the x-axis label loop above).
       svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> {
-        t.setAttribute("font-size", (12.5/scaleX).toFixed(2));
+        t.setAttribute("font-size", (12.5*fsBoost/scaleX).toFixed(2));
         // Only the 4-Jahres-Zyklus chart's own Y-labels, and only on mobile, actually carry a
         // stroke/paint-order (see renderCycleChartDOM - on mobile they sit directly on the chart, over
         // the price line/zones, and need a background-colored halo to stay legible) - harmless no-op on
         // every other chart's labels and on desktop cycle-chart labels, neither of which have a stroke
         // attribute to size in the first place. Bumped up per explicit feedback that the halo read too
         // weak against a busy background.
-        if(t.hasAttribute("stroke-width")) t.setAttribute("stroke-width", (5.5/scaleX).toFixed(2));
+        if(t.hasAttribute("stroke-width")) t.setAttribute("stroke-width", (5.5*fsBoost/scaleX).toFixed(2));
       });
-      svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5/scaleX).toFixed(2)));
-      svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
+      svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5*fsBoost/scaleX).toFixed(2)));
+      svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5*fsBoost/scaleX).toFixed(2)));
       // The floating crosshair date label previously kept its own fixed, un-normalized font-size (11) -
       // fine on a full-width desktop chart but visibly smaller than the axis labels right next to it on
       // a narrower card, since those get rescaled to a constant real pixel size here and this didn't.
       // Sized to match the axis value labels above, since it's read the same way (a number/date pinned
       // to a specific screen position, not running text).
-      svg.querySelectorAll(".crosshair-date-label").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
+      svg.querySelectorAll(".crosshair-date-label").forEach(t=> t.setAttribute("font-size", (12.5*fsBoost/scaleX).toFixed(2)));
+      // Zone-swing-arrow percentage label (see renderCycleChartDOM's .cyc-zone-arrow-label, only present
+      // when the BTC price line is hidden) - same real-pixel-size correction as every other label here,
+      // font-size AND its halo stroke-width together so the ratio between glyph and halo stays constant
+      // regardless of how wide the chart is currently rendered (confirmed rendering visibly oversized in
+      // fullscreen otherwise, same root cause as paintZoneLabel's own on-demand labels) - deliberately NOT
+      // given the same fsBoost as the axis labels above: it already sits right on the price/zone artwork
+      // at its own designed size, not competing with headline-scale copy the way axis labels do.
+      svg.querySelectorAll(".cyc-zone-arrow-label-text").forEach(t=> {
+        t.setAttribute("font-size", (13/scaleX).toFixed(2));
+        t.setAttribute("stroke-width", (3.5/scaleX).toFixed(2));
+      });
       // The crosshair's hover dots are geometry (their radius, unlike a stroke's width, isn't kept
       // constant by vector-effect="non-scaling-stroke") - without this they read as tiny on a narrow
       // mobile card, since the same "6.5 viewBox units" is a much smaller fraction of a ~350px-wide
