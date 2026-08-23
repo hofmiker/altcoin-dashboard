@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$70.000–77.000</div>
-          <div class="ctx">Rallye setzt sich fort: springt weiter auf ~$76,3k (+8,9% heute) — $3 Mrd. Short-Liquidationen, Treasury-Anleihenrückkäufe, Trump-Treffen mit Krypto-Branche</div>
+          <div class="ctx">Konsolidiert bei ~$76,3k (−1,7% heute), nachdem die Rallye zwischenzeitlich über $79k erreichte — leichte Verschnaufpause nach dem Short-Squeeze</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">30 / 100</div>
-          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Rallye bleibt BTC-/Large-Cap-geführt (XRP +17,7%, HYPE), keine breite Altseason-Rotation erkennbar</div>
+          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Rallye bleibt BTC-/Large-Cap-geführt, XRP gibt einen Teil des Sprungs wieder ab (−5,8%)</div>
           <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~60%</div>
-          <div class="ctx">Eigene Berechnung aus BTC-Marktkap. ($1,53 Bio.) vs. Gesamtmarkt (~$2,56 Bio.) — steigt trotz XRP-Ausreißer, da BTC selbst am stärksten zulegt</div>
+          <div class="value mono">~57%</div>
+          <div class="ctx">Eigene Berechnung aus BTC-Marktkap. ($1,53 Bio.) vs. Gesamtmarkt (~$2,6–2,76 Bio., je nach Quelle) — grob seitwärts</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–21.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–23.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "23.08.2026", text: "Nach dem Rallye-Doppelschlag vom 20.–21.8. (Bitcoin zwischenzeitlich über $79k) konsolidiert der Markt: BTC bei ~$76,3k (−1,7%), XRP gibt einen Teil seines Sprungs wieder ab (−5,8%), ETH −2,1% — eine normale Verschnaufpause nach dem größten Short-Squeeze seit 2021. Auffälligster Fund des Tages: Upbit listete am 21.8. gleich vier Coins auf einmal (BICO, BMT, NIL, GWEI) — alle vier fielen aber beim Red-Flag-Check durch, da Top-10-Halter bei BICO (~97% inkl. Exchange-Wallets), BMT (76,3%) und GWEI (87,2%) klar über der 60%-Schwelle liegen und NIL weder Audit-Nachweis noch nennenswerten Kursanstieg zeigte. Sonst keine frischen Whale-Käufe abseits von Large-Caps (HYPE, ENA, LDO) oder neue AI-Agenten-Token-Launches gefunden. <i>Hinweis: Der Scan vom 22.8. ist ausgefallen (Session-Idle-Zeit) — dieser Eintrag deckt beide Tage ab, ohne den 22.8. rückwirkend zu rekonstruieren.</i>" },
     { date: "21.08.2026", text: "Die Rallye beschleunigt sich weiter: Bitcoin springt um weitere 8,9% auf ~$76,3k (Zwei-Wochen-Hoch), getrieben von einem $3-Mrd.-Short-Liquidationsschub — dem größten seit mindestens 2021 —, ausgeweiteten US-Treasury-Anleihenrückkäufen und einem Trump-Treffen mit Krypto-Branchenvertretern zum Clarity Act. XRP sticht mit +17,7% besonders hervor (SEC-Ausnahmeregelungen, Ripple-Anleiheemission), auch Ethereum (+5,6%) und HYPE liefen mit — die BTC-Dominanz steigt dabei sogar leicht auf ~60%, da Bitcoin selbst am stärksten zulegt, keine breite Altseason-Rotation. Kein Small-Cap-Kandidat erfüllte unser Frische-Kriterium: Ontology (ONG/ONT, +128%/+30%) lief ohne neuen Katalysator (Burn-Event stammt aus Dezember) mit, tokenisierte SpaceX-Aktien (bStocks, Solana) sind zwei Monate alt und fallen als Aktien-Wrapper ohnehin nicht unter unser Altcoin-Scoring." },
     { date: "20.08.2026", text: "Massiver Rallye-Tag: Bitcoin springt um 8,8% auf ~$69,6k, Ethereum sogar um 18,5% auf ~$2.252 — ausgelöst durch einen $1-Mrd.-Short-Squeeze (über $1,9 Mrd. Liquidationen binnen 24h), gestützt von ausgeweiteten US-Treasury-Anleihenrückkäufen, fallenden Renditen und positiveren Regulierungs-Erwartungen. Unter den Large-Caps stach HYPE mit +19% besonders hervor, auch SOL (+10%) und XRP (+10%) liefen deutlich mit — insgesamt aber ein breiter, marktweiter Squeeze statt eines Einzeltitel-Katalysators. Kein Small-Cap-Kandidat erfüllte unser Frische-Kriterium: Cashcat (CASHCAT) und der Bitget-Fusionist-Kurssprung stammen bereits aus der Vorwoche, Pepecoin (PEP, +117%) blieb ein extrem dünn gehandelter Mikro-Cap-Ausreißer ohne erkennbaren Katalysator." },
     { date: "19.08.2026", text: "Bitcoin pendelt seitwärts bei ~$64,3k (+0,2%), Ethereum legt etwas stärker zu (+1,1%) — ein ruhiger Handelstag ohne klare Richtung. Altcoin Season Index und BTC-Dominanz bleiben mangels neuer verlässlicher Messung unverändert bei 30 bzw. ~56,1%. Auffällig: Arthur Hayes kündigte mit Flop Labs/FLOP-Token ein neues AI-Agenten-Zahlungsnetzwerk an — spannend als Narrativ, aber ohne handelbaren Token, Whitepaper oder Tokenomics (Genesis erst Q1 2027) für die Watchlist noch nicht qualifiziert." },
