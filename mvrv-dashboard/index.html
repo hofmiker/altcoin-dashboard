@@ -842,8 +842,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v263";
-  const EDIT_STAMP = "2026-08-23 04:07 UTC";
+  const EDIT_VERSION = "v265";
+  const EDIT_STAMP = "2026-08-23 04:41 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -2832,8 +2832,16 @@
       btn.textContent = opt.label;
       if(opt.value === currentVal) btn.classList.add("active");
       btn.addEventListener("click", ()=>{
-        rangeDays = opt.value === "all" ? "all" : parseInt(opt.value, 10);
-        panOffsetDays = 0; // switching zoom level always starts fresh, ending on "today"
+        const nextRangeDays = opt.value === "all" ? "all" : parseInt(opt.value, 10);
+        rangeDays = nextRangeDays;
+        // Marktzyklen specifically: land the new range centered on wherever the crosshair/tooltip
+        // already is (same "zoom to where the reader's attention is" behavior as its own double-tap),
+        // rather than always resetting to "today" - only when a crosshair position actually exists,
+        // e.g. right after page load before any hover/tap has happened. Every other chart sharing this
+        // same range-button row (hero, power-law, money supply) keeps the plain always-today reset;
+        // they weren't asked for this and have no equivalent single crosshair-days value to center on.
+        const crosshairDays = zoomKey === "cyclechart" ? cycleChartCrosshairDays() : null;
+        panOffsetDays = crosshairDays != null ? centeredPanOffsetForRange(crosshairDays, nextRangeDays) : 0;
         renderAllZoom();
       });
       seg.appendChild(btn);
@@ -4664,6 +4672,30 @@
 
   function daysSinceGenesis(dateStr){ return (Date.parse(dateStr+"T00:00:00Z")-GENESIS_MS)/86400000; }
 
+  // panOffsetDays that centers a given date within a range of newRangeDays length - shared by the
+  // double-tap zoom (renderCycleChartDOM's touchstart handler) and by buildRangeSeg's own range-button
+  // click for the Marktzyklen chart specifically (see cycleChartCrosshairDays below) - both want "zoom
+  // to wherever the reader's attention already is" instead of always snapping back to "today". Module-
+  // scope (not nested in renderCycleChartDOM, where this used to live) purely because buildRangeSeg,
+  // which needs to call it too, is a sibling function, not a descendant - only depends on FULL/GENESIS_MS,
+  // both already module-level, so the move changes nothing about its own behavior.
+  function centeredPanOffsetForRange(tappedDays, newRangeDays){
+    if(newRangeDays === "all") return 0;
+    const lastT = FULL.t[FULL.t.length-1];
+    const tappedT = GENESIS_MS + tappedDays*86400000;
+    const totalDataDays = (FULL.t[FULL.t.length-1] - FULL.t[0]) / 86400000;
+    const maxPanOffsetDays = Math.max(0, totalDataDays - newRangeDays);
+    const rawOffsetDays = (lastT - tappedT) / 86400000 - newRangeDays/2;
+    return Math.max(0, Math.min(maxPanOffsetDays, Math.round(rawOffsetDays)));
+  }
+  // cycleChartCrosshairDate doubles as either a real date string or (while hovering the "Alles" view's
+  // projected future) a plain days-since-genesis number - see its own assignments in renderCycleChartDOM's
+  // handleMove. Normalizes both to the plain number centeredPanOffsetForRange expects.
+  function cycleChartCrosshairDays(){
+    if(cycleChartCrosshairDate == null) return null;
+    return typeof cycleChartCrosshairDate === "number" ? cycleChartCrosshairDate : daysSinceGenesis(cycleChartCrosshairDate);
+  }
+
   // ---------- Marktzyklen chart (BTC-Kurs, Bull-/Bärenmarkt-Zonen) ----------
   // Unlike the power-law/log-log chart (which fixes its axis ratio while in pure log-log mode - see
   // computePowerLawLayout/animatePowerLawAxisChange), this chart's Y-domain always autoscales to
@@ -5526,18 +5558,8 @@
       if(idx < 0 || idx >= RANGE_OPTIONS.length-1) return null;
       return RANGE_OPTIONS[idx+1].value;
     }
-    // panOffsetDays that centers the double-tapped date within the new, narrower range - a double-tap
-    // should zoom into wherever the reader actually tapped, not always snap back to "today" like the
-    // range-button click (panOffsetDays=0) it otherwise mirrors.
-    function centeredPanOffsetForRange(tappedDays, newRangeDays){
-      if(newRangeDays === "all") return 0;
-      const lastT = FULL.t[FULL.t.length-1];
-      const tappedT = GENESIS_MS + tappedDays*86400000;
-      const totalDataDays = (FULL.t[FULL.t.length-1] - FULL.t[0]) / 86400000;
-      const maxPanOffsetDays = Math.max(0, totalDataDays - newRangeDays);
-      const rawOffsetDays = (lastT - tappedT) / 86400000 - newRangeDays/2;
-      return Math.max(0, Math.min(maxPanOffsetDays, Math.round(rawOffsetDays)));
-    }
+    // centeredPanOffsetForRange itself now lives at module scope (see near daysSinceGenesis) - buildRangeSeg's
+    // range-button click needs it too, and it never depended on anything local to this function anyway.
     hitRect.addEventListener("touchmove", e=>{
       if(e.touches.length===1){ handleMove(e.touches[0].clientX); e.preventDefault(); }
       else if(e.touches.length===2 && cyclePanDragStartX!=null && rangeDays!=="all"){
@@ -7138,7 +7160,18 @@
       if(raw < 1) requestAnimationFrame(frame);
       else if(onDone) onDone();
     }
-    requestAnimationFrame(frame);
+    // First frame (raw=0, exactly the "from" matrix) applied SYNCHRONOUSLY here, not deferred to the
+    // first requestAnimationFrame like every later frame - group is a freshly built element, just
+    // inserted into the live DOM this same tick with no transform of its own yet (i.e. already sitting,
+    // untransformed, at what happens to be its own FINAL/rest position). Deferring the starting matrix
+    // via rAF left exactly that untransformed rest state on screen for however many real frames pass
+    // before the first rAF callback fires - confirmed via frame-by-frame capture: a 2-finger pan's
+    // release visibly flashed to its final position, then snapped back out to the drag's actual end
+    // point, before finally animating smoothly inward - the "bounced zurück" reported after a pan
+    // release (same underlying bug on every animateMatrix call, e.g. every range-button click too, just
+    // less noticeable there since a button click doesn't already have "correct" content on screen to
+    // flash away from first).
+    frame(start);
   }
 
   // The axis's screen position never moves (see buildLineChart's comments on the gridline loop), but
