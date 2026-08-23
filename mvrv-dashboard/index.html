@@ -162,6 +162,7 @@
   .sidebar-links a:hover{background:var(--inset); color:var(--ink);}
   .sidebar-links a.active{background:var(--bitcoin-accent-bg); color:var(--bitcoin-accent);}
   .sidebar-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 6px 2px; border-top:1px solid var(--border); margin-top:8px;}
+  .sidebar-foot-links{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .sidebar-foot .backlink{font-size:12px; color:var(--bitcoin-accent); text-decoration:none; font-weight:600;}
   .sidebar-foot .backlink:hover{text-decoration:underline;}
 
@@ -761,7 +762,10 @@
   </div>
   <div class="sidebar-links" id="navLinks"></div>
   <div class="sidebar-foot">
-    <a class="backlink" href="#impressumPanel">Impressum</a>
+    <div class="sidebar-foot-links">
+      <a class="backlink" href="#impressumPanel">Impressum</a>
+      <a class="backlink" href="#datenschutzPanel">Datenschutz</a>
+    </div>
     <button type="button" class="theme-toggle" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 20.354 15.354Z"/></svg>
@@ -856,11 +860,11 @@
         <p class="impressum-subhead">Version &amp; Deployment</p>
         <p>Bitcoin On-Chain-Valuation · Live via Coin Metrics · <span id="deployInfo">{{VERSION}} · Deployed {{DEPLOY_DATE}}</span></p>
         <p id="editVersionInfo">Bearbeitungsstand: …</p>
-        <p id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</p>
       </div>
 
       <div class="impressum-block">
         <p class="impressum-subhead">Quellen</p>
+        <p id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</p>
         <p><b>On-Chain- &amp; Kursdaten:</b> <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (frei zugänglich, kein API-Key).</p>
         <p><b>Fear &amp; Greed Index:</b> <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>.</p>
         <p><b>Geldmenge (M2/M3, USA/Eurozone/Japan/China):</b> <a href="https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL" target="_blank" rel="noopener">FRED (Federal Reserve Economic Data)</a>.</p>
@@ -892,6 +896,60 @@
       </div>
     </section>
 
+    <section class="panel" id="datenschutzPanel">
+      <div class="panel-head"><h2>Datenschutzerklärung</h2></div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Verantwortlicher</p>
+        <p>Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist der im <a href="#impressumPanel">Impressum</a> genannte Anbieter dieser Seite.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Hosting</p>
+        <p>Diese Seite wird über GitHub Pages gehostet (Anbieter: GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA, bzw. für Nutzer in der EU GitHub B.V.). Beim Aufruf der Seite verarbeitet GitHub automatisch technische Zugriffsdaten (u. a. IP-Adresse, Datum und Uhrzeit des Zugriffs, aufgerufene Seite, verwendeter Browser) in eigener Verantwortung im Rahmen des Betriebs der Infrastruktur. Auf diese Verarbeitung haben wir keinen Einfluss; Details liefert <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHubs eigene Datenschutzerklärung</a>.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Externe Datenabrufe (Coin Metrics, alternative.me)</p>
+        <p>Die Kurs- und On-Chain-Daten (Coin Metrics) sowie der Fear-&amp;-Greed-Index (alternative.me) versuchen bei jedem Seitenaufruf zunächst einen direkten Live-Abruf aus Ihrem Browser bei den jeweiligen Anbietern — dabei sehen diese Ihre IP-Adresse sowie die üblichen HTTP-Anfrage-Metadaten (Browsertyp, Referrer), so wie bei jedem direkten Aufruf einer fremden Webseite. Dieser Live-Abruf scheitert in der Praxis meist an Cross-Origin-Beschränkungen der Anbieter; die Seite lädt dann stattdessen einen vorab von unserer Seite serverseitig abgeholten, unveränderten Snapshot von GitHubs eigener Auslieferungsinfrastruktur (<span class="mono" style="font-size:12px;">raw.githubusercontent.com</span>) nach. Die Geldmengen-Daten (FRED) werden ausschließlich serverseitig per wöchentlichem Abruf-Job geholt — hierbei wird Ihre IP-Adresse zu keinem Zeitpunkt an FRED übertragen. Details zum jeweiligen Live-dann-Snapshot-Mechanismus siehe <a href="#detailsPanel">„Methodik, Formeln &amp; Datenquelle“</a>.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Lokale Speicherung im Browser (localStorage)</p>
+        <p>Diese Seite speichert einige rein technische Einstellungen ausschließlich lokal in Ihrem Browser (localStorage) — u. a. Ihre Hell-/Dunkelmodus-Präferenz, ob die Seitennavigation ein- oder ausgeklappt ist, ob Sie einen Hinweis-Tipp bereits gesehen haben, sowie eine kurzzeitige Zwischenspeicherung der geladenen Chart-Daten, um wiederholte Abrufe zu vermeiden. Diese Daten verlassen Ihr Gerät nie, enthalten keine personenbezogenen Inhalte und dienen ausschließlich der technisch notwendigen Funktion der Seite (Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TTDSG) — eine Einwilligung ist dafür nicht erforderlich.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Keine Cookies, kein Tracking, keine Analyse-Tools</p>
+        <p>Diese Seite selbst setzt keine Cookies, verwendet keine Analyse- oder Tracking-Dienste (z. B. Google Analytics), keine Werbenetzwerke und keine Social-Media-Plugins. Es findet keine Erstellung von Nutzungsprofilen statt.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Keine Formulare, keine aktive Dateneingabe</p>
+        <p>Diese Seite enthält keine Kontakt- oder sonstigen Formulare und fragt keine personenbezogenen Daten aktiv ab. Es werden keine von Ihnen eingegebenen Daten gespeichert oder übertragen.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">SSL-/TLS-Verschlüsselung</p>
+        <p>Diese Seite wird über GitHub Pages ausschließlich verschlüsselt per HTTPS ausgeliefert, erkennbar am Schloss-Symbol Ihres Browsers.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Ihre Rechte</p>
+        <p>Sie haben jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO), Datenübertragbarkeit (Art. 20 DSGVO) sowie Widerspruch (Art. 21 DSGVO) bezüglich Sie betreffender personenbezogener Daten, soweit eine Verarbeitung stattfindet. Wenden Sie sich dazu an die im Impressum genannte Kontaktadresse.</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Beschwerderecht bei einer Aufsichtsbehörde</p>
+        <p>Ihnen steht außerdem ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu, insbesondere in dem Mitgliedstaat Ihres gewöhnlichen Aufenthaltsorts, Ihres Arbeitsplatzes oder des Orts des mutmaßlichen Verstoßes (Art. 77 DSGVO).</p>
+      </div>
+
+      <div class="impressum-block">
+        <p class="impressum-subhead">Aktualität dieser Erklärung</p>
+        <p>Diese Datenschutzerklärung wird bei Bedarf angepasst, etwa wenn sich Funktionsumfang oder eingebundene Dienste ändern.</p>
+      </div>
+    </section>
+
   </div>
 </div>
 
@@ -913,8 +971,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v271";
-  const EDIT_STAMP = "2026-08-23 06:17 UTC";
+  const EDIT_VERSION = "v272";
+  const EDIT_STAMP = "2026-08-23 06:26 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -8102,23 +8160,31 @@
     document.getElementById("sidebarCollapseBtn")?.addEventListener("click", closeSidebar);
     // Same "smooth-scroll + dismiss the mobile overlay first" treatment renderSectionNav's own #navLinks
     // anchors get (see there) - .backlink sits outside #navLinks (it's static, in .sidebar-foot) so it
-    // never picked that handler up on its own, and since it now jumps to the in-page Impressum section
-    // instead of navigating away entirely (like the old "← Alle Dashboards" link did), the same "leaves
-    // the mobile sidebar sitting open over the very content it just scrolled to" gap applies here too.
-    document.querySelector(".sidebar-foot .backlink")?.addEventListener("click", e=>{
-      e.preventDefault();
-      if(window.matchMedia("(max-width:899.98px)").matches) closeSidebar();
-      document.getElementById("impressumPanel")?.scrollIntoView({behavior:"smooth", block:"start"});
+    // never picked that handler up on its own, and since these now jump to in-page sections (Impressum,
+    // Datenschutz) instead of navigating away entirely (like the old "← Alle Dashboards" link did), the
+    // same "leaves the mobile sidebar sitting open over the very content it just scrolled to" gap applies
+    // here too. One shared handler for both links (Datenschutz added alongside Impressum) - each already
+    // carries its own target in href, so no need to hardcode which section a given click means.
+    document.querySelectorAll(".sidebar-foot .backlink").forEach(a=>{
+      a.addEventListener("click", e=>{
+        e.preventDefault();
+        if(window.matchMedia("(max-width:899.98px)").matches) closeSidebar();
+        document.querySelector(a.getAttribute("href"))?.scrollIntoView({behavior:"smooth", block:"start"});
+      });
     });
-    // The Impressum's own "Quellen" block links straight to the methodology <details> further up the
-    // page (see #impressumPanel's markup) - a browser's own "auto-open a details element that's the
-    // direct target of a fragment link" behavior turned out NOT to reliably fire for a same-page anchor
-    // click here (confirmed: stayed collapsed), so opened explicitly instead of trusting that.
-    document.querySelector('#impressumPanel a[href="#detailsPanel"]')?.addEventListener("click", e=>{
-      e.preventDefault();
-      const details = document.getElementById("detailsPanel");
-      if(details) details.open = true;
-      details?.scrollIntoView({behavior:"smooth", block:"start"});
+    // Both the Impressum's "Quellen" block and the Datenschutzerklärung's "Externe Datenabrufe" block
+    // link straight to the methodology <details> further up the page - a browser's own "auto-open a
+    // details element that's the direct target of a fragment link" behavior turned out NOT to reliably
+    // fire for a same-page anchor click here (confirmed: stayed collapsed), so opened explicitly instead
+    // of trusting that. Selector isn't scoped to one panel - any current or future link to it gets the
+    // same treatment.
+    document.querySelectorAll('a[href="#detailsPanel"]').forEach(a=>{
+      a.addEventListener("click", e=>{
+        e.preventDefault();
+        const details = document.getElementById("detailsPanel");
+        if(details) details.open = true;
+        details?.scrollIntoView({behavior:"smooth", block:"start"});
+      });
     });
     initSidebarOpenState();
     initHeroFullscreen();
