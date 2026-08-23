@@ -841,8 +841,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v267";
-  const EDIT_STAMP = "2026-08-23 05:34 UTC";
+  const EDIT_VERSION = "v268";
+  const EDIT_STAMP = "2026-08-23 05:43 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5061,14 +5061,23 @@
     fullClipPath.appendChild(fullClipRect);
     defs.appendChild(fullClipPath);
     // Vertical area-fill gradient under the price line - same technique as buildLineChart's own s.area
-    // (see the "Realized Price vs. Marktpreis" tile's BTC-Kurs series), fading from translucent near the
-    // line to fully transparent at the chart's bottom edge. Only drawn when the price line is shown with
-    // no cycle context at all (Zyklus zones off - see the priceLine block below) so it isn't left reading
-    // as a completely flat, contextless stroke with nothing else on the chart.
+    // (see the "Realized Price vs. Marktpreis" tile's BTC-Kurs series). Deliberately pinned to the plot's
+    // own fixed top/bottom edge (padT / h-padB) via gradientUnits="userSpaceOnUse", NOT the default
+    // objectBoundingBox - objectBoundingBox derives its 0%/100% stops from the AREA PATH's own bounding
+    // box, i.e. from wherever the current view's highest price pixel happens to sit down to the baseline,
+    // which is data-dependent and shifts with every range/zoom/pan: whenever the visible peak sat well
+    // below the chart's own top edge (headroom above the line, the common case), the opaque stop started
+    // only at that lower peak pixel, leaving the true top of the chart with no fill at all and reading as
+    // cropped - exactly the reported bug. Anchoring to padT/h-padB instead means the gradient always spans
+    // the ENTIRE visible chart top-to-bottom regardless of what the data does, and since padT/padB never
+    // change for a given panel height, this same anchor is already correct through every log/linear
+    // toggle, range/zoom change and pan without any extra per-frame update - only a fullscreen-triggered
+    // height change rebuilds it, same as everything else on that rebuild.
     const priceAreaGradId = "cyc-price-area-grad-" + Math.random().toString(36).slice(2,9);
     const priceAreaGrad = document.createElementNS(NS,"linearGradient");
     priceAreaGrad.setAttribute("id",priceAreaGradId);
-    priceAreaGrad.setAttribute("x1","0"); priceAreaGrad.setAttribute("y1","0"); priceAreaGrad.setAttribute("x2","0"); priceAreaGrad.setAttribute("y2","1");
+    priceAreaGrad.setAttribute("gradientUnits","userSpaceOnUse");
+    priceAreaGrad.setAttribute("x1","0"); priceAreaGrad.setAttribute("y1",padT); priceAreaGrad.setAttribute("x2","0"); priceAreaGrad.setAttribute("y2",h-padB);
     const priceAreaStop1 = document.createElementNS(NS,"stop");
     priceAreaStop1.setAttribute("offset","0%"); priceAreaStop1.style.setProperty("stop-color","var(--c-price)"); priceAreaStop1.style.setProperty("stop-opacity","0.28");
     const priceAreaStop2 = document.createElementNS(NS,"stop");
