@@ -252,8 +252,8 @@
      unified onto the same --bitcoin-accent every other accent use on the page already reads as "the" link
      color, with a small diagonal arrow after each one so a text link is recognizable without relying on
      color/underline alone. */
-  .panel a, .info-pop a, .tab-status a{color:var(--bitcoin-accent);}
-  .panel a::after, .info-pop a::after, .tab-status a::after{
+  .panel a, .info-pop a, .tab-status a, .legal-panel a{color:var(--bitcoin-accent);}
+  .panel a::after, .info-pop a::after, .tab-status a::after, .legal-panel a::after{
     /* em-sized, not a fixed px value, per explicit feedback ("darf so hoch sein wie die Texthöhe") - this
        icon shows up next to text at several different font-sizes across the page (13px body copy, 12.5px
        popover text, ...), and em units track whichever one is actually in effect at each call site
@@ -542,9 +542,20 @@
   /* Small bold section labels inside the Impressum panel (Version & Deployment / Quellen / Zweck der
      Seite / ...) - deliberately smaller than .panel h2's big chart-headline styling, which would read as
      a whole new page section rather than a subdivision of this one. */
-  .impressum-subhead{font-weight:700; color:var(--ink); font-size:13px; margin:0;}
+  .impressum-subhead{font-weight:700; color:var(--ink-2); font-size:13px; margin:0;}
   .impressum-block{display:flex; flex-direction:column; gap:6px; padding-top:14px; border-top:1px solid var(--border);}
   .impressum-block:first-of-type{padding-top:0; border-top:none;}
+  /* Impressum/Datenschutz deliberately do NOT get the .panel card treatment (background, border, shadow,
+     rounding) every chart/tile on this page uses - per explicit feedback they should read as quiet,
+     recessive boilerplate sitting directly on the page background, not compete visually with the actual
+     content above them. Narrower max-width than the page's own 1180px .wrap so these long paragraphs stay
+     readable (matches the ~65-character-line convention) without looking like they're trying to fill a
+     card's own full width. */
+  .legal-panel{display:flex; flex-direction:column; gap:14px; max-width:640px; padding:4px 4px 0;}
+  .legal-panel .panel-head h2{
+    font-family:var(--font-display); font-weight:700; font-size:17px; color:var(--ink-2); margin:0;
+  }
+  .legal-panel p{margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.65;}
 
   details.panel{padding:0; overflow:hidden;}
   details.panel summary{
@@ -863,11 +874,7 @@
       </div>
     </details>
 
-    <footer>
-      Nur zu Informationszwecken, keine Anlageberatung. Historische Bewertungszonen sind kein Indikator für zukünftige Kursverläufe. Daten: Coin Metrics Community API (frei zugänglich, ~15 Min. Verzögerung), Fear &amp; Greed Index: alternative.me.
-    </footer>
-
-    <section class="panel" id="impressumPanel">
+    <section class="legal-panel" id="impressumPanel">
       <div class="panel-head"><h2>Impressum</h2></div>
 
       <div class="impressum-block">
@@ -879,7 +886,7 @@
       <div class="impressum-block">
         <p class="impressum-subhead">Quellen</p>
         <p id="statusInfoContent">Lade Onchain-Daten von Coin Metrics …</p>
-        <p><b>On-Chain- &amp; Kursdaten:</b> <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (frei zugänglich, kein API-Key).</p>
+        <p><b>On-Chain- &amp; Kursdaten:</b> <a href="https://coinmetrics.io/community-network-data" target="_blank" rel="noopener">Coin Metrics Community API</a> (frei zugänglich, kein API-Key, ~15 Min. Verzögerung).</p>
         <p><b>Fear &amp; Greed Index:</b> <a href="https://api.alternative.me/fng/?limit=0&format=json" target="_blank" rel="noopener">alternative.me Fear &amp; Greed API</a>.</p>
         <p><b>Geldmenge (M2/M3, USA/Eurozone/Japan/China):</b> <a href="https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL" target="_blank" rel="noopener">FRED (Federal Reserve Economic Data)</a>.</p>
         <p>Details zu Berechnungsmethodik und Abruf-Mechanismus jeder Kennzahl siehe <a href="#detailsPanel">„Methodik, Formeln &amp; Datenquelle“</a> oben auf der Seite.</p>
@@ -910,7 +917,7 @@
       </div>
     </section>
 
-    <section class="panel" id="datenschutzPanel">
+    <section class="legal-panel" id="datenschutzPanel">
       <div class="panel-head"><h2>Datenschutzerklärung</h2></div>
 
       <div class="impressum-block">
@@ -949,13 +956,8 @@
       </div>
 
       <div class="impressum-block">
-        <p class="impressum-subhead">Ihre Rechte</p>
-        <p>Sie haben jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO), Datenübertragbarkeit (Art. 20 DSGVO) sowie Widerspruch (Art. 21 DSGVO) bezüglich Sie betreffender personenbezogener Daten, soweit eine Verarbeitung stattfindet. Wenden Sie sich dazu an die im Impressum genannte Kontaktadresse.</p>
-      </div>
-
-      <div class="impressum-block">
-        <p class="impressum-subhead">Beschwerderecht bei einer Aufsichtsbehörde</p>
-        <p>Ihnen steht außerdem ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu, insbesondere in dem Mitgliedstaat Ihres gewöhnlichen Aufenthaltsorts, Ihres Arbeitsplatzes oder des Orts des mutmaßlichen Verstoßes (Art. 77 DSGVO).</p>
+        <p class="impressum-subhead">Keine Datenverarbeitung durch uns</p>
+        <p>Wir selbst erheben, speichern oder verarbeiten keine personenbezogenen Daten - es gibt kein Nutzerkonto, kein Formular, keine Analyse- oder Tracking-Werkzeuge und keine serverseitige Protokollierung durch uns (siehe oben). Es entstehen dadurch bei uns auch keine Auskunfts-, Berichtigungs- oder Löschungsansprüche, da schlicht keine entsprechenden Daten bei uns vorliegen - eine Kontaktaufnahme zu Datenschutzthemen ist deshalb nicht notwendig. Für die technische Verarbeitung durch GitHub (Hosting-Zugriffsprotokolle) oder durch die oben genannten Datenquellen bei einem Live-Abruf ist jeweils der genannte Anbieter selbst der richtige Ansprechpartner, nicht wir.</p>
       </div>
 
       <div class="impressum-block">
@@ -985,8 +987,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v273";
-  const EDIT_STAMP = "2026-08-23 06:47 UTC";
+  const EDIT_VERSION = "v274";
+  const EDIT_STAMP = "2026-08-23 09:25 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4853,13 +4855,18 @@
   // else (price line, zones, Y-axis autoscale) reads from that extended space.
   function computeCycleChartLayout(logX, logY, crosshairDate){
     const allPoints = powerLawPoints();
-    // padL needs enough room for the widest realistic Y-axis label ("$140.0K"/"$600.0K" -
-    // fmtUSD's 7-character K-range case, the longest it produces - see the tick label's own
-    // x=padL-6, text-anchor="end") at fitChartTypography's fitted font size, which is a CONSTANT
-    // real device pixel size regardless of chart width - so the SAME label needs more viewBox
-    // units on a narrower rendered chart (e.g. an iPad with the sidebar open) than on a wide
-    // desktop one. 58 wasn't quite enough there in practice; 70 gives real headroom.
-    const w=1000, h=computeCycleChartFullscreenHeight()||chartHeight(), padL=70, padR=14, padT=16, padB=46;
+    // padL no longer has to reserve a whole column for the widest realistic Y-axis label
+    // ("$140.0K"/"$600.0K") - per explicit feedback the label now sits directly ON the chart, just
+    // above its own gridline (see the tick label's own x/y and the halo stroke that keeps it legible
+    // over the price line/zones underneath - renderCycleChartDOM and fitChartTypography), instead of
+    // in a dedicated left-hand margin. padL only needs to clear the plot's own left edge from the
+    // card's edge a little, same order of magnitude as padT.
+    // padT needs more headroom than before: the topmost gridline (a "nice" round value, often just
+    // above the actual price max - see niceYTicks below) used to have its label centered BELOW it,
+    // which stayed comfortably inside the plot. Now the label floats ABOVE its own gridline, so
+    // without extra clearance here the top label's glyphs get sliced off by the hard y=0 clip
+    // (fullClipRect below) - confirmed by screenshot before this value was raised from 16.
+    const w=1000, h=computeCycleChartFullscreenHeight()||chartHeight(), padL=16, padR=14, padT=30, padB=46;
 
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
     // does) - "Alles" is the complete real history, nothing more; unlike the power-law chart, this never
@@ -5241,10 +5248,21 @@
       // the label element always exists too now (visibility is decided post-render, once the chart's real
       // scale is known - see applyCycleTickLabelThinning), so the animation's old/new tick sets always
       // match 1:1 regardless of which ones end up hidden in either mode.
+      //
+      // Sits directly ON the chart now, just above its own gridline (left-aligned, a few units right of
+      // the plot's own left edge) instead of in a dedicated left-hand margin - per explicit feedback, the
+      // reserved column wasted width the plot itself could use, most painfully on a narrow mobile card.
+      // Since the price line/zones can now render underneath it (the whole point of reclaiming that
+      // margin), a stroked halo in the card's own background color keeps it legible regardless of
+      // whatever's directly behind it at any given moment - paint-order="stroke" draws that halo BEHIND
+      // the actual glyph fill instead of on top of it. stroke-width is corrected alongside font-size in
+      // fitChartTypography (same real-device-pixel-size concern applies to both).
       const lbl = document.createElementNS(NS,"text");
       lbl.setAttribute("class","axis-label"); lbl.dataset.key = t.key;
-      lbl.setAttribute("x",padL-6); lbl.setAttribute("y",t.y+3); lbl.setAttribute("text-anchor","end");
+      lbl.setAttribute("x",padL+4); lbl.setAttribute("y",t.y-5); lbl.setAttribute("text-anchor","start");
       lbl.setAttribute("font-size","9.5"); lbl.setAttribute("fill","var(--ink-3)");
+      lbl.setAttribute("paint-order","stroke"); lbl.setAttribute("stroke","var(--card)");
+      lbl.setAttribute("stroke-width","3"); lbl.setAttribute("stroke-linejoin","round");
       lbl.textContent = t.label;
       yTickLayer.appendChild(lbl);
     });
@@ -6209,7 +6227,7 @@
         if(!nt) return;
         const ot = oldLayout.yTicks.find(t=>t.key===key);
         const y = lerp(ot ? ot.y : nt.y, nt.y);
-        el.setAttribute("y",(y+3).toFixed(1));
+        el.setAttribute("y",(y-5).toFixed(1));
       });
       if(oldLayout.crosshair && newLayout.crosshair){
         const px = lerp(oldLayout.crosshair.x, newLayout.crosshair.x);
@@ -6440,7 +6458,7 @@
     targets.forEach(t=>{
       const y = t.rawY*d + f;
       if(t.kind==="tick"){ t.line.setAttribute("y1",y.toFixed(1)); t.line.setAttribute("y2",y.toFixed(1)); }
-      else { t.text.setAttribute("y",(y+3).toFixed(1)); }
+      else { t.text.setAttribute("y",(y-5).toFixed(1)); }
     });
   }
 
@@ -7297,7 +7315,14 @@
       // Date labels get their own, slightly smaller constant size than the y-axis value labels - a
       // "YYYY-MM" string is much longer than a typical value tick, so the same 12.5px would need more
       // horizontal room than narrow cards have to spare even angled (see the x-axis label loop above).
-      svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> t.setAttribute("font-size", (12.5/scaleX).toFixed(2)));
+      svg.querySelectorAll(".axis-label:not(.axis-label-x)").forEach(t=> {
+        t.setAttribute("font-size", (12.5/scaleX).toFixed(2));
+        // Only the 4-Jahres-Zyklus chart's own Y-labels actually carry a stroke/paint-order (see
+        // renderCycleChartDOM - they sit directly on the chart now, over the price line/zones, and need
+        // a background-colored halo to stay legible) - harmless no-op on every other chart's labels,
+        // which have no stroke attribute to size in the first place.
+        if(t.hasAttribute("stroke-width")) t.setAttribute("stroke-width", (3.5/scaleX).toFixed(2));
+      });
       svg.querySelectorAll(".axis-label-x").forEach(t=> t.setAttribute("font-size", (10.5/scaleX).toFixed(2)));
       svg.querySelectorAll(".refline-label").forEach(t=> t.setAttribute("font-size", (11.5/scaleX).toFixed(2)));
       // The floating crosshair date label previously kept its own fixed, un-normalized font-size (11) -
