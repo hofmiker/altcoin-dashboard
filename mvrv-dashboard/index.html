@@ -244,6 +244,29 @@
 
   .tab-status{font-size:12.8px; color:var(--ink-2); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 16px; line-height:1.6;}
   .tab-status a{color:var(--bitcoin-accent); text-decoration:none;} .tab-status a:hover{text-decoration:underline;}
+
+  /* Every inline text link embedded in prose (methodology/Impressum paragraphs, popovers, the status
+     banner) - not nav items or icon buttons, which style themselves separately. Was plain browser-default
+     blue everywhere outside .info-pop/.tab-status (no rule at all for .panel a) - per explicit feedback,
+     unified onto the same --bitcoin-accent every other accent use on the page already reads as "the" link
+     color, with a small diagonal arrow after each one so a text link is recognizable without relying on
+     color/underline alone. */
+  .panel a, .info-pop a, .tab-status a{color:var(--bitcoin-accent);}
+  .panel a::after, .info-pop a::after, .tab-status a::after{
+    content:""; display:inline-block; width:9px; height:9px; margin-left:1px; flex:none;
+    vertical-align:-1px;
+    background-color:currentColor;
+    /* Bottom-left-to-top-right arrow with a stroked (not filled-triangle) head - a diagonal line plus an
+       open corner bracket at its top-right end, exactly matching the shape a currentColor SVG stroke icon
+       elsewhere on this page would draw. Colored via mask + background-color instead of an inline <svg>
+       so it automatically follows each link's own color/hover state without duplicating markup at every
+       single link across the page. */
+    -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+    mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7'/%3E%3Cpath d='M7 7h10v10'/%3E%3C/svg%3E");
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+  }
   .tab-status.error{color:var(--critical); border-color:var(--critical-bg); background:var(--critical-bg);}
   .tab-status b{color:inherit; font-family:var(--font-display);}
 
@@ -890,8 +913,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v270";
-  const EDIT_STAMP = "2026-08-23 06:10 UTC";
+  const EDIT_VERSION = "v271";
+  const EDIT_STAMP = "2026-08-23 06:17 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -5834,18 +5857,17 @@
     toolRow.appendChild(readoutEl);
     panel.appendChild(toolRow);
 
-    // One unified row for every control this chart itself owns - the two axis-scale toggles (Y then X,
-    // matching reading order top-to-bottom/left-to-right of the axes they control) and the two layer
-    // toggles. All four share the same .halving-toggle-btn sizing/shape/radius now (see that class and
-    // .cyc-axis-toggle's own reduced rule) instead of the Y/X toggles' previous smaller, differently
-    // rounded on-chart style - per explicit feedback to make every button at this chart look like one
-    // consistent family.
+    // One unified row for every control this chart itself owns EXCEPT the X-axis toggle - the Y-axis
+    // scale toggle and the two layer toggles. Per explicit feedback the X toggle belongs at the bottom
+    // right instead (see the toolbar below, right next to "Zurück zu heute") - it stays right where a
+    // reader's eye already is after reading the X-axis' own date labels, rather than jumping all the way
+    // up to a row that otherwise only concerns the Y-axis/layer visibility. All buttons still share the
+    // same .halving-toggle-btn/.cyc-axis-toggle sizing/shape/radius regardless of which row they end up
+    // in, so the "one consistent family" look holds across both rows.
     const chartControlsRow = document.createElement("div");
     chartControlsRow.className = "cyc-controls-row";
     const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", cycleChartLogY, v=> animateCycleChartAxisChange(cycleChartLogX, v), "Y-Achse: Log/Linear umschalten");
     chartControlsRow.appendChild(yToggle);
-    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
-    chartControlsRow.appendChild(xToggle);
     // One compact pill now covers both the bull/bear zone shading AND this chart's halving markers
     // (previously two separate controls - a rounded "Zyklus-Zonen" chip up here plus a distinct "Zyklen"
     // button down in the toolbar) - same compact rectangular shape as the time-range buttons rather than
@@ -5902,6 +5924,11 @@
     const toolbar = document.createElement("div");
     toolbar.className = "card-toolbar";
     toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
+    // X-axis toggle lives here, not in chartControlsRow above (see that row's own comment) - .card-toolbar
+    // is itself right-aligned (justify-content:flex-end), so appending it last puts it exactly bottom
+    // right, past even "Zurück zu heute".
+    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChartLogX, v=> animateCycleChartAxisChange(v, cycleChartLogY), "X-Achse: Log/Linear umschalten");
+    toolbar.appendChild(xToggle);
     panel.appendChild(toolbar);
 
     // computeCycleChartFullscreenHeight() (called from inside computeCycleChartLayout above, BEFORE
