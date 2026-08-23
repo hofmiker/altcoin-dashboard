@@ -86,6 +86,78 @@ Abschluss des ganzen Batches warten.
   Regressionssuite laufen lassen, nicht nur den unmittelbar betroffenen
   Chart - mehrere Charts teilen sich dieselbe Zoom-/Crosshair-Maschinerie.
 
+## Qualitätskontrolle vor jedem Ship (Pflicht)
+
+**Anlass:** PR #242 (Fullscreen-Buttons für den Marktzyklen-Chart) hat mit
+"0 Konsolenfehler" getestet gemerged, war aber trotzdem kaputt - die neuen
+Buttons haben ihr eigenes kleines Icon-`<svg>` vor das echte Chart-`<svg>`
+gesetzt, wodurch mehrere ungezielte `"#cycleChartPanel svg"`-Abfragen ab
+sofort das Icon-SVG statt des Charts trafen. Die Log/Linear-Achsen-
+Animation lief dadurch komplett leer (keine Elemente gefunden, aber auch
+kein Fehler geworfen), der Chart sprang beim Umschalten nur noch sofort in
+den Endzustand. Das ist erst dem Nutzer aufgefallen, nicht mir - das darf
+nicht nochmal passieren.
+
+**Kernlektion:** "Keine Konsolenfehler" beweist nur Abwesenheit von
+Crashes, nicht Korrektheit. Ein Selector, der das falsche (aber
+existierende) Element trifft, wirft nie einen Fehler - er liefert einfach
+ein leeres/falsches Ergebnis. Genau solche Bugs sind es, die durchrutschen,
+wenn nur auf `pageerrors.length === 0` geprüft wird.
+
+Deshalb vor **jedem** Merge an `index.html`, nicht nur für das gerade
+gebaute Feature:
+
+1. **DOM-Struktur-Diff prüfen**, sobald Elemente in einem bestehenden Panel
+   neu hinzugefügt, entfernt oder umsortiert wurden:
+   `grep -n "#<panelId>" index.html` laufen lassen und **jeden Treffer
+   einzeln** durchgehen - trifft ein dortiger `querySelector`/
+   `querySelectorAll` nach der Änderung noch das ursprünglich gemeinte
+   Element (DOM-Reihenfolge!), oder jetzt versehentlich ein neu
+   eingefügtes? Ein unscoped `"#panel svg"`/`"#panel button"` usw. ist ein
+   Alarmsignal, sobald das Panel mehr als ein Element dieser Art enthält -
+   im Zweifel auf einen spezifischeren Vorfahren scopen (Vorbild: das
+   bereits vorhandene `"#cycleChartPanel .chart-wrap svg"`).
+2. **Verhalten testen, nicht nur Fehlerfreiheit**: für jede berührte
+   Animation/Interaktion eine echte Zustands-Assertion schreiben (z. B.
+   `path.getAttribute("d")`, eine Transform-Matrix, eine Bounding-Box) -
+   nie nur `pageerrors.length === 0` als alleinigen Erfolgsnachweis werten.
+3. **Zwischenzustände sampeln, nicht nur Vorher/Nachher**: bei jeder
+   Animation mindestens zwei Frames *mitten* in der Transition abgreifen
+   und prüfen, dass sich der Wert zwischen den Frames tatsächlich ändert
+   (`mid !== start` UND `mid !== end`). Ein Bug, der die Animation komplett
+   leerlaufen lässt, ist an Start-/Endzustand allein unsichtbar, weil die
+   sofortige DOM-Neuerstellung (`renderCycleChart()` o. ä.) diese ohnehin
+   schon korrekt liefert.
+4. **Volle Regressions-Checkliste** für jeden Chart, der von der Änderung
+   betroffen sein könnte (siehe unten) - nicht nur das eine angeforderte
+   Feature isoliert testen.
+5. Erst nach 1.-4. den Ship-Workflow starten. Bei einem gefundenen Problem:
+   fixen, Checkliste erneut komplett durchlaufen, nicht nur den einen
+   reparierten Punkt.
+
+### Regressions-Checkliste Marktzyklen-Chart
+
+Bei jeder Änderung an `index.html`, die diesen Chart selbst oder
+gemeinsam genutzten Code (`buildLineChart`, `animateMatrix`,
+`computeZoomMatrix`, `fitChartTypography` usw.) berührt:
+
+- [ ] Log/Linear-Toggle (X- und Y-Achse einzeln): Preislinie interpoliert
+      sichtbar über ≥2 Zwischenframes
+- [ ] Range-Wechsel rein-zoomen (z. B. 10J → 1J): Zwischenframe zeigt eine
+      echte Nicht-Identitäts-Matrix auf `.cyc-zoom-group`
+- [ ] Range-Wechsel raus-zoomen (z. B. 1J → 10J)
+- [ ] 2-Finger-Pan auf mobil (inkrementelle `touchmove`-Schritte, kein
+      einzelner großer Sprung - reproduziert zuverlässiger)
+- [ ] Doppeltipp zoomt zur angetippten Stelle, nicht immer zu "heute"
+- [ ] "Zurück zu heute"-Button
+- [ ] Zyklus-/Kurs-Toggle
+- [ ] Fullscreen enter/exit, mehrfach hintereinander, inkl. Escape-Taste
+- [ ] Ein Rebuild *während* Fullscreen auslösen (z. B. Zyklus-Toggle
+      klicken während offen) - Buttons danach immer noch klickbar?
+- [ ] `grep -n "#cycleChartPanel" index.html` durchgesehen - kein neu
+      eingefügtes Element steht vor einem bestehenden ungezielten Selector
+- [ ] Screenshots Desktop/Dark/Mobile geprüft, nicht nur Konsole
+
 ## Methodik-Sektion aktuell halten
 
 `index.html` hat unten auf der Seite ein `<details id="detailsPanel">` mit
