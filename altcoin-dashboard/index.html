@@ -313,19 +313,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$70.000–77.000</div>
-          <div class="ctx">Konsolidiert bei ~$76,3k (−1,7% heute), nachdem die Rallye zwischenzeitlich über $79k erreichte — leichte Verschnaufpause nach dem Short-Squeeze</div>
+          <div class="value mono">$76.000–81.000</div>
+          <div class="ctx">Rallye setzt sich fort: erreicht ~$80,6k (+3,9% heute), höchster Stand seit Mitte Mai — $1,92 Mrd. ETF-Zuflüsse letzte Woche, Treasury-Anleihenrückkäufe, Clarity-Act-Hoffnung</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">30 / 100</div>
-          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Rallye bleibt BTC-/Large-Cap-geführt, XRP gibt einen Teil des Sprungs wieder ab (−5,8%)</div>
+          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Rallye bleibt weiterhin BTC-/Large-Cap-geführt, keine breite Altseason-Rotation erkennbar</div>
           <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~57%</div>
-          <div class="ctx">Eigene Berechnung aus BTC-Marktkap. ($1,53 Bio.) vs. Gesamtmarkt (~$2,6–2,76 Bio., je nach Quelle) — grob seitwärts</div>
+          <div class="value mono">~58%</div>
+          <div class="ctx">Laut Marktdaten von heute bei ~58,1% — Kapital bleibt trotz einzelner Altcoin-Ausreißer (z. B. DGAI) klar in Bitcoin konzentriert</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–23.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–25.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "25.08.2026", text: "Die Rallye läuft weiter: Bitcoin erreicht ~$80,6k (+3,9%), höchster Stand seit Mitte Mai — gestützt von $1,92 Mrd. Spot-ETF-Zuflüssen letzte Woche, ausgeweiteten Treasury-Anleihenrückkäufen und Hoffnung auf den Clarity Act. BTC-Dominanz bleibt bei ~58,1%, weiterhin eine BTC-/Large-Cap-geführte Rallye ohne breite Altseason-Rotation. Neuer Fund: DGrid AI (DGAI) listete am 24.8. gleichzeitig auf KuCoin, Bitget und Kraken und sprang binnen 24h um ~82% bei $107 Mio. Volumen — dezentrales AI-Inference-Netzwerk mit gemeldetem echten Umsatz ($23 Mio. H1 2026), aber keine Tier-1-Börse und kein bestätigter Audit, daher nur Score 3/12 auf die Watchlist. Verworfen: Terra Classic (LUNC) trotz Rekord-Burn-Woche — die zugrunde liegende Burn-Tax-Erhöhung stammt bereits vom 2.8., Market Cap liegt mit $304,7 Mio. über unserer Red-Flag-Schwelle. <i>Hinweis: Der Scan vom 24.8. ist ausgefallen (Session-Idle-Zeit) — dieser Eintrag deckt beide Tage ab, ohne den 24.8. rückwirkend zu rekonstruieren.</i>" },
     { date: "23.08.2026", text: "Nach dem Rallye-Doppelschlag vom 20.–21.8. (Bitcoin zwischenzeitlich über $79k) konsolidiert der Markt: BTC bei ~$76,3k (−1,7%), XRP gibt einen Teil seines Sprungs wieder ab (−5,8%), ETH −2,1% — eine normale Verschnaufpause nach dem größten Short-Squeeze seit 2021. Auffälligster Fund des Tages: Upbit listete am 21.8. gleich vier Coins auf einmal (BICO, BMT, NIL, GWEI) — alle vier fielen aber beim Red-Flag-Check durch, da Top-10-Halter bei BICO (~97% inkl. Exchange-Wallets), BMT (76,3%) und GWEI (87,2%) klar über der 60%-Schwelle liegen und NIL weder Audit-Nachweis noch nennenswerten Kursanstieg zeigte. Sonst keine frischen Whale-Käufe abseits von Large-Caps (HYPE, ENA, LDO) oder neue AI-Agenten-Token-Launches gefunden. <i>Hinweis: Der Scan vom 22.8. ist ausgefallen (Session-Idle-Zeit) — dieser Eintrag deckt beide Tage ab, ohne den 22.8. rückwirkend zu rekonstruieren.</i>" },
     { date: "21.08.2026", text: "Die Rallye beschleunigt sich weiter: Bitcoin springt um weitere 8,9% auf ~$76,3k (Zwei-Wochen-Hoch), getrieben von einem $3-Mrd.-Short-Liquidationsschub — dem größten seit mindestens 2021 —, ausgeweiteten US-Treasury-Anleihenrückkäufen und einem Trump-Treffen mit Krypto-Branchenvertretern zum Clarity Act. XRP sticht mit +17,7% besonders hervor (SEC-Ausnahmeregelungen, Ripple-Anleiheemission), auch Ethereum (+5,6%) und HYPE liefen mit — die BTC-Dominanz steigt dabei sogar leicht auf ~60%, da Bitcoin selbst am stärksten zulegt, keine breite Altseason-Rotation. Kein Small-Cap-Kandidat erfüllte unser Frische-Kriterium: Ontology (ONG/ONT, +128%/+30%) lief ohne neuen Katalysator (Burn-Event stammt aus Dezember) mit, tokenisierte SpaceX-Aktien (bStocks, Solana) sind zwei Monate alt und fallen als Aktien-Wrapper ohnehin nicht unter unser Altcoin-Scoring." },
     { date: "20.08.2026", text: "Massiver Rallye-Tag: Bitcoin springt um 8,8% auf ~$69,6k, Ethereum sogar um 18,5% auf ~$2.252 — ausgelöst durch einen $1-Mrd.-Short-Squeeze (über $1,9 Mrd. Liquidationen binnen 24h), gestützt von ausgeweiteten US-Treasury-Anleihenrückkäufen, fallenden Renditen und positiveren Regulierungs-Erwartungen. Unter den Large-Caps stach HYPE mit +19% besonders hervor, auch SOL (+10%) und XRP (+10%) liefen deutlich mit — insgesamt aber ein breiter, marktweiter Squeeze statt eines Einzeltitel-Katalysators. Kein Small-Cap-Kandidat erfüllte unser Frische-Kriterium: Cashcat (CASHCAT) und der Bitget-Fusionist-Kurssprung stammen bereits aus der Vorwoche, Pepecoin (PEP, +117%) blieb ein extrem dünn gehandelter Mikro-Cap-Ausreißer ohne erkennbaren Katalysator." },
@@ -534,29 +535,6 @@
       sourceRefs:[]
     },
     {
-      ticker:"ASTER", name:"Aster (BNB Chain Perp-DEX)", status:"neutral", statusLabel:"Kein frisches Signal", score:null, firstSeen:"07.07.2026",
-      chartType:"line", unit:"$", logo:null, coingeckoId:"aster-2", link:null,
-      series:[
-        {label:"17. Sep '25", value:0.08},
-        {label:"24. Sep '25", value:1.20},
-        {label:"Jan '26", value:1.80},
-        {label:"Mär '26", value:2.10},
-        {label:"Jul '26", value:2.42}
-      ],
-      stats:[
-        {k:"Market Cap",v:"~$4 Mrd."},
-        {k:"Seit Launch",v:"+2.900%"},
-        {k:"Unterstützt von",v:"CZ / YZi Labs"},
-        {k:"Segment",v:"Hyperliquid-Rivale"}
-      ],
-      signals:[
-        ["CZ-Endorsement + Exchange-Listings","bereits eingepreist"]
-      ],
-      flag:null,
-      note:"Rally und CZ-Story sind <b>Monate alt</b> — kein aktueller Katalysator für den heutigen Scan, daher nicht gescort.",
-      sourceRefs:[]
-    },
-    {
       ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2, firstSeen:"07.07.2026",
       chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai", link:null,
       series:[
@@ -600,28 +578,6 @@
       flag:"GAL wurde technisch bereits zu einem neuen Token „Gravity (G)” migriert — Upbit listet weiterhin das alte GAL-Kürzel. Das deutet eher auf einen Legacy-/Liquiditäts-Listing-Fall als auf einen reinen Momentum-Trade hin; vor dem Kauf unbedingt prüfen, welches Kürzel/Contract tatsächlich gehandelt wird.",
       note:"Upbit-Listing ist wie angekündigt am 11. Jul live gegangen, die Kursreaktion blieb bislang aber verhalten (~stabil bei $0,27) — die laufende Migration zu Gravity (G) macht die Situation weiterhin ungewöhnlich. <b>Score bleibt unter der Watchlist-Schwelle</b>.",
       sourceRefs:[4,5]
-    },
-    {
-      ticker:"OXT", name:"Orchid Protocol", status:"neutral", statusLabel:"Bereits gelaufen — kein Vorab-Signal", score:null, firstSeen:"17.07.2026",
-      chartType:"line", unit:"$", logo:null, coingeckoId:"orchid-protocol", link:null,
-      series:[
-        {label:"9. Jul '26", value:0.0035},
-        {label:"14. Jul '26", value:0.0055},
-        {label:"17. Jul '26", value:0.0072}
-      ],
-      stats:[
-        {k:"Market Cap",v:"$5–31 Mio.*"},
-        {k:"Kursreaktion",v:"+90 bis +190%*"},
-        {k:"Exchange-Status",v:"Von Binance (Monitoring-Tag), Upbit, OKX, Bitget delistet/eingeschränkt"}
-      ],
-      signals:[
-        ["Technische Erholung nach Delisting-Crash (RSI ~32, überverkauft)","kein Score"],
-        ["DePIN-Sektor-Momentum (Top-Gainer am 9. Jul, +5,47%)","kein Score"],
-        ["Vermutetes Short-Covering bei dünner Liquidität","kein Score"]
-      ],
-      flag:"Kursangaben zwischen Börsen/Aggregatoren aktuell extrem widersprüchlich ($0,0065–$0,053 je nach Quelle, teils >90% Abweichung) — typisches Zeichen fragmentierter, dünner Liquidität nach den Delistings. Keine belastbare Einzelzahl verfügbar.",
-      note:"Auf Nutzeranfrage recherchiert, nicht Teil des täglichen Scans: OXT ist deutlich gestiegen (Quellen uneinig zwischen +93% in 24h und +93% in 7 Tagen), aber <b>kein fundamentaler Katalysator</b> (kein neues Listing, keine Partnerschaft) auffindbar — wirkt getrieben von überverkaufter technischer Gegenbewegung und mutmaßlichem Short-Covering, nicht von einem im Voraus erkennbaren Ereignis. Strukturelle Delisting-Risiken (Binance-Monitoring-Tag seit 6. Mär, Upbit-Delisting 29. Jun) bleiben bestehen. Retrospektive Analyse ohne aktionables Vorab-Signal — daher bewusst <b>nicht gescort</b>.",
-      sourceRefs:[6,7,8]
     },
     {
       ticker:"AERO", name:"Aerodrome Finance", status:"good", statusLabel:"Watchlist", score:4, firstSeen:"22.07.2026",
@@ -894,6 +850,26 @@
       flag:null,
       note:"<b>Neu:</b> Upbit listete ALLO am 10. August zusammen mit fünf weiteren Coins (u. a. CYS) in BTC/USDT-Märkten — Teil einer breiteren 30%-Aufwärtsbewegung bei mehreren der neu gelisteten Titel. Allora ist ein dezentrales KI-Netzwerk, das ML-Modelle verschiedener Anbieter zu kollektiven On-Chain-Inferenzen koordiniert (Cosmos-Hub-Chain, CometBFT PoS), Security-Assessment von Halborn vorhanden. Große Early-Holder-Allokationen entsperren über die kommenden Monate — Verwässerungsrisiko im Auge behalten, aber kein hartes Red Flag nach unserem Framework. <b>Score 5/12 — auf die Watchlist aufgenommen</b>.",
       sourceRefs:[30]
+    },
+    {
+      ticker:"DGAI", name:"DGrid AI", status:"caution", statusLabel:"Unter Schwelle / kein bestätigter Audit", score:3, firstSeen:"25.08.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:"https://www.coingabbar.com/en/crypto-listings/dgrid-ai-listing-on-kucoin-exchange",
+      series:[
+        {label:"vor Listing (24. Aug)", value:0.377},
+        {label:"jetzt", value:0.696}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$109,5 Mio."},
+        {k:"24h Vol.",v:"~$107,2 Mio."},
+        {k:"Whitepaper",v:"Litepaper vorhanden (dgrid.ai), kein bestätigter Security-Audit gefunden"}
+      ],
+      signals:[
+        ["Frisches Multi-Exchange-Listing (KuCoin, Bitget, Kraken, 24. Aug — keine Tier-1-Börse unseres Scorings)","+1"],
+        ["Aktives KI-Narrativ (dezentrales AI-Inference-Netzwerk, gemeldet $23 Mio. H1-2026-Umsatz, 15.000 zahlende Nutzer)","+2"]
+      ],
+      flag:"Kein bestätigter Security-Audit gefunden — Vorsicht bei Positionsgröße.",
+      note:"<b>Neu:</b> DGrid AI (DGAI) listete am 24. August gleichzeitig auf KuCoin, Bitget und Kraken und sprang binnen 24h um ~+82% bei $107 Mio. Volumen. Dezentrales AI-Inference-Netzwerk (OpenAI-kompatibles API-Gateway, 200+ Modelle) mit gemeldetem echten Umsatz, aber keine Tier-1-Börse (Upbit/Binance/Coinbase) und kein bestätigter Audit — <b>Score 3/12, Watchlist mit Vorsicht</b>.",
+      sourceRefs:[31]
     }
   ];
 
@@ -928,7 +904,8 @@
     {n:27, label:"Crypto News Today: BTC, ETH Fell as Stablecoins and DeFi Market Slides, 7. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-currency-news/crypto-news-today-bitcoin-eth-stablecoins-defi-market-drops"},
     {n:28, label:"Upbit lists Block Street (BSB) across KRW, BTC, USDT, 7. Aug 2026 — crypto.news", url:"https://crypto.news/upbit-lists-block-street-bsb-across-krw-btc-usdt/"},
     {n:29, label:"Cysic (CYS) Skyrockets to New All-Time High on Upbit Listing, 10. Aug 2026 — CryptoPotato", url:"https://cryptopotato.com/cysic-cys-skyrockets-to-new-all-time-high-on-upbit-listing-details/"},
-    {n:30, label:"6 New Upbit Listings Fuel 30% Moves for Select Altcoins, 10. Aug 2026 — BeInCrypto", url:"https://beincrypto.com/upbit-listings-fuel-upside-select-altcoins/"}
+    {n:30, label:"6 New Upbit Listings Fuel 30% Moves for Select Altcoins, 10. Aug 2026 — BeInCrypto", url:"https://beincrypto.com/upbit-listings-fuel-upside-select-altcoins/"},
+    {n:31, label:"DGrid AI Listing on KuCoin: DGAI Token Trading and Market Details, 24. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-listings/dgrid-ai-listing-on-kucoin-exchange"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
