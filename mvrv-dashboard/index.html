@@ -30,6 +30,7 @@
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
     --c-ms-big4:#b8860b; --c-ms-us:#2f6fb0; --c-ms-ez:#7a4fa0; --c-ms-jp:#c0392b; --c-ms-cn:#1f9d55;
+    --stat-badge-bg:#d6dbe3; --stat-badge-border:#c1c7d1; --stat-badge-mix:#14111c; --stat-badge-shadow:rgba(255,255,255,.75); --stat-badge-neutral-seg:rgba(15,10,28,.16);
     --font-display:"Space Grotesk", -apple-system, "Segoe UI", sans-serif;
     --font-body:"Inter", -apple-system, "Segoe UI", sans-serif;
   }
@@ -47,6 +48,7 @@
       --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
       --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
       --c-ms-big4:#e8b93f; --c-ms-us:#5b9bff; --c-ms-ez:#a888d6; --c-ms-jp:#e0655f; --c-ms-cn:#3ecf7e;
+      --stat-badge-bg:#242a3a; --stat-badge-border:#3a4256; --stat-badge-mix:#fff; --stat-badge-shadow:rgba(0,0,0,.4); --stat-badge-neutral-seg:rgba(255,255,255,.32);
     }
   }
   :root[data-theme="dark"]{
@@ -61,6 +63,7 @@
     --c-price:var(--bitcoin-accent); --c-mvrv:#8489d1; --c-realized:#c99a5f; --c-nupl:#3db877; --c-zscore:#e0655f;
     --c-mcap:#5b9bff; --c-rcap:#ff8a5b; --c-supply:#2fd3c7; --c-nvt:#c98be0; --c-addr:#7fa8c9; --c-roi30:#c3d65c; --c-roi1y:#e0729f; --c-actsup:#f06596; --c-feargreed:#9370db;
     --c-rsi:#e0b84a; --c-macd:#4fc3d9; --c-macdsignal:#ff9d5c; --c-powerlaw:#c084e8;
+    --stat-badge-bg:#242a3a; --stat-badge-border:#3a4256; --stat-badge-mix:#fff; --stat-badge-shadow:rgba(0,0,0,.4); --stat-badge-neutral-seg:rgba(255,255,255,.32);
   }
   :root[data-theme="light"]{
     --bg:#eef0f3; --card:#ffffff; --inset:#eef0f3; --border:#dde1e7;
@@ -75,6 +78,7 @@
     --c-mcap:#2a6ed4; --c-rcap:#d4562a; --c-supply:#0aa39a; --c-nvt:#8e3aa8; --c-addr:#4a6f8a; --c-roi30:#7a8a1f; --c-roi1y:#b8467a; --c-actsup:#c2185b; --c-feargreed:#6f42c1;
     --c-rsi:#b8860b; --c-macd:#1f7a8c; --c-macdsignal:#c2410c; --c-powerlaw:#8b3fa6;
     --c-ms-big4:#b8860b; --c-ms-us:#2f6fb0; --c-ms-ez:#7a4fa0; --c-ms-jp:#c0392b; --c-ms-cn:#1f9d55;
+    --stat-badge-bg:#d6dbe3; --stat-badge-border:#c1c7d1; --stat-badge-mix:#14111c; --stat-badge-shadow:rgba(255,255,255,.75); --stat-badge-neutral-seg:rgba(15,10,28,.16);
   }
 
   *{box-sizing:border-box}
@@ -313,7 +317,7 @@
   .stat-strip-teaser .stat .value{font-size:clamp(28px, 17cqw, 92px); font-weight:800; margin-top:10px; display:block; width:100%; white-space:nowrap; overflow:hidden; line-height:1; color:#fff; transition:transform .1s linear;}
   .stat-strip-teaser .stat .value .unit{font-size:.36em; font-weight:700; opacity:.82; margin:0 1px;}
   .stat-strip-teaser .stat .value.compound{font-size:clamp(14px, 6.5cqw, 30px);}
-  .stat-strip-teaser .stat .ctx{font-size:13px; margin-top:10px; min-height:1.4em; color:rgba(255,255,255,.85);}
+  .stat-strip-teaser .stat .ctx{font-size:13px; margin-top:10px; min-height:1.4em; padding-right:34px; color:rgba(255,255,255,.85);}
   /* Zone chips (Günstig/Gier/...) keep their own classification color everywhere else on the page, read
      against a neutral card background there - but a teaser tile's OWN background is now that same zone
      color for Fear & Greed (see renderStatStrip's dynamic --stat-color), which made the "Gier" chip's
@@ -350,6 +354,43 @@
   .stat-strip-teaser .stat .ath-lost{position:absolute; left:0; right:0; top:0; background:#fff; box-shadow:0 0 8px 2px rgba(255,255,255,.85);}
   .stat-strip-teaser .stat .ath-held{position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.28);}
   .stat-strip-teaser .stat .ath-bar-label{font-size:9px; font-weight:700; opacity:.75; text-align:center; line-height:1.2;}
+
+  /* Every tile except BTC-Kurs (see renderStatStrip's `plain` flag) - neutral card surface instead of a
+     full-bleed metric color, so the strip doesn't read as a wall of unrelated colors; the metric's own
+     accent color moves into the number/label/chip/lines instead of the background. Background/border are
+     fixed theme tokens (--stat-badge-bg/-border, deliberately with more contrast against --bg than a
+     regular --card would give - a metric tile that blends into the page reads as broken, not subtle), not
+     tied to --stat-color at all. Text/lines use color-mix(...--stat-color, --stat-badge-mix) - mixed toward
+     white in dark mode, toward a near-black ink in light mode - so each tile still carries its metric's own
+     identity without needing a colored surface to do it. Zone-bar/arc scale graphics (mini-zone-marker
+     aside) keep their own fixed semantic colors either way - see miniZoneBarHtml/miniArcHtml, deliberately
+     not part of this. */
+  .stat-strip-teaser .stat.badge{ background:var(--stat-badge-bg); border-color:var(--stat-badge-border); }
+  .stat-strip-teaser .stat.badge .label{color:color-mix(in srgb, var(--stat-color) 55%, var(--stat-badge-mix)); opacity:.9;}
+  .stat-strip-teaser .stat.badge .value{color:color-mix(in srgb, var(--stat-color) 74%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .ctx{color:color-mix(in srgb, var(--stat-color) 62%, var(--stat-badge-mix)); opacity:.85;}
+  .stat-strip-teaser .stat.badge .chip{
+    color:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix));
+    background:color-mix(in srgb, var(--stat-color) 30%, transparent);
+    border-color:color-mix(in srgb, var(--stat-color) 46%, transparent);
+  }
+  .stat-strip-teaser .stat.badge .chip i{background:currentColor;}
+  .stat-strip-teaser .stat.badge .mini-spark-line{stroke:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .mini-spark-dot{fill:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .mini-spark-halo{fill:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .mini-zone-marker{background:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix)); box-shadow:0 0 0 1.5px var(--stat-badge-shadow);}
+  .stat-strip-teaser .stat.badge .mini-bar{background:color-mix(in srgb, var(--stat-color) 16%, transparent);}
+  .stat-strip-teaser .stat.badge .mini-bar-fill{background:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .ath-bar-track{background:color-mix(in srgb, var(--stat-color) 14%, transparent);}
+  .stat-strip-teaser .stat.badge .ath-lost{background:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix)); box-shadow:0 0 8px 2px color-mix(in srgb, var(--stat-color) 45%, var(--stat-badge-shadow));}
+  .stat-strip-teaser .stat.badge .ath-held{background:color-mix(in srgb, var(--stat-color) 26%, transparent);}
+  .stat-strip-teaser .stat.badge .ath-bar-label{color:color-mix(in srgb, var(--stat-color) 62%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .stat-arrow{
+    background:color-mix(in srgb, var(--stat-color) 26%, transparent);
+    border-color:color-mix(in srgb, var(--stat-color) 46%, transparent);
+    color:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix));
+  }
+  .stat-strip-teaser .stat.badge .stat-arrow:hover{background:color-mix(in srgb, var(--stat-color) 38%, transparent);}
 
   .stat-strip-teaser .stat.bounce .value{animation:statBounce .45s cubic-bezier(.34,1.56,.64,1);}
   @keyframes statBounce{ 0%{transform:scale(1);} 40%{transform:scale(1.06);} 70%{transform:scale(.99);} 100%{transform:scale(1);} }
@@ -1006,8 +1047,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v284";
-  const EDIT_STAMP = "2026-08-23 17:14 UTC";
+  const EDIT_VERSION = "v285";
+  const EDIT_STAMP = "2026-08-25 05:38 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3543,7 +3584,7 @@
       <path d="M 20,100 A 80,80 0 0 1 76,24.5" fill="none" stroke="#c73f39" stroke-width="16" stroke-linecap="round"/>
       <path d="M 76,24.5 A 80,80 0 0 1 124,24.5" fill="none" stroke="#e0a340" stroke-width="16" stroke-linecap="round"/>
       <path d="M 124,24.5 A 80,80 0 0 1 180,100" fill="none" stroke="#1f9d55" stroke-width="16" stroke-linecap="round"/>
-      <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="var(--stat-color)" stroke-width="2.5"/>
+      <circle cx="${mx}" cy="${my}" r="8" fill="var(--stat-badge-mix)" stroke="var(--stat-badge-bg)" stroke-width="2.5"/>
     </svg>`;
   }
 
@@ -3587,12 +3628,12 @@
     const supplyPct = FULL.hasSupply && sup!=null ? sup/21000000*100 : null;
 
     const stats = [
-      {available:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letztes Jahr",
+      {available:true, plain:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letztes Jahr",
         mini: miniSparklineHtml(FULL.price.slice(-365))},
       {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–",
-        mini: mvrvBounds ? miniZoneBarHtml(["#1f9d55","#7fcc9c","rgba(255,255,255,.4)","#e0a340","#e0655f"], mvrvBounds, mvrv) : ""},
+        mini: mvrvBounds ? miniZoneBarHtml(["#1f9d55","#7fcc9c","var(--stat-badge-neutral-seg)","#e0a340","#e0655f"], mvrvBounds, mvrv) : ""},
       {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`,
-        mini: miniZoneBarHtml(["#e0655f","#e0a340","rgba(255,255,255,.4)","#7fcc9c","#c73f39"], nuplBounds, nupl)},
+        mini: miniZoneBarHtml(["#e0655f","#e0a340","var(--stat-badge-neutral-seg)","#7fcc9c","#c73f39"], nuplBounds, nupl)},
       {available:FULL.hasZScore, color:"var(--c-zscore)", target:slugify("MVRV Z-Score"), label:"MVRV Z-Score", value:fmtRatio(z), ctx:`<span class="chip ${zz.cls}${zzPulse}"><i></i>${zz.label}</span>`},
       {available:FULL.hasFearGreed, color: fgz ? fgz.color : "var(--c-feargreed)", target:slugify("Fear & Greed Index"), label:"Fear & Greed Index", value:fg!=null?String(Math.round(fg)):"–",
         ctx: fgz ? `<span class="chip ${fgz.cls}${fgPulse}"><i></i>${fgz.label}</span>` : "–", mini: miniArcHtml(fg)},
@@ -3611,10 +3652,13 @@
       // Abstand-zum-ATH keeps its own dedicated side-by-side layout (text left, vertical loss-bar right -
       // explicit request, "Schiebe das Chart nach rechts") instead of the generic under-the-number `.mini`
       // slot every other tile below uses - the bar reads as a companion to the number, not a footnote.
+      // Every tile except BTC-Kurs (s.plain, see stats above) gets the neutral-card "badge" surface -
+      // see the .stat-strip-teaser .stat.badge CSS block for what that changes.
+      const surfaceCls = s.plain ? "" : " badge";
       if(s.isAth){
         const lostPct = s.athPrice>0 ? Math.max(0, Math.min(100, (1-s.price/s.athPrice)*100)) : 0;
         const heldPct = 100-lostPct;
-        return `<div class="stat" style="--stat-color:${s.color}">
+        return `<div class="stat${surfaceCls}" style="--stat-color:${s.color}">
           <div class="label">${s.label}</div>
           <div class="ath-row">
             <div class="ath-text">
@@ -3633,7 +3677,7 @@
           <button type="button" class="stat-arrow" data-scroll-target="${s.target}" aria-label="Zu ${s.label} springen" title="Zum Chart springen">${SCROLL_ARROW_SVG}</button>
         </div>`;
       }
-      return `<div class="stat" style="--stat-color:${s.color}">
+      return `<div class="stat${surfaceCls}" style="--stat-color:${s.color}">
         <div class="label">${s.label}</div>
         ${valueHtml}
         ${s.mini ? `<div class="mini">${s.mini}</div>` : ""}
