@@ -567,7 +567,11 @@
     transition:border-color .15s ease, color .15s ease, background .15s ease; flex:none; white-space:nowrap;
   }
   .cyc-axis-toggle:hover{ color:var(--ink); border-color:var(--ink-3); }
-  .cyc-axis-toggle.active{ background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  /* Secondary/less-dominant active look ("Variante B - Tonal") - per explicit feedback the Log/Linear
+     toggle shouldn't compete visually with the same solid-ink fill the range buttons and the primary
+     Zyklus/BTC/Regenbogen/Power-Law layer toggles use; a soft neutral tint instead of a solid fill still
+     reads as "on" without claiming the same visual weight. */
+  .cyc-axis-toggle.active{ background:var(--inset); color:var(--ink); border-color:var(--border); font-weight:700; }
   /* One left-aligned row for every control this chart itself owns (both axis toggles, "Zyklus", "BTC") -
      directly above the chart, below the readout row. */
   .cyc-controls-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:2px; }
@@ -852,6 +856,20 @@
   .zone-legend-item.active .zone-legend-dot{width:9px; height:9px;}
   .zone-legend-item.inactive{opacity:.4;}
 
+  /* "4-Jahres-Zyklus (Erweitert)" rainbow bar legend - a solid gradient bar standing in for the usual
+     dot-per-item legend (see buildRainbowBarLegend). Dark, high-contrast pill regardless of light/dark
+     theme (mirrors the reference mock, not the page's own card/border tokens) - the whole point is the
+     bar itself reads as a clean color key, which a themed light background would wash out. */
+  .cyc2-rainbow-barlegend{ margin:14px 0 4px; }
+  .cyc2-rainbow-bar{ display:flex; height:34px; border-radius:10px; overflow:hidden; background:#0b0d12; }
+  .cyc2-rainbow-bar span{ flex:1 1 0; }
+  .cyc2-rainbow-bar-labels{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; font-size:11px; color:var(--ink-3); margin-top:9px; }
+  .cyc2-rainbow-bar-labels span{ white-space:nowrap; }
+  /* Permanently-visible chart description (see renderCycleChart2) - same typography as every other
+     chart's own .fs-desc, just never hidden/faded, since it now lives under the chart itself instead of
+     only appearing in fullscreen. */
+  .cyc2-chart-desc{ margin:12px 0 0; font-size:13px; color:var(--ink-2); line-height:1.6; max-width:800px; }
+
   footer{font-size:11.8px; color:var(--ink-3); line-height:1.6; border-top:1px solid var(--border); padding-top:16px;}
   footer a{color:var(--bitcoin-accent); text-decoration:none;} footer a:hover{text-decoration:underline;}
 
@@ -1113,8 +1131,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v306";
-  const EDIT_STAMP = "2026-08-26 19:29 UTC";
+  const EDIT_VERSION = "v307";
+  const EDIT_STAMP = "2026-08-26 20:09 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1363,6 +1381,25 @@
       });
     }
     return {el:legend, setActive};
+  }
+  // Alternate "bar" style legend for the rainbow layer - a single continuous gradient bar (one flex child
+  // per band, no gaps, so adjacent colors touch exactly like the bands do on the chart itself) with plain
+  // text labels underneath, no per-item color dot/swatch (per explicit feedback "geht das ohne Punkte?") -
+  // the bar itself already IS the color key, so a repeated swatch next to each label would just be
+  // redundant. Ordered low-to-high sigma (RAINBOW_ZONES itself runs high-to-low, hi first) so the bar
+  // reads left-to-right as "cheap to expensive", matching how a reader's eye naturally scans it.
+  function buildRainbowBarLegend(){
+    const wrap = document.createElement("div");
+    wrap.className = "cyc2-rainbow-barlegend";
+    const ordered = [...RAINBOW_ZONES].reverse();
+    const bar = document.createElement("div");
+    bar.className = "cyc2-rainbow-bar";
+    bar.innerHTML = ordered.map(z=>`<span style="background:${z.color}"></span>`).join("");
+    const labels = document.createElement("div");
+    labels.className = "cyc2-rainbow-bar-labels";
+    labels.innerHTML = ordered.map(z=>`<span>${z.label}</span>`).join("");
+    wrap.appendChild(bar); wrap.appendChild(labels);
+    return wrap;
   }
   // Cycle-high/-low markers, drawn in coordinates local to their own data point (origin at the point
   // itself) so positioning one - initially, or live during a zoom/pan - is just setting the enclosing
@@ -7163,7 +7200,7 @@
     animateMatrix(group, m, identity, myGen, ()=>{ group.style.transform = ""; settle(); },
       (a,d,e,f)=>{ applyCycleFlagSync(flagTargets, a, d, e, f); applyCycleCrosshairSync(crosshairTarget, a, d, e, f); applyCycleXTickSync(xTickTargets, a, e); applyCycleYTickSync(yTickTargets, d, f); applyCycleZoneArrowLabelSync(zoneArrowLabelTargets, a, d, e, f); });
   }
-  function computeCycleChart2Layout(logX, logY, crosshairDate){
+  function computeCycleChart2Layout(logX, logY, crosshairDate, forcedHeight){
     const allPoints = powerLawPoints();
     // The on-chart Y-label overlay (label sitting directly above its own gridline, over the price
     // line/zones, with a halo stroke for legibility - see renderCycleChart2DOM/fitChartTypography) is
@@ -7173,7 +7210,16 @@
     // topmost "nice" gridline's label floating above it can otherwise get sliced by the hard y=0 clip,
     // fullClipRect below - confirmed by screenshot) is likewise only needed in that same mobile mode.
     const yLabelOnChart = !!(window.matchMedia && window.matchMedia("(max-width: 700px)").matches);
-    const w=1000, h=computeCycleChart2FullscreenHeight()||chartHeight(),
+    // forcedHeight (only ever passed by renderCycleChart2's own height-correction self-call) exists
+    // because computeCycleChart2FullscreenHeight() can NEVER measure correctly from inside a fresh
+    // computeCycleChart2Layout() call in the first place: renderCycleChart2() always wipes and rebuilds
+    // #cycleChart2Host at the START of every call, so the very same "measure again, hope it's different
+    // this time" recursion the original comment below describes was measuring against a host that had
+    // JUST been removed again - the freshly-measured correct value was computed once, in the OUTER call,
+    // then silently discarded the moment the recursive render blew away the DOM it was measured against.
+    // Threading the already-known-correct value straight through instead of re-deriving it a second time
+    // that can't actually succeed is what makes the correction genuinely take effect.
+    const w=1000, h=forcedHeight || computeCycleChart2FullscreenHeight()||chartHeight(),
       padL=yLabelOnChart?16:70, padR=14, padT=yLabelOnChart?30:16, padB=46;
 
     // Windowed exactly like sliceRange (mirrored against allPoints' own .t, same as the power-law chart
@@ -8519,7 +8565,7 @@
   // cycleChart2AnimatePending) instead of just snapping. Mirrors powerLawPrevState/powerLawAnimatePending
   // exactly - see there for the fuller rationale.
 
-  function renderCycleChart2(forcedOldSvgClone){
+  function renderCycleChart2(forcedOldSvgClone, forcedHeight){
     const prevState = cycleChart2PrevState;
     const animate = cycleChart2AnimatePending && !!prevState;
     cycleChart2AnimatePending = false;
@@ -8577,16 +8623,10 @@
       <p style="margin:0 0 10px;">Die BTC-Kurslinie lässt sich separat ein-/ausblenden ("BTC") und zeigt immer nur die echte Kurshistorie, nie eine Projektion - läuft sie allein, ohne Zonen, bekommt sie eine Flächen-Verlaufsfüllung statt einer einfarbigen Linie. In der "Alles"-Ansicht reicht die Zeitachse noch etwas über das letzte Halving hinaus: drei geschätzte, blass markierte Halvings zur Orientierung, keine Kursprognose.</p>
       <p style="margin:0;">Zusätzlich zu den Zyklus-Zonen lassen sich hier "Regenbogen" (die farbcodierten Power-Law-Bänder) und "Power Law" (Regressionslinie mit ±2σ-Korridor) einblenden - dieselbe Regression wie auf dem eigenen Power-Law-Chart, hier nur über das Zyklus-Layout gelegt statt in dessen eigenem fixen Log-Log-Raster.</p>
     `, {html:true});
-    // Plain-text stand-in for the "i" info popover above (hidden in fullscreen - see the
-    // #cycleChart2Panel.fullscreen-active .panel-head .info-wrap CSS rule), same as heroPanel's own
-    // .fs-desc. "show" is re-applied immediately (not faded in) when this render happens WHILE already
-    // fullscreen (e.g. the "Kurs"/"Zyklus" toggle re-rendering mid-session) - the fade-in transition only
-    // makes sense the first time fullscreen opens, driven from initPanelFullscreen's own enter().
-    const fsDesc = document.createElement("p");
-    fsDesc.className = "fs-desc" + (wasFullscreen ? " show" : "");
-    fsDesc.id = "cycleChart2FsDesc";
-    fsDesc.textContent = `Bitcoin tickt im Rhythmus des Halvings: alle ~4 Jahre halbiert sich die Blockbelohnung und drosselt den Nachschub an neuen Coins - liegt dabei aber etwa in der Mitte der rund 3-jährigen Aufwärtsphase, nicht an ihrem Anfang. Danach folgt ein kürzerer, steilerer Rückgang von etwa einem Jahr. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
-    scrollBody.appendChild(fsDesc);
+    // No separate fullscreen-only .fs-desc paragraph here (unlike heroPanel/the original 4-Jahres-Zyklus
+    // chart) - per explicit feedback the description now lives permanently under the chart itself (see
+    // chartDesc further down), visible in and out of fullscreen alike, so a second fullscreen-only copy
+    // right below the headline would just be redundant.
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -8597,7 +8637,7 @@
       return;
     }
 
-    const layout = computeCycleChart2Layout(cycleChart2LogX, cycleChart2LogY, cycleChart2CrosshairDate);
+    const layout = computeCycleChart2Layout(cycleChart2LogX, cycleChart2LogY, cycleChart2CrosshairDate, forcedHeight);
     const {svg, wrap, readoutEl, paintZoneLabel, repaintPricePills} = renderCycleChart2DOM(layout);
 
     // Readout (date/price/change) alone now - one row, directly below the headline and above the chart
@@ -8679,15 +8719,18 @@
     });
     scrollBody.appendChild(chartControlsRow);
 
-    if(cycleChart2LayerVisible.rainbow){
-      // buildRainbowLegend() returns {el, setActive}, not the bare element - setActive is unused here
-      // (this chart doesn't yet wire the crosshair's own sigma-offset into it - see the "known
-      // simplifications" note near cycleChart2LayerVisible) but reusing the same builder as the Power Law
-      // chart still gets the same-styled legend row for free.
-      scrollBody.appendChild(buildRainbowLegend().el);
-    }
-
     scrollBody.appendChild(wrap);
+
+    // Bar-style rainbow legend + a permanently-visible plain-text description, both directly under the
+    // chart (per explicit feedback) - previously the legend sat between the buttons and the chart, and
+    // the description only ever showed inside the "i" info popover or (as fsDesc) while in fullscreen.
+    if(cycleChart2LayerVisible.rainbow){
+      scrollBody.appendChild(buildRainbowBarLegend());
+    }
+    const chartDesc = document.createElement("p");
+    chartDesc.className = "cyc2-chart-desc";
+    chartDesc.textContent = `Bitcoin tickt im Rhythmus des Halvings: alle ~4 Jahre halbiert sich die Blockbelohnung und drosselt den Nachschub an neuen Coins - liegt dabei aber etwa in der Mitte der rund 3-jährigen Aufwärtsphase, nicht an ihrem Anfang. Danach folgt ein kürzerer, steilerer Rückgang von etwa einem Jahr. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst. "Regenbogen" und "Power Law" legen dieselbe Regression wie der eigenständige Power-Law-Chart über dieses Zeitfenster - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
+    scrollBody.appendChild(chartDesc);
 
     // renderCycleChart2DOM above just created every axis-label text fresh, at the same fixed
     // raw viewBox-unit font-size renderAllImmediate's own fitChartTypography pass normally corrects
@@ -8725,19 +8768,23 @@
     panel.appendChild(toolbar);
 
     // computeCycleChart2FullscreenHeight() (called from inside computeCycleChart2Layout above, BEFORE
-    // toolRow/toolbar existed - they're only built and appended afterward) measured "how much room is
-    // already used by this panel's other children" against an INCOMPLETE DOM: on a fresh fullscreen
-    // entry, panel.innerHTML="" had just wiped everything, so only the fs buttons/headRow/fsDesc were
-    // present yet, not toolRow's readout+Zyklus/Kurs row or this toolbar's range buttons - their real
-    // height never got subtracted, so the chart was handed MORE vertical space than actually fits once
-    // the full panel (chart + toolRow + toolbar together) is accounted for. Visible result: content
-    // (the toolbar, and anything drawn near the plot's own bottom edge like a tapped zone's dimension
-    // label) rendered past where .cyc-scroll-body's own overflow-y:auto scrolling can reach, because an
-    // SVG's own overflow:visible content spilling past ITS box doesn't expand an ancestor flex item's
-    // layout size the way genuinely taller in-flow content would. Now that toolRow/toolbar actually
-    // exist, a fresh measurement corrects this with one extra render pass - cheap, and only ever taken
-    // once per fullscreen entry (cycleChart2FsHeightCorrecting guards against recursing further; the
-    // second pass's own measurement is already complete, so it never re-triggers itself).
+    // #cycleChart2Host itself even exists yet - panel.innerHTML="" wiped it, and it's only created/attached
+    // a few lines below, inside renderCycleChart2DOM/scrollBody.appendChild(wrap)) measured "how much room
+    // is already used by this panel's other children" against an INCOMPLETE DOM and came back null
+    // (computePanelFullscreenHeight's own `if(!chartHost) return null;`), so THIS layout's own h fell back
+    // to the plain, non-fullscreen chartHeight(). By now (chart/toolRow/toolbar all built and attached),
+    // a fresh measurement gets the real number - but simply re-calling renderCycleChart2() again, as this
+    // used to, can't actually use it: that recursive call's OWN panel.innerHTML="" immediately wipes
+    // #cycleChart2Host again, so its OWN first computeCycleChart2Layout() call hits the exact same
+    // "host doesn't exist yet" null and falls back to chartHeight() too - the correctly-measured freshH
+    // below was computed, then silently thrown away, every single time (confirmed via Playwright: the
+    // fullscreen chart's own viewBox height never moved off the plain in-page value, in EITHER browser's
+    // real Fullscreen API or the CSS-only fallback, regardless of how much taller the actual fullscreen
+    // viewport was). Threading freshH through as forcedHeight instead - computeCycleChart2Layout uses it
+    // directly, no re-measurement attempt at all on the corrected pass - is what makes this genuinely
+    // apply. Only ever taken once per fullscreen entry/resize (cycleChart2FsHeightCorrecting guards
+    // against recursing further; the second pass already has its final height handed to it, so it never
+    // needs to re-trigger itself).
     if(panel.classList.contains("fullscreen-active") && !cycleChart2FsHeightCorrecting){
       const freshH = computeCycleChart2FullscreenHeight();
       if(freshH != null && Math.abs(freshH - layout.h) > 4){
@@ -8746,14 +8793,14 @@
         // was reset to false there) - without this, the self-call below always computed animate=false for
         // itself (cycleChart2PrevState/prevState is untouched at this point, but the pending FLAG was
         // already cleared), so a range/pan change that happened to land in fullscreen - which this height
-        // correction runs on every single time, not just once ever, since toolRow/chartControlsRow/toolbar
-        // never exist yet at the point computeCycleChart2Layout's own first pass measures them - silently
-        // never played its animation at all: confirmed via a real Playwright trace, .cyc-zoom-group's own
-        // transform stayed the empty string across every frame of a range change while in fullscreen, the
-        // literal "im Vollbildmodus animiert fast nichts" complaint. oldSvgClone is threaded through as
+        // correction runs on every single time, not just once ever, since #cycleChart2Host never exists yet
+        // at the point computeCycleChart2Layout's own first pass measures it - silently never played its
+        // animation at all: confirmed via a real Playwright trace, .cyc-zoom-group's own transform stayed
+        // the empty string across every frame of a range change while in fullscreen, the literal
+        // "im Vollbildmodus animiert fast nichts" complaint. oldSvgClone is threaded through as
         // forcedOldSvgClone rather than left to re-derive - see that parameter's own comment for why.
         cycleChart2AnimatePending = animate;
-        renderCycleChart2(oldSvgClone);
+        renderCycleChart2(oldSvgClone, freshH);
         cycleChart2FsHeightCorrecting = false;
         return;
       }
@@ -9198,7 +9245,63 @@
   }
 
   function initCycleChart2Fullscreen(){
-    cycleChart2Fs = initPanelFullscreen("cycleChart2Panel", "cycleChart2FsDesc");
+    const base = initPanelFullscreen("cycleChart2Panel", "cycleChart2FsDesc");
+    // Experimental: unlike every other panel's own fullscreen (a pure CSS position:fixed + 100vw/100vh
+    // trick - see initPanelFullscreen/base above), this ALSO drives the browser's real Fullscreen API on
+    // top of that same CSS machinery, per explicit request to try genuine fullscreen specifically on this
+    // new chart - "so groß es auf dem Bildschirm geht", including the real screen area 100vw/100vh alone
+    // can't reach (browser address bar, mobile bottom bar, other OS chrome). The CSS layer stays as the
+    // fallback for wherever requestFullscreen is unsupported or rejected (notably iOS Safari, which has no
+    // element-level Fullscreen API at all), so entering fullscreen there still does the same thing it
+    // always did instead of silently doing nothing.
+    function requestRealFullscreen(el){
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+      if(!fn) return;
+      try{ const p = fn.call(el); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+    }
+    function exitRealFullscreen(){
+      const fn = document.exitFullscreen || document.webkitExitFullscreen;
+      if(!fn || !(document.fullscreenElement || document.webkitFullscreenElement)) return;
+      try{ const p = fn.call(document); if(p && p.catch) p.catch(()=>{}); }catch(e){}
+    }
+    function enter(){
+      base.enter();
+      const panel = document.getElementById("cycleChart2Panel");
+      if(panel) requestRealFullscreen(panel);
+    }
+    function exit(){
+      exitRealFullscreen();
+      base.exit();
+    }
+    // Escape (or any other OS/browser-native way to leave real fullscreen, e.g. swiping down on mobile)
+    // exits the BROWSER's own fullscreen state directly, without ever going through our own exit() above -
+    // without this listener the CSS side (.fullscreen-active, position:fixed, scroll lock) would stay
+    // stuck "on" while the browser itself already left real fullscreen: the chart shrinks back to normal
+    // window size but everything around it still behaves as if fullscreen. base.exit() is idempotent
+    // (guarded by its own classList.contains("fullscreen-active") check), so this is always safe to call
+    // even when our own exit button already triggered the same cleanup moments earlier.
+    function onFullscreenChange(){
+      if(document.fullscreenElement || document.webkitFullscreenElement) return;
+      const panel = document.getElementById("cycleChart2Panel");
+      if(panel && panel.classList.contains("fullscreen-active")) base.exit();
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    // Re-measures and re-renders while fullscreen so a device rotation (or any other viewport resize that
+    // reaches this far, e.g. a closing virtual keyboard) updates the chart's own height/aspect ratio live -
+    // per explicit request ("passt sich auch der Orientation der Devices an"). Previously the chart's
+    // height was only ever computed once, at the exact moment fullscreen was entered (see
+    // computeCycleChart2FullscreenHeight), and stayed frozen at that value for the rest of the session even
+    // as 100vw/100vh itself kept resizing correctly underneath it - the SVG's own viewBox just never knew
+    // to catch up. Debounced since resize can fire in rapid bursts, especially mid-rotation on some devices.
+    let resizeTimer = null;
+    window.addEventListener("resize", ()=>{
+      const panel = document.getElementById("cycleChart2Panel");
+      if(!panel || !panel.classList.contains("fullscreen-active")) return;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(()=>{ if(FULL) renderAllImmediate(); }, 150);
+    });
+    cycleChart2Fs = {enter, exit};
   }
 
   function tileIsAvailable(tile){
