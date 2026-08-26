@@ -570,6 +570,15 @@
      color when the BTC line is hidden. */
   .cyc-btc-btn.active{ background:var(--c-price); color:#fff; border-color:var(--c-price); }
 
+  /* Same "one row of .halving-toggle-btn buttons, one of them branded" pattern as .cyc-controls-row/
+     .cyc-btc-btn above (now the standard for any chart with independently toggleable layers, not just
+     the 4-Jahres-Zyklus one) - applied to the Power-Law chart's own "Regenbogen"/"Power Law" layer
+     toggles, previously a pair of checkbox-style .overlay-toggle-chip pills. Power Law gets the branded
+     slot (var(--c-powerlaw), the same color its own fit line/band already use); Regenbogen stays neutral
+     ink like "Zyklus" does on the cycle chart. */
+  .pl-controls-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 10px; }
+  .pl-powerlaw-btn.active{ background:var(--c-powerlaw); color:#fff; border-color:var(--c-powerlaw); }
+
   /* Row directly below the "Marktzyklen" headline and above the chart itself: the crosshair readout
      (date/price/change, see paintReadoutPill) on the left, the Zyklus/Kurs layer toggles on the right -
      plain HTML now, not an SVG overlay pinned inside the chart (that placement, top-right over the plot,
@@ -918,8 +927,6 @@
 
     <section class="panel" id="cycleChartPanel"></section>
 
-    <section class="panel" id="moneySupplyChartPanel"></section>
-
     <section class="panel" id="powerLawPanel"></section>
 
     <section class="panel overlay-panel" id="overlayPanel"></section>
@@ -955,6 +962,8 @@
     </section>
 
     <section id="metricsHost"></section>
+
+    <section class="panel" id="moneySupplyChartPanel"></section>
 
     <details class="panel" id="detailsPanel">
       <summary>Methodik, Formeln &amp; Datenquelle <span class="hint">Details anzeigen</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></summary>
@@ -1088,8 +1097,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v302";
-  const EDIT_STAMP = "2026-08-26 18:21 UTC";
+  const EDIT_VERSION = "v303";
+  const EDIT_STAMP = "2026-08-26 18:34 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -4738,19 +4747,24 @@
       return;
     }
 
+    // Now the same "one row of .halving-toggle-btn buttons, one of them branded" pattern the 4-Jahres-
+    // Zyklus chart's own Zyklus/BTC controls use (see .pl-controls-row/.pl-powerlaw-btn) - was a pair of
+    // checkbox-style .overlay-toggle-chip pills. "Regenbogen" first (neutral ink), "Power Law" second
+    // (branded var(--c-powerlaw)), matching Zyklus-then-BTC's own neutral-then-branded ordering.
     const layerToggleWrap = document.createElement("div");
-    layerToggleWrap.className = "overlay-toggles";
-    [{key:"powerlaw", label:"Power Law", color:"var(--c-powerlaw)"}, {key:"rainbow", label:"Regenbogen", color:"#e67e22"}].forEach(layer=>{
+    layerToggleWrap.className = "pl-controls-row";
+    [{key:"rainbow", label:"Regenbogen", cls:""}, {key:"powerlaw", label:"Power Law", cls:" pl-powerlaw-btn"}].forEach(layer=>{
       const visible = powerLawLayerVisible[layer.key];
-      const lab = document.createElement("label");
-      lab.className = "overlay-toggle-chip" + (visible ? " active" : "");
-      lab.style.setProperty("--chip-color", layer.color);
-      lab.innerHTML = `<input type="checkbox" ${visible ? "checked" : ""}><i></i>${layer.label}`;
-      lab.querySelector("input").addEventListener("change", e=>{
-        powerLawLayerVisible[layer.key] = e.target.checked;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "halving-toggle-btn" + layer.cls + (visible ? " active" : "");
+      btn.title = `${layer.label} ein-/ausblenden`;
+      btn.textContent = layer.label;
+      btn.addEventListener("click", ()=>{
+        powerLawLayerVisible[layer.key] = !powerLawLayerVisible[layer.key];
         renderPowerLaw();
       });
-      layerToggleWrap.appendChild(lab);
+      layerToggleWrap.appendChild(btn);
     });
     panel.appendChild(layerToggleWrap);
 
@@ -7258,11 +7272,13 @@
     const sections = [
       {id:"statStrip", label:"Übersicht"},
       {id:"cycleChartPanel", label:"4-Jahres-Zyklus"},
-      ...(FULL && FULL.hasMoneySupply ? [{id:"moneySupplyChartPanel", label:"Geldmenge"}] : []),
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
       {id:"heroPanel", label:"MVRV Bands"},
-      ...TILES.filter(tileIsAvailable).map(t=>({id:slugify(t.title), label:t.title}))
+      ...TILES.filter(tileIsAvailable).map(t=>({id:slugify(t.title), label:t.title})),
+      // Last in the nav too - see the panel's own new position at the bottom of the page (moved there per
+      // explicit feedback, out of its old spot right after the 4-Jahres-Zyklus chart).
+      ...(FULL && FULL.hasMoneySupply ? [{id:"moneySupplyChartPanel", label:"Geldmenge"}] : []),
     ];
     list.innerHTML = sections.map(s=>`<a href="#${s.id}" data-nav-target="${s.id}">${s.label}</a>`).join("");
     list.querySelectorAll("a").forEach(a=>{
@@ -8516,11 +8532,11 @@
       navList.innerHTML =
         navEntry("statStrip", "Übersicht") +
         navEntry("cycleChartPanel", "4-Jahres-Zyklus") +
-        navPending("Geldmenge") +
         navEntry("powerLawPanel", "Power Law") +
         navEntry("overlayPanel", "Überlagerung") +
         navEntry("heroPanel", "MVRV Bands") +
-        TILES.map(t => t.requires ? navPending(t.title) : navEntry(slugify(t.title), t.title)).join("");
+        TILES.map(t => t.requires ? navPending(t.title) : navEntry(slugify(t.title), t.title)).join("") +
+        navPending("Geldmenge");
     }
 
     // ---- stat strip: the 5 stats every dataset always has (see renderStatStrip's own {available:...}
@@ -8620,9 +8636,9 @@
           `<div class="readout-item"><i class="readout-dot" style="background:${color}"></i><span class="readout-label">${label}</span><b class="readout-value mono">${skelBar(5)}</b><span class="readout-change mono">${skelBar(4)}</span></div>`
         ).join("")
       }</div></div></div>`;
-      const layerToggles = `<div class="overlay-toggles">${
-        [["Power Law","var(--c-powerlaw)",true],["Regenbogen","#e67e22",false]].map(([label,color,active])=>
-          `<label class="overlay-toggle-chip${active?" active":""}" style="--chip-color:${color}"><input type="checkbox" disabled ${active?"checked":""}><i></i>${label}</label>`
+      const layerToggles = `<div class="pl-controls-row">${
+        [["Regenbogen","",false],["Power Law"," pl-powerlaw-btn",true]].map(([label,cls,active])=>
+          `<button type="button" class="halving-toggle-btn${cls}${active?" active":""}">${label}</button>`
         ).join("")
       }</div>`;
       powerLawPanel.innerHTML = `<div class="panel-head"><h3>BTC-Kurs (Power Law, Log-Log)</h3></div>${readoutRow}${layerToggles}${spinner}`;
