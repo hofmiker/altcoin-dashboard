@@ -1131,8 +1131,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v307";
-  const EDIT_STAMP = "2026-08-26 20:09 UTC";
+  const EDIT_VERSION = "v308";
+  const EDIT_STAMP = "2026-08-26 20:13 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1345,17 +1345,37 @@
   // exact same self-fitted regression above (see powerLawFit) - offsets in multiples of its own sigma -
   // rather than a second, separately-sourced regression, so it stays consistent with the primary fit
   // shown alongside it instead of potentially disagreeing with it.
+  //
+  // Per explicit feedback (a real blockchaincenter.net screenshot showing all 9 bands visibly the SAME
+  // width) the bands must be UNIFORM width in log-price space, not the hand-tuned unequal widths this
+  // used to hardcode (outer two bands 2.0 wide, the middle seven only 0.6-0.7). Verified against the
+  // reference chart's own open-sourced reimplementation, not guessed: StephanAkkerman/bitcoin-rainbow-chart
+  // on GitHub (src/plot.py, https://github.com/StephanAkkerman/bitcoin-rainbow-chart/blob/main/src/plot.py)
+  // builds its 9 bands as `exp(fitted_y + (i-1.5)*band_width - band_width)` .. `exp(fitted_y + (i-1.5)*band_width)`
+  // for i=0..8 with a single constant band_width=0.3 (natural-log price units) - EVERY band exactly the
+  // same width around the trend line, none wider or narrower than another. Reproduced here in units of
+  // OUR OWN fit's sigma rather than that fixed absolute ln-price width, purely because every other rainbow-
+  // adjacent value on this page (rainbowZoneForSigma, the ±2σ Power Law band) already speaks in sigma-
+  // offset terms - the property actually being matched against the verified source is "uniform width",
+  // not the specific numeric unit. Total half-span (±4.2σ) kept as before (already tuned to bracket BTC's
+  // real historical extremes); RAINBOW_BAND_COUNT equal-width slices of it replace the old hand-picked
+  // per-band widths.
+  const RAINBOW_BAND_HALF_SPAN = 4.2, RAINBOW_BAND_COUNT = 9;
+  const RAINBOW_BAND_WIDTH = (2*RAINBOW_BAND_HALF_SPAN) / RAINBOW_BAND_COUNT;
   const RAINBOW_ZONES = [
-    {hi:4.2, lo:2.2, label:"Maximaler Hype", color:"#c0392b"},
-    {hi:2.2, lo:1.5, label:"Verkaufen!", color:"#e67e22"},
-    {hi:1.5, lo:0.9, label:"FOMO", color:"#f1c40f"},
-    {hi:0.9, lo:0.3, label:"Ist das eine Blase?", color:"#a6ce39"},
-    {hi:0.3, lo:-0.3, label:"Fairer Wert", color:"#2ecc71"},
-    {hi:-0.3, lo:-0.9, label:"Noch günstig", color:"#16a085"},
-    {hi:-0.9, lo:-1.5, label:"Akkumulieren", color:"#2980b9"},
-    {hi:-1.5, lo:-2.2, label:"Kaufen!", color:"#3949ab"},
-    {hi:-2.2, lo:-4.2, label:"Fire Sale", color:"#7b2d8e"}
-  ];
+    {label:"Maximaler Hype", color:"#c0392b"},
+    {label:"Verkaufen!", color:"#e67e22"},
+    {label:"FOMO", color:"#f1c40f"},
+    {label:"Ist das eine Blase?", color:"#a6ce39"},
+    {label:"Fairer Wert", color:"#2ecc71"},
+    {label:"Noch günstig", color:"#16a085"},
+    {label:"Akkumulieren", color:"#2980b9"},
+    {label:"Kaufen!", color:"#3949ab"},
+    {label:"Fire Sale", color:"#7b2d8e"}
+  ].map((z,i)=>({...z,
+    hi: RAINBOW_BAND_HALF_SPAN - i*RAINBOW_BAND_WIDTH,
+    lo: RAINBOW_BAND_HALF_SPAN - (i+1)*RAINBOW_BAND_WIDTH,
+  }));
   // Which rainbow band a given point falls in, expressed as its deviation from the fit line in multiples
   // of the fit's own sigma (the same unit RAINBOW_ZONES' hi/lo are defined in) - shared by both charts'
   // crosshair painting to highlight the matching legend chip, and valid for a projected future date just
