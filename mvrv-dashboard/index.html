@@ -357,11 +357,22 @@
      the exact same zone-color/classification logic each metric's own chip/chart already uses elsewhere
      on the page (see renderStatStrip) rather than inventing new thresholds just for this glance-graphic. */
   .stat-strip-teaser .stat .mini{margin-top:8px;}
-  .stat-strip-teaser .stat .mini-spark{width:100%; height:26px; display:block; overflow:visible;}
+  .stat-strip-teaser .stat .mini-spark-wrap{position:relative; display:block; width:100%; height:26px;}
+  .stat-strip-teaser .stat .mini-spark{width:100%; height:100%; display:block; overflow:visible; position:absolute; inset:0;}
   .stat-strip-teaser .stat .mini-spark-line{fill:none; stroke:#fff; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
-  .stat-strip-teaser .stat .mini-spark-dot{fill:#fff;}
-  .stat-strip-teaser .stat .mini-spark-halo{fill:#fff; opacity:.5; animation:miniSparkPulse 1.6s ease-out infinite;}
-  @keyframes miniSparkPulse{ 0%{r:2.2; opacity:.55;} 100%{r:6.5; opacity:0;} }
+  /* Real HTML circles (see miniSparklineHtml's own comment for why), centered on their %-based
+     left/top via negative margins rather than transform:translate(-50%,-50%) - the pulse keyframe below
+     already needs transform:scale() for its growing-ring effect, and CSS only allows one `transform`
+     value per element, not two composed independently through a keyframe. */
+  .stat-strip-teaser .stat .mini-spark-dot{
+    position:absolute; width:4.6px; height:4.6px; margin:-2.3px 0 0 -2.3px; border-radius:50%;
+    background:#fff; pointer-events:none;
+  }
+  .stat-strip-teaser .stat .mini-spark-halo{
+    position:absolute; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%;
+    background:#fff; opacity:.5; pointer-events:none; animation:miniSparkPulse 1.6s ease-out infinite;
+  }
+  @keyframes miniSparkPulse{ 0%{transform:scale(.338); opacity:.55;} 100%{transform:scale(1); opacity:0;} }
   @media (prefers-reduced-motion: reduce){ .stat-strip-teaser .stat .mini-spark-halo{animation:none; opacity:.3;} }
 
   .stat-strip-teaser .stat .mini-zone{position:relative; height:7px; border-radius:4px; overflow:hidden; display:flex;}
@@ -402,8 +413,8 @@
   }
   .stat-strip-teaser .stat.badge .chip i{background:currentColor;}
   .stat-strip-teaser .stat.badge .mini-spark-line{stroke:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
-  .stat-strip-teaser .stat.badge .mini-spark-dot{fill:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
-  .stat-strip-teaser .stat.badge .mini-spark-halo{fill:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .mini-spark-dot{background:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
+  .stat-strip-teaser .stat.badge .mini-spark-halo{background:color-mix(in srgb, var(--stat-color) 76%, var(--stat-badge-mix));}
   .stat-strip-teaser .stat.badge .mini-zone-marker{background:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix)); box-shadow:0 0 0 1.5px var(--stat-badge-shadow);}
   .stat-strip-teaser .stat.badge .mini-bar{background:color-mix(in srgb, var(--stat-color) 16%, transparent);}
   .stat-strip-teaser .stat.badge .mini-bar-fill{background:color-mix(in srgb, var(--stat-color) 80%, var(--stat-badge-mix));}
@@ -1077,8 +1088,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v301";
-  const EDIT_STAMP = "2026-08-26 18:16 UTC";
+  const EDIT_VERSION = "v302";
+  const EDIT_STAMP = "2026-08-26 18:21 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3570,11 +3581,20 @@
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
     const [lx,ly] = pts[pts.length-1].split(",");
-    return `<svg class="mini-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
-      <polyline class="mini-spark-line" points="${pts.join(" ")}" vector-effect="non-scaling-stroke"/>
-      <circle class="mini-spark-halo" cx="${lx}" cy="${ly}" r="6"/>
-      <circle class="mini-spark-dot" cx="${lx}" cy="${ly}" r="2.3"/>
-    </svg>`;
+    // Halo/dot are plain HTML circles positioned by percentage, not SVG <circle> elements inside the
+    // viewBox above - preserveAspectRatio="none" (needed so the polyline itself stretches to fill
+    // whatever real width/height the card ends up with, not just this viewBox's own 100:32 ratio) scales
+    // the two axes by different factors on every card that isn't itself exactly 100:32, which squashes a
+    // true SVG circle into an ellipse. An HTML circle living outside that transform doesn't have this
+    // problem - vector-effect="non-scaling-stroke" (on the polyline) only protects a stroke's WIDTH from
+    // this, never a filled shape's actual geometry, so it can't fix the circles the same way.
+    return `<span class="mini-spark-wrap">
+      <svg class="mini-spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+        <polyline class="mini-spark-line" points="${pts.join(" ")}" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <i class="mini-spark-halo" style="left:${lx}%; top:${(ly/32*100).toFixed(1)}%"></i>
+      <i class="mini-spark-dot" style="left:${lx}%; top:${(ly/32*100).toFixed(1)}%"></i>
+    </span>`;
   }
 
   // Compact horizontal zone-bar with a position marker - shared by MVRV-Ratio and NUPL (see
@@ -3657,9 +3677,16 @@
     const athPrice = Math.max(...FULL.price.filter(v=>v!=null && isFinite(v)));
     const supplyPct = FULL.hasSupply && sup!=null ? sup/21000000*100 : null;
 
+    // Last 7 real (non-null) days, not just the last 7 array slots - a gap in the raw series (a missed
+    // fetch day) would otherwise silently shrink the window instead of reaching further back for a
+    // genuine 7th point.
+    const price7d = FULL.price.filter(v=>v!=null && isFinite(v)).slice(-7);
+    const price7dPct = price7d.length>=2 ? (price7d[price7d.length-1]/price7d[0]-1)*100 : null;
+
     const stats = [
-      {available:true, plain:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price), ctx:"Letztes Jahr",
-        mini: miniSparklineHtml(FULL.price.slice(-365))},
+      {available:true, plain:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price),
+        ctx: price7dPct!=null ? `7 Tage: ${price7dPct>=0?"+":""}${price7dPct.toFixed(1)}%` : "Letzte 7 Tage",
+        mini: miniSparklineHtml(price7d)},
       {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–",
         mini: mvrvBounds ? miniZoneBarHtml(["#1f9d55","#7fcc9c","var(--stat-badge-neutral-seg)","#e0a340","#e0655f"], mvrvBounds, mvrv) : ""},
       {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`,
@@ -8505,7 +8532,7 @@
     const statStrip = document.getElementById("statStrip");
     if(statStrip){
       const stats = [
-        {label:"BTC-Kurs", color:"var(--c-price)", ctx:"Letztes Jahr", miniPx:26},
+        {label:"BTC-Kurs", color:"var(--c-price)", ctxSkel:true, miniPx:26},
         {label:"MVRV-Ratio", color:"var(--c-mvrv)", ctxSkel:true, miniPx:7},
         {label:"NUPL", color:"var(--c-nupl)", ctxSkel:true, miniPx:7},
         {label:"Realized Price", color:"var(--c-realized)", ctx:"Ø On-Chain-Einstandspreis"},
