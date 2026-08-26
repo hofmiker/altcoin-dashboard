@@ -122,6 +122,21 @@
     display:inline-flex; align-items:center; justify-content:center;
     font-family:var(--font-display); font-weight:700; font-size:12.5px; line-height:1;
   }
+  /* Playful "hello" gesture - a settling wobble (±20deg, decaying) plus a light pulse, played once
+     automatically shortly after load and again on every tap of either brand icon (sidebar + mobile
+     topbar - see wobbleLogo()). Re-triggerable: the class is removed and re-added with a forced reflow
+     in between, since simply re-adding an already-present class doesn't restart a CSS animation. */
+  @keyframes logoWobble{
+    0%{transform:rotate(0deg) scale(1);}
+    15%{transform:rotate(-20deg) scale(1.1);}
+    32%{transform:rotate(16deg) scale(1.06);}
+    48%{transform:rotate(-11deg) scale(1.04);}
+    64%{transform:rotate(7deg) scale(1.02);}
+    80%{transform:rotate(-3deg) scale(1.01);}
+    100%{transform:rotate(0deg) scale(1);}
+  }
+  .brand-icon.wobble, .brand-icon-sm.wobble{ animation:logoWobble .8s cubic-bezier(.22,.61,.36,1); transform-origin:50% 55%; }
+  @media (prefers-reduced-motion: reduce){ .brand-icon.wobble, .brand-icon-sm.wobble{ animation:none; } }
 
   /* ---- Vertical sidebar nav ---- */
   /* A collapsible left rail - permanently pushes the content over when open on wide viewports, slides in
@@ -165,6 +180,17 @@
   }
   .sidebar-links a:hover{background:var(--inset); color:var(--ink);}
   .sidebar-links a.active{background:var(--bitcoin-accent-bg); color:var(--bitcoin-accent);}
+  /* Sections whose real availability depends on data not in yet (Geldmenge, or a TILES entry gated on
+     optional on-chain data - see renderSkeleton's own nav block) get the real label immediately, same
+     row/padding/font as a real link so nothing reflows once renderSectionNav() replaces this list, but
+     visibly pending (dimmed, softly pulsing, not clickable) rather than looking like a dead link. */
+  .sidebar-links .nav-pending{
+    display:block; padding:9px 10px; font-size:13px; font-weight:600; font-family:var(--font-display);
+    line-height:1.3; color:var(--ink-3); opacity:.5; pointer-events:none;
+    animation:navPendingPulse 1.7s ease-in-out infinite;
+  }
+  @keyframes navPendingPulse{ 0%,100%{opacity:.32;} 50%{opacity:.58;} }
+  @media (prefers-reduced-motion: reduce){ .sidebar-links .nav-pending{ animation:none; opacity:.45; } }
   .sidebar-foot{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 6px 2px; border-top:1px solid var(--border); margin-top:8px;}
   .sidebar-foot-links{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .sidebar-foot .backlink{font-size:12px; color:var(--bitcoin-accent); text-decoration:none; font-weight:600;}
@@ -727,6 +753,10 @@
      breakpoint chartHeight() itself uses) so there's no layout jump when the real chart lands. */
   .chart-wrap.skeleton{aspect-ratio:1000/456; display:flex; align-items:center; justify-content:center;}
   @media (max-width:700px){ .chart-wrap.skeleton{aspect-ratio:1000/1200;} }
+  /* Same idea, sized to subPanelHeight() instead - the flatter RSI/MACD sub-panels stacked under the
+     overlay chart (see renderSkeleton's own overlayPanel block). */
+  .chart-wrap.skeleton.sub{aspect-ratio:1000/130;}
+  @media (max-width:700px){ .chart-wrap.skeleton.sub{aspect-ratio:1000/420;} }
   .skeleton-spinner{width:34px; height:34px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--ink-3); animation:skeletonSpin 0.9s linear infinite;}
   @keyframes skeletonSpin{ to{ transform:rotate(360deg); } }
   @media (prefers-reduced-motion: reduce){ .skeleton-spinner{ animation:none; } }
@@ -1047,8 +1077,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v285";
-  const EDIT_STAMP = "2026-08-25 05:38 UTC";
+  const EDIT_VERSION = "v301";
+  const EDIT_STAMP = "2026-08-26 18:16 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -8433,16 +8463,38 @@
   // already sits inside heroPanel's own static markup (headline etc. baked into the HTML itself), so
   // it only needs the same inner chart-wrap placeholder, not a whole panel-head too.
   //
-  // Only covers sections whose shape is fixed regardless of which data ends up available - the stat
+  // Covers every section whose shape is fixed regardless of which data ends up available - the stat
   // strip's 5 always-present cards (not the 3 conditional ones - see METRICS/tileIsAvailable), both
-  // gauges (always exactly 2), the hero panel's readout/toolbar, and each main chart's own
-  // toolbar/readout row (closing the small gap this used to leave, where only the chart area itself
-  // was pre-sized). Sections whose actual shape depends on the data itself - the metric tile grid,
-  // the AI narrative card, the metric-overlay panel's toggle set - can't be predicted this way at
-  // all; those instead fade/grow in once real (see .reveal-in / revealAnimated()) rather than being
-  // pre-skeletoned inaccurately.
+  // gauges (always exactly 2), the hero panel's readout/toolbar, each main chart's own toolbar/readout
+  // row, the section nav, the full metric tile grid (every TILES entry without a `requires`), and the
+  // metric-overlay panel (its full toggle set, RSI/MACD sub-panels included - those two are never
+  // data-gated). Only what's genuinely unknowable this early - a TILES entry gated behind `requires`,
+  // whether the AI narrative card even applies - is left for revealAnimated() to fade/grow in once real
+  // (see .reveal-in) rather than being pre-skeletoned inaccurately.
   function renderSkeleton(){
     const spinner = '<div class="chart-wrap skeleton"><div class="skeleton-spinner"></div></div>';
+
+    // ---- section nav: every section's title is static (TILES' own title strings, defined above with
+    // no data dependency), only whether a given TILE/panel ends up AVAILABLE depends on data not in yet
+    // - so unlike the rest of this function (which mostly omits what it can't be sure of), the nav can
+    // show almost everything immediately. Mirrors renderSectionNav()'s own section list/order exactly
+    // (see there) so nothing shifts position once that function replaces this with the real thing - a
+    // still-pending entry (Geldmenge, or a TILES entry gated behind tile.requires) gets its real label
+    // right away too (see .nav-pending), just visibly tentative rather than a dead link, instead of the
+    // reader seeing an empty sidebar for however long the fetch takes.
+    const navList = document.getElementById("navLinks");
+    if(navList){
+      const navEntry = (id, label) => `<a href="#${id}" data-nav-target="${id}">${label}</a>`;
+      const navPending = label => `<span class="nav-pending">${label}</span>`;
+      navList.innerHTML =
+        navEntry("statStrip", "Übersicht") +
+        navEntry("cycleChartPanel", "4-Jahres-Zyklus") +
+        navPending("Geldmenge") +
+        navEntry("powerLawPanel", "Power Law") +
+        navEntry("overlayPanel", "Überlagerung") +
+        navEntry("heroPanel", "MVRV Bands") +
+        TILES.map(t => t.requires ? navPending(t.title) : navEntry(slugify(t.title), t.title)).join("");
+    }
 
     // ---- stat strip: the 5 stats every dataset always has (see renderStatStrip's own {available:...}
     // list) - the 3 conditional ones (Z-Score, Market/Realized Cap, Supply) are left for revealAnimated
@@ -8556,6 +8608,75 @@
     }
     const heroChart = document.getElementById("heroChart");
     if(heroChart) heroChart.innerHTML = spinner;
+
+    // ---- metric tile grid: previously left at height 0 entirely (see this function's own old comment,
+    // "can't be predicted this way at all") - true only for the handful of TILES gated behind
+    // tile.requires (Z-Score, NVT, ... - genuinely unknown until data says so, still skipped below), but
+    // most tiles (title, whether they have a scale toggle, whether they show a classification chip) are
+    // exactly as static as everything else in this function. Building a real .card per always-available
+    // tile - same title/toolbar, chart-wrap.skeleton for the chart itself - turns what used to be a
+    // single ~3200px jump into metricsHost's first real content into something close to its final size
+    // already. tile.zone()/tile.build(view) themselves still can't be called this early (both read FULL,
+    // which doesn't exist yet) - a plain chip-shaped skel-bar stands in for a tile that will show one.
+    const metricsHost = document.getElementById("metricsHost");
+    if(metricsHost){
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      TILES.filter(t=>!t.requires).forEach(tile=>{
+        const card = document.createElement("div");
+        card.className = "card";
+        const head = document.createElement("div");
+        head.className = "card-head";
+        head.innerHTML = `<div class="card-title-block"><div class="ticker-row"><span class="ticker">${tile.title}</span></div>${tile.zone ? `<span class="chip">${skelBar(6)}</span>` : ""}</div>`;
+        card.appendChild(head);
+        card.insertAdjacentHTML("beforeend", spinner);
+        const toolbar = document.createElement("div");
+        toolbar.className = "card-toolbar";
+        if(tile.scaleToggle) toolbar.appendChild(inert(buildScaleSeg(tile.scaleToggle.get, tile.scaleToggle.set)));
+        toolbar.appendChild(inert(buildRangeSeg(tile.title)));
+        card.appendChild(toolbar);
+        grid.appendChild(card);
+      });
+      metricsHost.innerHTML = "";
+      metricsHost.appendChild(grid);
+    }
+
+    // ---- overlay panel: same reasoning as the tile grid above - METRICS' 14 keys and their labels/
+    // colors are static, only which ones end up AVAILABLE (metricAvailable() in renderOverlay, reading
+    // FULL) is uncertain. Every chip renders now, in overlaySel's own default checked/unchecked state,
+    // as an inert lookalike (same as heroToggles above) - a chip for a metric that turns out unavailable
+    // just gets removed by the real render, a far smaller change than the whole panel growing ~1150px
+    // out of a 46px toolbar-only placeholder. RSI/MACD are never data-gated (pure price math) so their
+    // sub-panels and the main chart itself are built with confidence, not just guessed.
+    const overlayPanel = document.getElementById("overlayPanel");
+    if(overlayPanel){
+      const headRow = `<div class="panel-head"><h2>Kennzahlen überlagern</h2></div>`;
+      const legendWrap = `<div class="overlay-toggles">${
+        Object.keys(METRICS).map(key=>{
+          const m = METRICS[key], active = !!overlaySel[key];
+          return `<label class="overlay-toggle-chip${active?" active":""}" style="--chip-color:${m.color}"><input type="checkbox" disabled ${active?"checked":""}><i></i>${m.label}</label>`;
+        }).join("")
+      }</div>`;
+      const indicatorToggleWrap = `<div class="overlay-toggles indicator-toggles">${
+        [["rsi","RSI (14)","var(--c-rsi)"],["macd","MACD (12/26/9)","var(--c-macd)"]].map(([key,label,color])=>
+          `<label class="overlay-toggle-chip active" style="--chip-color:${color}"><input type="checkbox" checked disabled><i></i>${label}</label>`
+        ).join("")
+      }</div>`;
+      const readoutRow = `<div style="display:flex; justify-content:flex-end;"><div class="readout compact"><div class="readout-date">Aktuell</div><div class="readout-row">${
+        ["BTC-Kurs","MVRV-Ratio","NUPL"].map(label=>`<div class="readout-item"><b class="readout-value mono">${skelBar(4)}</b><span class="readout-label">${label}</span></div>`).join("")
+      }</div></div></div>`;
+      overlayPanel.innerHTML = headRow + legendWrap + indicatorToggleWrap + readoutRow;
+      const chartHost = document.createElement("div");
+      chartHost.className = "multipanel";
+      chartHost.insertAdjacentHTML("beforeend", spinner);
+      chartHost.insertAdjacentHTML("beforeend", `<div class="subpanel-head"><span class="subpanel-title">RSI (14)</span></div><div class="chart-wrap skeleton sub"><div class="skeleton-spinner"></div></div>`);
+      chartHost.insertAdjacentHTML("beforeend", `<div class="subpanel-head"><span class="subpanel-title">MACD (12/26/9)</span></div><div class="chart-wrap skeleton sub"><div class="skeleton-spinner"></div></div>`);
+      overlayPanel.appendChild(chartHost);
+      const toolbar = document.createElement("div");
+      toolbar.className = "card-toolbar";
+      toolbar.appendChild(inert(buildRangeSeg("overlay")));
+      overlayPanel.appendChild(toolbar);
+    }
   }
 
   // Fades/grows a freshly-populated element in rather than letting it snap into place in one frame -
@@ -8570,6 +8691,17 @@
     el.classList.remove("reveal-in");
     void el.offsetWidth; // reflow, so re-adding the class below restarts the CSS animation
     el.classList.add("reveal-in");
+  }
+
+  // Both brand-icon variants (sidebar + mobile topbar - see .brand-icon/.brand-icon-sm) wobble together,
+  // same reflow-restart trick as revealAnimated above so a second tap mid-animation still replays from
+  // the start instead of doing nothing (a class that's already present can't be "re-added").
+  function wobbleLogo(){
+    document.querySelectorAll(".brand-icon, .brand-icon-sm").forEach(el=>{
+      el.classList.remove("wobble");
+      void el.offsetWidth;
+      el.classList.add("wobble");
+    });
   }
 
   // The source/freshness info this used to always show as its own banner on the page now lives inside
@@ -8664,7 +8796,7 @@
     // at the very top of the page, not just to window top:0 - functionally almost the same now that the
     // strip IS the first thing in .wrap, but explicit and correct even if something above it (the error
     // banner) is showing.
-    const scrollToOverview = ()=> document.getElementById("statStrip")?.scrollIntoView({behavior:"smooth", block:"start"});
+    const scrollToOverview = ()=>{ wobbleLogo(); document.getElementById("statStrip")?.scrollIntoView({behavior:"smooth", block:"start"}); };
     document.getElementById("navBrand")?.addEventListener("click", scrollToOverview);
     document.getElementById("sidebarBrandLink")?.addEventListener("click", scrollToOverview);
     document.getElementById("navBurger")?.addEventListener("click", e=>{
@@ -8894,6 +9026,12 @@
   // skeleton paint as early as the page can possibly manage instead of waiting for the full
   // DOMContentLoaded pass (images, remaining markup, etc.) to complete first.
   renderSkeleton();
+  // Both brand-icon elements are already in the static markup above this script tag (not built by
+  // renderSkeleton), so this doesn't need to wait for DOMContentLoaded either - a short delay just keeps
+  // it from firing in the same instant as everything else on the page, so it reads as a deliberate little
+  // "hello" gesture rather than getting lost in the initial paint. Once per page load, not per visit -
+  // nothing suppresses a repeat on the next reload.
+  setTimeout(wobbleLogo, 600);
 
   document.addEventListener("DOMContentLoaded", function(){
     wireControls();
