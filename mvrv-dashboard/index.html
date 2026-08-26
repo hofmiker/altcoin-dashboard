@@ -1102,8 +1102,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v304";
-  const EDIT_STAMP = "2026-08-26 18:42 UTC";
+  const EDIT_VERSION = "v305";
+  const EDIT_STAMP = "2026-08-26 18:53 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -7065,6 +7065,21 @@
       const clipId = svg.querySelector("defs clipPath")?.id;
       const oldClipWrap = document.createElementNS(NS,"g");
       if(clipId) oldClipWrap.setAttribute("clip-path", `url(#${clipId})`);
+      // Path fills that reference a gradient (the BTC-only price-area fill - see priceAreaGradId/
+      // .cyc-price-area in renderCycleChartDOM, only present with "Zyklus" off) point at a <defs> id
+      // from the OLD svg, which isn't present in this new one (a fresh random id is generated on every
+      // rebuild) - copy over just the referenced gradient so the fill keeps resolving instead of
+      // silently pointing at nothing for the whole animation (the area vanishes, then pops back in the
+      // instant the real content swaps in at the end - "verschwindet kurz"). Same fix already applied
+      // to the generic buildLineChart zoom-in path, see animateZoomInWithOldContent's own comment.
+      const svgDefs = svg.querySelector("defs");
+      oldGroupSrc.querySelectorAll("[fill^='url(#']").forEach(el=>{
+        const id = el.getAttribute("fill").slice(5, -1);
+        if(svgDefs && !svgDefs.querySelector("#"+CSS.escape(id))){
+          const gradSrc = oldSvgClone.querySelector("#"+CSS.escape(id));
+          if(gradSrc) svgDefs.appendChild(gradSrc.cloneNode(true));
+        }
+      });
       oldClipWrap.appendChild(oldGroupSrc);
       const realClipG = group.parentNode;
       realClipG.style.display = "none";
