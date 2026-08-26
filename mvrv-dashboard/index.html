@@ -363,13 +363,18 @@
   /* Real HTML circles (see miniSparklineHtml's own comment for why), centered on their %-based
      left/top via negative margins rather than transform:translate(-50%,-50%) - the pulse keyframe below
      already needs transform:scale() for its growing-ring effect, and CSS only allows one `transform`
-     value per element, not two composed independently through a keyframe. */
+     value per element, not two composed independently through a keyframe. Sized in cqw (against
+     .stat-strip-teaser .stat's own container-type:inline-size, i.e. a % of the card's real rendered
+     width) rather than a fixed px, at the exact same 4.6%/13% the old squashed SVG <circle> versions of
+     these (r=2.3/r=6.5 in a 100-wide viewBox) rendered at along their own dominant (X) axis before that
+     bug was fixed - same visual size reader feedback wanted back, just as a true circle now instead of
+     an ellipse, and scaling with card width like the original always did rather than sitting fixed. */
   .stat-strip-teaser .stat .mini-spark-dot{
-    position:absolute; width:4.6px; height:4.6px; margin:-2.3px 0 0 -2.3px; border-radius:50%;
+    position:absolute; width:4.6cqw; height:4.6cqw; margin:-2.3cqw 0 0 -2.3cqw; border-radius:50%;
     background:#fff; pointer-events:none;
   }
   .stat-strip-teaser .stat .mini-spark-halo{
-    position:absolute; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%;
+    position:absolute; width:13cqw; height:13cqw; margin:-6.5cqw 0 0 -6.5cqw; border-radius:50%;
     background:#fff; opacity:.5; pointer-events:none; animation:miniSparkPulse 1.6s ease-out infinite;
   }
   @keyframes miniSparkPulse{ 0%{transform:scale(.338); opacity:.55;} 100%{transform:scale(1); opacity:0;} }
@@ -1097,8 +1102,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v303";
-  const EDIT_STAMP = "2026-08-26 18:34 UTC";
+  const EDIT_VERSION = "v304";
+  const EDIT_STAMP = "2026-08-26 18:42 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -3686,16 +3691,16 @@
     const athPrice = Math.max(...FULL.price.filter(v=>v!=null && isFinite(v)));
     const supplyPct = FULL.hasSupply && sup!=null ? sup/21000000*100 : null;
 
-    // Last 7 real (non-null) days, not just the last 7 array slots - a gap in the raw series (a missed
-    // fetch day) would otherwise silently shrink the window instead of reaching further back for a
-    // genuine 7th point.
-    const price7d = FULL.price.filter(v=>v!=null && isFinite(v)).slice(-7);
-    const price7dPct = price7d.length>=2 ? (price7d[price7d.length-1]/price7d[0]-1)*100 : null;
+    // Last 30 real (non-null) days ("1 Monat"), not just the last 30 array slots - a gap in the raw
+    // series (a missed fetch day) would otherwise silently shrink the window instead of reaching further
+    // back for a genuine 30th point.
+    const price1m = FULL.price.filter(v=>v!=null && isFinite(v)).slice(-30);
+    const price1mPct = price1m.length>=2 ? (price1m[price1m.length-1]/price1m[0]-1)*100 : null;
 
     const stats = [
       {available:true, plain:true, color:"var(--c-price)", target:"cycleChartPanel", label:"BTC-Kurs", value:fmtUSDFull(price),
-        ctx: price7dPct!=null ? `7 Tage: ${price7dPct>=0?"+":""}${price7dPct.toFixed(1)}%` : "Letzte 7 Tage",
-        mini: miniSparklineHtml(price7d)},
+        ctx: price1mPct!=null ? `1 Monat: ${price1mPct>=0?"+":""}${price1mPct.toFixed(1)}%` : "Letzter Monat",
+        mini: miniSparklineHtml(price1m)},
       {available:true, color:"var(--c-mvrv)", target:slugify("MVRV-Ratio"), label:"MVRV-Ratio", value:fmtRatio(mvrv), ctx: mz ? `<span class="chip ${mz.cls}${mzPulse}"><i></i>${mz.label}</span>` : "–",
         mini: mvrvBounds ? miniZoneBarHtml(["#1f9d55","#7fcc9c","var(--stat-badge-neutral-seg)","#e0a340","#e0655f"], mvrvBounds, mvrv) : ""},
       {available:true, color:"var(--c-nupl)", target:slugify("NUPL — Net Unrealized Profit/Loss"), label:"NUPL", value:fmtPctFrac(nupl), ctx:`<span class="chip ${nz.cls}${nzPulse}"><i></i>${nz.label}</span>`,
