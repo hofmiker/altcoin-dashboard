@@ -779,7 +779,12 @@
   #cycleChartPanel.fullscreen-active > .card-toolbar{flex:none;}
   #cycleChart2Panel.fullscreen-active{overflow-y:hidden;}
   #cycleChart2Panel.fullscreen-active .cyc-scroll-body{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;}
-  #cycleChart2Panel.fullscreen-active > .card-toolbar{flex:none;}
+  /* No "> .card-toolbar{flex:none;}" rule here unlike #cycleChartPanel above - this chart's own
+     .card-toolbar now lives INSIDE .cyc-scroll-body itself (see renderCycleChart2, directly above the
+     rainbow legend, per explicit feedback), not as a plain-sibling panel-level child the way the iOS
+     touch-scroll fix this whole block exists for (see the comment above it) assumes. Same latent
+     reachability trade-off this chart's legend/description text already accepted when they were placed
+     inside .cyc-scroll-body in the previous batch - not a new category of risk. */
 
   .chart-wrap{position:relative; background:var(--inset); border-radius:14px; padding:10px 10px 4px;}
   .chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
@@ -1131,8 +1136,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v307";
-  const EDIT_STAMP = "2026-08-27 03:49 UTC";
+  const EDIT_VERSION = "v308";
+  const EDIT_STAMP = "2026-08-27 04:54 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -7358,13 +7363,26 @@
     // when either of those layers is visible - otherwise an outer rainbow band or the ±2σ band could run
     // past the plot's own top/bottom edge, in linear mode left to do exactly that (harmless, already
     // clipped like any other off-chart content).
+    // The fit/band/rainbow trace's own right edge - normally the same overscanDaysMax the price line
+    // uses, but in the "Alles" view extended all the way to domainDaysMax (the same projected-future
+    // point the X-domain/halvings above already reach), so the rainbow corridor actually fills the
+    // future space the axis already reserves for it instead of stopping dead at today and leaving the
+    // rest of the plot blank - per explicit feedback ("Erweitere den Regenbogen auch in die Zukunft").
+    // Real price data itself (pricePts below) is never extended this way - only the regression-derived
+    // fit/band/rainbow, which is defined at any future date by construction.
+    const traceDaysMax = rangeDays === "all" ? domainDaysMax : overscanDaysMax;
+
     const priceLogVals = points.map(p=>Math.log10(p.price));
     const bandPad = logY && cycleChart2LayerVisible.powerlaw ? 2*fit.sigma : 0;
     const rainbowPad = logY && cycleChart2LayerVisible.rainbow
       ? Math.max(RAINBOW_ZONES[0].hi, -RAINBOW_ZONES[RAINBOW_ZONES.length-1].lo) : 0;
     const extentPad = Math.max(bandPad, rainbowPad);
-    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
-    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
+    // fitLogAt(traceDaysMax) rather than fitLogAt(daysMax) - once the trace itself reaches into the
+    // projected future (see traceDaysMax above), the corridor's actual highest point sits out there, not
+    // at today's real daysMax; sizing the Y-domain against the real daysMax would clip the extended
+    // rainbow's own future end.
+    const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(traceDaysMax)-extentPad) - 0.06;
+    const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(traceDaysMax)+extentPad) + 0.06;
     const yValMin = logY ? yLogMin : Math.pow(10,yLogMin), yValMax = logY ? yLogMax : Math.pow(10,yLogMax);
     function yOf(price){ return padT + (1-(yVal(price)-yValMin)/(yValMax-yValMin))*(h-padT-padB); }
 
@@ -7377,8 +7395,10 @@
     // both edges to translate smoothly into view instead of visibly running out mid-gesture. Traced in x-
     // VALUE space (evenly spaced xVal, then converted back to days for fitLogAt) rather than evenly in
     // days, exactly like computePowerLawLayout's own daysAtSample - in log-X mode, evenly-spaced-in-days
-    // sampling would crowd almost every sample into the last few percent of the range.
-    const overscanXValMin = xVal(overscanDaysMin), overscanXValMax = xVal(overscanDaysMax);
+    // sampling would crowd almost every sample into the last few percent of the range. The right edge is
+    // traceDaysMax (see above), not overscanDaysMax directly, so this reaches the projected future in the
+    // "Alles" view.
+    const overscanXValMin = xVal(overscanDaysMin), overscanXValMax = xVal(traceDaysMax);
     const FIT_SAMPLES = 240;
     function fitDaysAtSample(i){
       const xv = overscanXValMin + (i/FIT_SAMPLES)*(overscanXValMax-overscanXValMin);
@@ -8684,7 +8704,7 @@
     attachInfo(headRow, `
       <p style="margin:0 0 10px;">Zeigt die echte BTC-Kurshistorie zusammen mit "Regenbogen" (den farbcodierten Power-Law-Bändern) und "Power Law" (der Regressionslinie mit ±2σ-Korridor) - dieselbe Regression wie auf dem eigenständigen Power-Law-Chart, hier nur über dieses Chart's eigenes, flexibles Achsen-Layout gelegt statt in dessen fixem Log-Log-Raster.</p>
       <p style="margin:0 0 10px;">Die BTC-Kurslinie lässt sich separat ein-/ausblenden ("BTC") und zeigt immer nur die echte Kurshistorie, nie eine Projektion - läuft sie allein, ohne Regenbogen oder Power Law, bekommt sie eine Flächen-Verlaufsfüllung statt einer einfarbigen Linie.</p>
-      <p style="margin:0;">Die Regenbogen-Bänder folgen der Formel des ursprünglichen Bitcoin-Regenbogen-Charts: neun gleich breite Bänder (je 0,3 log-Einheiten) um die Power-Law-Regressionslinie, verifiziert gegen den Quellcode von StephanAkkerman/bitcoin-rainbow-chart (siehe Methodik unten).</p>
+      <p style="margin:0;">Die Regenbogen-Bänder folgen der Formel des ursprünglichen Bitcoin-Regenbogen-Charts: neun gleich breite Bänder (je 0,3 log-Einheiten) um die Power-Law-Regressionslinie, verifiziert gegen den Quellcode von StephanAkkerman/bitcoin-rainbow-chart (siehe Methodik unten). In der "Alles"-Ansicht reicht dieser Korridor - wie schon die Halving-Markierungen dort - noch gut drei Halving-Zyklen über die letzten echten Kursdaten hinaus; die reale Kurslinie selbst endet weiterhin exakt am letzten echten Datenpunkt.</p>
     `, {html:true});
     // No separate fullscreen-only .fs-desc paragraph here (unlike heroPanel/the original 4-Jahres-Zyklus
     // chart) - per explicit feedback the description now lives permanently under the chart itself (see
@@ -8768,15 +8788,30 @@
 
     scrollBody.appendChild(wrap);
 
+    // Range-selector + X-axis toggle - directly above the legend/description (per explicit feedback),
+    // not down at the panel's very bottom past those two like the shared .card-toolbar pattern normally
+    // sits (see buildRangeSeg's other callers). Living inside scrollBody now rather than as a separate
+    // panel-level sibling means it scrolls along with the rest of this chart's content in fullscreen
+    // instead of staying pinned as a fixed footer - an acceptable trade for actually landing where asked;
+    // computePanelFullscreenHeight (see its own comment) still measures correctly either way, since it
+    // walks up summing every level's siblings, not just chartHost's immediate ones.
+    const toolbar = document.createElement("div");
+    toolbar.className = "card-toolbar";
+    toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
+    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChart2LogX, v=> animateCycleChart2AxisChange(v, cycleChart2LogY), "X-Achse: Log/Linear umschalten");
+    toolbar.appendChild(xToggle);
+    scrollBody.appendChild(toolbar);
+
     // Bar-style rainbow legend + a permanently-visible plain-text description, both directly under the
-    // chart (per explicit feedback) - previously the legend sat between the buttons and the chart, and
-    // the description only ever showed inside the "i" info popover or (as fsDesc) while in fullscreen.
+    // toolbar above (per explicit feedback) - previously the legend sat between the buttons and the
+    // chart, and the description only ever showed inside the "i" info popover or (as fsDesc) while in
+    // fullscreen.
     if(cycleChart2LayerVisible.rainbow){
       scrollBody.appendChild(buildRainbowBarLegend());
     }
     const chartDesc = document.createElement("p");
     chartDesc.className = "cyc2-chart-desc";
-    chartDesc.textContent = `"BTC" blendet die Kurslinie ein/aus, "Regenbogen" und "Power Law" legen dieselbe Regression wie der eigenständige Power-Law-Chart über dieses Zeitfenster - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
+    chartDesc.textContent = `"BTC" blendet die Kurslinie ein/aus, "Regenbogen" und "Power Law" legen dieselbe Regression wie der eigenständige Power-Law-Chart über dieses Zeitfenster - der "Log"-Schalter oben rechts wechselt die Y-Achse, der im Zeitraum-Menü darunter die X-Achse. In der "Alles"-Ansicht reicht der Regenbogen-Korridor noch gut drei Halving-Zyklen über die letzten echten Kursdaten hinaus, rein rechnerisch aus der Regressionsformel fortgeschrieben - keine Kursprognose.`;
     scrollBody.appendChild(chartDesc);
 
     // renderCycleChart2DOM above just created every axis-label text fresh, at the same fixed
@@ -8803,16 +8838,6 @@
     // footprint depends on which one is active) already applied - see applyCycleTickLabelThinning's own
     // comment for why this can't happen earlier, at pure-geometry layout-compute time.
     applyCycleTickLabelThinning(svg);
-
-    const toolbar = document.createElement("div");
-    toolbar.className = "card-toolbar";
-    toolbar.appendChild(buildRangeSeg("cyclechart", {halvingBtn:false}));
-    // X-axis toggle lives here, not in chartControlsRow above (see that row's own comment) - .card-toolbar
-    // is itself right-aligned (justify-content:flex-end), so appending it last puts it exactly bottom
-    // right, past even "Zurück zu heute".
-    const xToggle = buildCycleAxisToggle("cyc-axis-toggle-x", cycleChart2LogX, v=> animateCycleChart2AxisChange(v, cycleChart2LogY), "X-Achse: Log/Linear umschalten");
-    toolbar.appendChild(xToggle);
-    panel.appendChild(toolbar);
 
     // computeCycleChart2FullscreenHeight() (called from inside computeCycleChart2Layout above, BEFORE
     // #cycleChart2Host itself even exists yet - panel.innerHTML="" wiped it, and it's only created/attached
