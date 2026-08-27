@@ -753,7 +753,7 @@
      targeted directly rather than via an extra static wrapper. */
   .panel.fullscreen-active #cycleChartHost{flex:1 1 auto; width:100%; max-height:100%;}
   .panel.fullscreen-active #cycleChartHost svg{width:100%; height:auto; max-height:100%;}
-  /* "4-Jahres-Zyklus (Erweitert)" duplicate - same rules as #cycleChartHost above, own ID since it's a
+  /* "Power Law & Rainbow" duplicate - same rules as #cycleChartHost above, own ID since it's a
      separate panel/host pair. */
   .panel.fullscreen-active #cycleChart2Host{flex:1 1 auto; width:100%; max-height:100%;}
   .panel.fullscreen-active #cycleChart2Host svg{width:100%; height:auto; max-height:100%;}
@@ -856,7 +856,7 @@
   .zone-legend-item.active .zone-legend-dot{width:9px; height:9px;}
   .zone-legend-item.inactive{opacity:.4;}
 
-  /* "4-Jahres-Zyklus (Erweitert)" rainbow bar legend - a solid gradient bar standing in for the usual
+  /* "Power Law & Rainbow" rainbow bar legend - a solid gradient bar standing in for the usual
      dot-per-item legend (see buildRainbowBarLegend). Dark, high-contrast pill regardless of light/dark
      theme (mirrors the reference mock, not the page's own card/border tokens) - the whole point is the
      bar itself reads as a clean color key, which a themed light background would wash out. */
@@ -1131,8 +1131,8 @@
   // further down), which only reflects whether *that* build has actually gone live. This one is baked
   // directly into the file itself, so it reads correctly even from a local/unpublished copy or the
   // instant right after a push, before Pages has rebuilt - always bump both together, next time first.
-  const EDIT_VERSION = "v308";
-  const EDIT_STAMP = "2026-08-26 20:13 UTC";
+  const EDIT_VERSION = "v307";
+  const EDIT_STAMP = "2026-08-27 03:49 UTC";
   const NS = "http://www.w3.org/2000/svg";
   const API_URL = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=PriceUSD,CapMVRVCur,CapRealUSD,SplyCur,CapMrktCurUSD,NVTAdj,AdrActCnt,ROI30d,ROI1yr,SplyAct1yr&frequency=1d&page_size=10000";
   const CACHE_KEY = "mvrvDashboard_cache_v1";
@@ -1341,27 +1341,28 @@
   // The "Bitcoin Rainbow Chart" is a distinct, related visualization - not the power law itself, but a
   // popular companion to it: instead of one trend line with a plain +-confidence corridor, it slices the
   // same kind of logarithmic regression into several colored qualitative bands (from "basically a fire
-  // sale" at the bottom to "maximum bubble territory" at the top). Built here as extra bands around the
-  // exact same self-fitted regression above (see powerLawFit) - offsets in multiples of its own sigma -
-  // rather than a second, separately-sourced regression, so it stays consistent with the primary fit
-  // shown alongside it instead of potentially disagreeing with it.
+  // sale" at the bottom to "maximum bubble territory" at the top).
   //
-  // Per explicit feedback (a real blockchaincenter.net screenshot showing all 9 bands visibly the SAME
-  // width) the bands must be UNIFORM width in log-price space, not the hand-tuned unequal widths this
-  // used to hardcode (outer two bands 2.0 wide, the middle seven only 0.6-0.7). Verified against the
-  // reference chart's own open-sourced reimplementation, not guessed: StephanAkkerman/bitcoin-rainbow-chart
-  // on GitHub (src/plot.py, https://github.com/StephanAkkerman/bitcoin-rainbow-chart/blob/main/src/plot.py)
-  // builds its 9 bands as `exp(fitted_y + (i-1.5)*band_width - band_width)` .. `exp(fitted_y + (i-1.5)*band_width)`
-  // for i=0..8 with a single constant band_width=0.3 (natural-log price units) - EVERY band exactly the
-  // same width around the trend line, none wider or narrower than another. Reproduced here in units of
-  // OUR OWN fit's sigma rather than that fixed absolute ln-price width, purely because every other rainbow-
-  // adjacent value on this page (rainbowZoneForSigma, the ±2σ Power Law band) already speaks in sigma-
-  // offset terms - the property actually being matched against the verified source is "uniform width",
-  // not the specific numeric unit. Total half-span (±4.2σ) kept as before (already tuned to bracket BTC's
-  // real historical extremes); RAINBOW_BAND_COUNT equal-width slices of it replace the old hand-picked
-  // per-band widths.
-  const RAINBOW_BAND_HALF_SPAN = 4.2, RAINBOW_BAND_COUNT = 9;
-  const RAINBOW_BAND_WIDTH = (2*RAINBOW_BAND_HALF_SPAN) / RAINBOW_BAND_COUNT;
+  // Per explicit feedback the bands must be UNIFORM width AND the right absolute size - a first attempt
+  // fixed only the uniformity (equal-width bands) but kept the total span expressed as a multiple of OUR
+  // OWN regression's sigma (±4.2σ, a number this file had already been carrying, never itself verified
+  // against anything). That silently assumed our fit's own residual spread was comparable to the
+  // reference author's tuning constant - it wasn't, and the bands rendered visibly too wide, exactly the
+  // follow-up complaint. Fixed by dropping the sigma-scaling entirely and reproducing the verified
+  // source's own two constants directly instead, unit-converted (natural log -> log10, since our own
+  // fitLogAt already returns log10(price)) but otherwise untouched - nothing here is tuned, guessed, or
+  // re-derived from our own data:
+  //   Source: StephanAkkerman/bitcoin-rainbow-chart on GitHub, src/plot.py -
+  //   https://github.com/StephanAkkerman/bitcoin-rainbow-chart/blob/main/src/plot.py
+  //     lower_bound = exp(fitted_y + (i - i_decrease)*band_width - band_width)
+  //     upper_bound = exp(fitted_y + (i - i_decrease)*band_width)
+  //   with band_width=0.3 (natural-log price units) and i_decrease=1.5, for i=0..8 (9 bands, i=0 lowest).
+  // Applied here as a fixed log10-price OFFSET from our own fair-value line - not a sigma multiple at
+  // all, so it no longer touches fit.sigma anywhere (see the two tracePts-style helpers below, which now
+  // take this offset directly instead of multiplying it by the fit's own sigma the way the real ±2σ
+  // Power Law band still legitimately does).
+  const RAINBOW_BAND_WIDTH_LN = 0.3, RAINBOW_I_DECREASE = 1.5, RAINBOW_BAND_COUNT = 9;
+  const RAINBOW_BAND_WIDTH = RAINBOW_BAND_WIDTH_LN / Math.LN10;
   const RAINBOW_ZONES = [
     {label:"Maximaler Hype", color:"#c0392b"},
     {label:"Verkaufen!", color:"#e67e22"},
@@ -1372,16 +1373,23 @@
     {label:"Akkumulieren", color:"#2980b9"},
     {label:"Kaufen!", color:"#3949ab"},
     {label:"Fire Sale", color:"#7b2d8e"}
-  ].map((z,i)=>({...z,
-    hi: RAINBOW_BAND_HALF_SPAN - i*RAINBOW_BAND_WIDTH,
-    lo: RAINBOW_BAND_HALF_SPAN - (i+1)*RAINBOW_BAND_WIDTH,
-  }));
-  // Which rainbow band a given point falls in, expressed as its deviation from the fit line in multiples
-  // of the fit's own sigma (the same unit RAINBOW_ZONES' hi/lo are defined in) - shared by both charts'
-  // crosshair painting to highlight the matching legend chip, and valid for a projected future date just
-  // as much as a real historical one (sigmaOffset is defined purely from the model, no real price needed).
-  function rainbowZoneForSigma(sigmaOffset){
-    return RAINBOW_ZONES.find(z=> sigmaOffset<=z.hi && sigmaOffset>=z.lo) || null;
+  ].map((z,i)=>{
+    // Our array is highest-band-first (Maximaler Hype at i=0); the source's own i runs the other way
+    // (i=8 is its highest band) - refIdx translates between the two so hi/lo come out identical to
+    // plugging OUR i directly into the source's own formula with its own i convention.
+    const refIdx = RAINBOW_BAND_COUNT-1-i;
+    const hi = (refIdx - RAINBOW_I_DECREASE) * RAINBOW_BAND_WIDTH;
+    return {...z, hi, lo: hi - RAINBOW_BAND_WIDTH};
+  });
+  // Which rainbow band a given point falls in, expressed as its deviation from the fit line as a plain
+  // log10(price) offset (the same unit RAINBOW_ZONES' hi/lo are now defined in - see that constant's own
+  // comment for why this is NOT a sigma multiple) - shared by both charts' crosshair painting to
+  // highlight the matching legend chip, and valid for a projected future date just as much as a real
+  // historical one (the offset is defined purely from the model, no real price needed). Name kept as
+  // "ForSigma" only because every call site still says onSigma/sigma - the parameter itself is a log10
+  // offset now, not a sigma count.
+  function rainbowZoneForSigma(log10Offset){
+    return RAINBOW_ZONES.find(z=> log10Offset<=z.hi && log10Offset>=z.lo) || null;
   }
   // Builds the rainbow layer's own legend row - same visual language as the MVRV-Perzentil tile's own
   // zone-legend (.zone-legend/.zone-legend-item/.zone-legend-dot), just not tied to a fixed value-range
@@ -1539,14 +1547,14 @@
   // (own module-level date, not index, for the same reasons).
   let cycleChartCrosshairDate = null;
 
-  // ---------- "4-Jahres-Zyklus (Erweitert)" - a genuine duplicate of the chart above (own state, own
+  // ---------- "Power Law & Rainbow" - a genuine duplicate of the chart above (own state, own
   // render/animate functions - see the big function block right after animateCycleChartZoomFromLayout),
   // built on explicit request rather than adding these as more toggles to the original. Unlike that
   // chart's own cycleChartLayerVisible, this one DOES carry the Power-Law/Rainbow regression (reusing the
   // exact same self-fitted powerLawFit()/RAINBOW_ZONES the dedicated Power-Law chart uses - see
   // computeCycleChart2Layout - never a second, separately-sourced fit), mapped through this chart's own
   // flexible per-window-autoscaled xOf/yOf instead of that chart's fixed log-log ratio.
-  const cycleChart2LayerVisible = {zyklus:true, price:true, rainbow:false, powerlaw:false};
+  const cycleChart2LayerVisible = {zyklus:false, price:true, rainbow:false, powerlaw:false};
   let cycleChart2LogX = true, cycleChart2LogY = true;
   let cycleChart2CrosshairDate = null;
   // Remaining module state this duplicate needs its own copy of - mirrors, in order, cycleChartActiveZoneKey/
@@ -4118,7 +4126,11 @@
     // extend past the visible plot edge instead (harmless - already clipped there like anything else that
     // runs off-chart), sized to the real price data's own range exactly like a plain price line would be.
     const bandPad = logY && powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
-    const rainbowPad = logY && powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    // RAINBOW_ZONES[0].hi/[...].lo are the true top/bottom of the whole rainbow corridor (plain
+    // log10(price) offsets, not sigma multiples - see that constant's own comment) - padding to exactly
+    // that real extent, not a guessed sigma-multiple of our own fit's residual spread.
+    const rainbowPad = logY && powerLawLayerVisible.rainbow
+      ? Math.max(RAINBOW_ZONES[0].hi, -RAINBOW_ZONES[RAINBOW_ZONES.length-1].lo) : 0;
     const extentPad = Math.max(bandPad, rainbowPad);
     const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
     const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
@@ -4142,9 +4154,22 @@
       }
       return pts;
     }
+    // Rainbow-only variant of tracePts - takes the SAME kind of log10(price) offset RAINBOW_ZONES' own
+    // hi/lo now carry, applied directly instead of multiplied by fit.sigma (that's what tracePts above
+    // still correctly does for the real ±2σ statistical band, a genuinely sigma-scaled quantity - the
+    // rainbow bands aren't one).
+    function traceOffsetPts(log10Offset){
+      const pts = [];
+      for(let i=0;i<=SAMPLES;i++){
+        const days = daysAtSample(i);
+        const price = Math.pow(10, fitLogAt(days)+log10Offset);
+        pts.push({x: padL+(i/SAMPLES)*(w-padL-padR), y: yOf(price)});
+      }
+      return pts;
+    }
     const fitPts = tracePts(0);
     const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
-    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:traceOffsetPts(z.hi), loPts:traceOffsetPts(z.lo)}));
 
     // Real halvings, plus (only in the projected "Alles" view) a few estimated future ones - both
     // tied to the same shared "Zyklen" toggle every other chart's halving markers already respect.
@@ -4217,7 +4242,8 @@
 
     const priceLogVals = allPoints.map(p=>Math.log10(p.price));
     const bandPad = powerLawLayerVisible.powerlaw ? 2*fit.sigma : 0;
-    const rainbowPad = powerLawLayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    const rainbowPad = powerLawLayerVisible.rainbow
+      ? Math.max(RAINBOW_ZONES[0].hi, -RAINBOW_ZONES[RAINBOW_ZONES.length-1].lo) : 0;
     const extentPad = Math.max(bandPad, rainbowPad);
     const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
     const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
@@ -4236,9 +4262,14 @@
       for(let i=0;i<=SAMPLES;i++){ const days = daysAtSample(i); const price = Math.pow(10, fitLogAt(days)+sigmaOffset*fit.sigma); pts.push({x:padL+(i/SAMPLES)*(w-padL-padR), y:yOf(price)}); }
       return pts;
     }
+    function traceOffsetPts(log10Offset){
+      const pts = [];
+      for(let i=0;i<=SAMPLES;i++){ const days = daysAtSample(i); const price = Math.pow(10, fitLogAt(days)+log10Offset); pts.push({x:padL+(i/SAMPLES)*(w-padL-padR), y:yOf(price)}); }
+      return pts;
+    }
     const fitPts = tracePts(0);
     const bandHiPts = tracePts(2), bandLoPts = tracePts(-2);
-    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:tracePts(z.hi), loPts:tracePts(z.lo)}));
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:traceOffsetPts(z.hi), loPts:traceOffsetPts(z.lo)}));
     const halvingSource = showHalvings ? HALVING_DATES.concat(projectedHalvings(3)) : [];
     const halvings = halvingSource
       .map(hv=>({date:hv.date, projected:!!hv.projected, days:(Date.parse(hv.date+"T00:00:00Z")-GENESIS_MS)/86400000}))
@@ -4463,7 +4494,9 @@
       const changeEls = readout.el.querySelectorAll(".readout-change");
       if(changeEls[0]) changeEls[0].textContent = "";
       if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
-      if(onSigma) onSigma((Math.log10(cr.price)-Math.log10(cr.fairPrice))/layout.fit.sigma);
+      // Not divided by fit.sigma - see rainbowZoneForSigma's own comment for why RAINBOW_ZONES' hi/lo
+      // are plain log10(price) offsets now, not sigma multiples.
+      if(onSigma) onSigma(Math.log10(cr.price)-Math.log10(cr.fairPrice));
     }
     paintCrosshair(layout.crosshair);
 
@@ -4714,7 +4747,9 @@
       const changeEls = readout.el.querySelectorAll(".readout-change");
       if(changeEls[0]) changeEls[0].textContent = "";
       if(changeEls[1]){ changeEls[1].textContent = (dev>=0?"+":"")+dev.toFixed(1)+"% vs. Kurs"; changeEls[1].style.color = dev>=0 ? "var(--critical)" : "var(--good)"; }
-      if(onSigma) onSigma((Math.log10(cr.price)-Math.log10(cr.fairPrice))/fixed.fit.sigma);
+      // Not divided by fit.sigma - see rainbowZoneForSigma's own comment for why RAINBOW_ZONES' hi/lo
+      // are plain log10(price) offsets now, not sigma multiples.
+      if(onSigma) onSigma(Math.log10(cr.price)-Math.log10(cr.fairPrice));
     }
     let crosshairPtIdx = crosshairDate==null ? -1 : points.findIndex(p=>p.date===crosshairDate);
     if(crosshairPtIdx<0) crosshairPtIdx = points.length-1;
@@ -4834,7 +4869,7 @@
     headRow.innerHTML = `<h3>BTC-Kurs (Power Law, Log-Log)</h3>`;
     panel.appendChild(headRow);
     const fit = powerLawFit();
-    attachInfo(headRow, `Die "Bitcoin Power Law"-These: auf einer beidseitig logarithmischen Skala (Kurs UND Tage seit dem Genesis-Block vom 03.01.2009 logarithmisch) folgt der BTC-Kurs über die gesamte Historie annähernd einer Geraden, Kurs ≈ A × Tage^n - hier direkt per linearer Regression im Log-Log-Raum aus den vorliegenden Kursdaten berechnet (keine von extern übernommenen Koeffizienten): Kurs(t) = 10^${fit.intercept.toFixed(2)} × Tage^${fit.slope.toFixed(2)}, R² = ${fit.r2.toFixed(3)} über ${fit.n.toLocaleString("de-DE")} Tage. Das gestrichelte Band zeigt ±2 Standardabweichungen (log-Skala) um diese Gerade. Die "Regenbogen"-Ansicht ist ein eigenständiges, populäres Verwandtes-Konzept (nicht die Power Law selbst) - hier als zusätzliche Bänder um dieselbe Gerade nachgebildet statt einer separaten, von extern übernommenen Regression. Reine statistische Kurvenanpassung an die Vergangenheit - keine Prognose und keine Anlageempfehlung.`);
+    attachInfo(headRow, `Die "Bitcoin Power Law"-These: auf einer beidseitig logarithmischen Skala (Kurs UND Tage seit dem Genesis-Block vom 03.01.2009 logarithmisch) folgt der BTC-Kurs über die gesamte Historie annähernd einer Geraden, Kurs ≈ A × Tage^n - hier direkt per linearer Regression im Log-Log-Raum aus den vorliegenden Kursdaten berechnet (keine von extern übernommenen Koeffizienten): Kurs(t) = 10^${fit.intercept.toFixed(2)} × Tage^${fit.slope.toFixed(2)}, R² = ${fit.r2.toFixed(3)} über ${fit.n.toLocaleString("de-DE")} Tage. Das gestrichelte Band zeigt ±2 Standardabweichungen (log-Skala) um diese Gerade. Die "Regenbogen"-Ansicht ist ein eigenständiges, populäres Verwandtes-Konzept (nicht die Power Law selbst): neun gleich breite Bänder (je 0,3 log-Einheiten, verifiziert gegen den Quellcode von <a href="https://github.com/StephanAkkerman/bitcoin-rainbow-chart/blob/main/src/plot.py" target="_blank" rel="noopener">StephanAkkerman/bitcoin-rainbow-chart</a>) um dieselbe, hier selbst berechnete Regressionsgerade gelegt statt um eine separate, von extern übernommene Regression. Reine statistische Kurvenanpassung an die Vergangenheit - keine Prognose und keine Anlageempfehlung.`, {html:true});
 
     const points = powerLawPoints();
     if(points.length < 2){
@@ -7325,7 +7360,8 @@
     // clipped like any other off-chart content).
     const priceLogVals = points.map(p=>Math.log10(p.price));
     const bandPad = logY && cycleChart2LayerVisible.powerlaw ? 2*fit.sigma : 0;
-    const rainbowPad = logY && cycleChart2LayerVisible.rainbow ? 3.0*fit.sigma : 0;
+    const rainbowPad = logY && cycleChart2LayerVisible.rainbow
+      ? Math.max(RAINBOW_ZONES[0].hi, -RAINBOW_ZONES[RAINBOW_ZONES.length-1].lo) : 0;
     const extentPad = Math.max(bandPad, rainbowPad);
     const yLogMin = Math.min(Math.min(...priceLogVals), fitLogAt(daysMin)-extentPad, fitLogAt(daysMax)-extentPad) - 0.06;
     const yLogMax = Math.max(Math.max(...priceLogVals), fitLogAt(daysMin)+extentPad, fitLogAt(daysMax)+extentPad) + 0.06;
@@ -7357,9 +7393,18 @@
       }
       return pts;
     }
+    function fitTraceOffsetPts(log10Offset){
+      const pts = [];
+      for(let i=0;i<=FIT_SAMPLES;i++){
+        const days = fitDaysAtSample(i);
+        const price = Math.pow(10, fitLogAt(days)+log10Offset);
+        pts.push({x: xOf(days), y: yOf(price)});
+      }
+      return pts;
+    }
     const fitPts = fitTracePts(0);
     const bandHiPts = fitTracePts(2), bandLoPts = fitTracePts(-2);
-    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:fitTracePts(z.hi), loPts:fitTracePts(z.lo)}));
+    const rainbowZones = RAINBOW_ZONES.map(z=>({...z, hiPts:fitTraceOffsetPts(z.hi), loPts:fitTraceOffsetPts(z.lo)}));
 
     const halvingSource = showHalvings
       ? HALVING_DATES.concat(rangeDays === "all" ? projectedHalvings(3) : [])
@@ -7815,14 +7860,14 @@
       }
       zoomGroup.appendChild(line);
     });
-    // Toggleable like the "Zyklus" pill next to it (see renderCycleChart2) - if hidden, the zone tiles/
-    // halvings/tunnel above are still whatever's left to look at. Shown but with the "Zyklus" layer OFF,
-    // it has no color context at all (no bull/bear zone under it, nothing), so it gets an area-fill
-    // gradient underneath it instead of staying a completely flat, contextless stroke - same technique
-    // as the Realized Price tile's own BTC-Kurs series (see priceAreaGrad above), not a gradient on the
-    // line's own stroke, which stays the plain price color either way.
+    // Toggleable via the "BTC" pill (see renderCycleChart2). This chart has no "Zyklus" zone shading at
+    // all (see cycleChart2LayerVisible's declaration), so the price line has no bull/bear color context
+    // by default and gets an area-fill gradient underneath it - same technique as the Realized Price
+    // tile's own BTC-Kurs series (see priceAreaGrad above), not a gradient on the line's own stroke, which
+    // stays the plain price color either way. Suppressed specifically when Rainbow or Power Law is shown,
+    // per explicit feedback - the gradient's own fill visually competes with those layers' fills.
     if(cycleChart2LayerVisible.price){
-      if(!cycleChart2LayerVisible.zyklus){
+      if(!cycleChart2LayerVisible.rainbow && !cycleChart2LayerVisible.powerlaw){
         const baseline = h-padB, pts = layout.pricePts;
         let areaD = "M"+pts[0].x.toFixed(1)+","+baseline.toFixed(1)+" ";
         for(const p of pts) areaD += "L"+p.x.toFixed(1)+","+p.y.toFixed(1)+" ";
@@ -8634,14 +8679,12 @@
 
     const headRow = document.createElement("div");
     headRow.className = "panel-head";
-    headRow.innerHTML = `<h3>4-Jahres-Zyklus (Erweitert)</h3>`;
+    headRow.innerHTML = `<h3>Power Law & Rainbow</h3>`;
     scrollBody.appendChild(headRow);
     attachInfo(headRow, `
-      <p style="margin:0 0 10px;">Bitcoin tickt im Rhythmus des Halvings: Alle ~4 Jahre halbiert sich die Blockbelohnung per Protokoll (zuletzt April 2024) und drosselt schlagartig den Nachschub an neuen Coins - historisch aber nicht der Startschuss eines neuen Bullenmarkts, sondern eher ein Booster mittendrin.</p>
-      <p style="margin:0 0 10px;">Das historische Muster: rund 3 Jahre Aufwärtsphase vom Zyklus-Tief bis zum nächsten Zyklus-Hoch, wobei das jeweilige Halving etwa in der Mitte dieser Aufwärtsphase liegt, nicht an ihrem Anfang. Danach folgt ein kürzerer, steilerer Rückgang von etwa einem Jahr bis zum nächsten Zyklus-Tief. Vier Zyklen bisher - keine Garantie für den fünften, aber ein Muster, das sich lohnt zu kennen.</p>
-      <p style="margin:0 0 10px;">Dieser Chart macht genau das sichtbar: grüne Zonen für jede Aufwärtsphase, rote für jeden Rückgang, jeweils zwischen den bestätigten Zyklus-Hochs und -Tiefs ("Zyklus"-Umschalter blendet Zonen und Halving-Markierungen ein/aus). Eine Zone antippen zeigt Dauer in Tagen und Höhe in Preisdifferenz, absolut und in Prozent.</p>
-      <p style="margin:0 0 10px;">Die BTC-Kurslinie lässt sich separat ein-/ausblenden ("BTC") und zeigt immer nur die echte Kurshistorie, nie eine Projektion - läuft sie allein, ohne Zonen, bekommt sie eine Flächen-Verlaufsfüllung statt einer einfarbigen Linie. In der "Alles"-Ansicht reicht die Zeitachse noch etwas über das letzte Halving hinaus: drei geschätzte, blass markierte Halvings zur Orientierung, keine Kursprognose.</p>
-      <p style="margin:0;">Zusätzlich zu den Zyklus-Zonen lassen sich hier "Regenbogen" (die farbcodierten Power-Law-Bänder) und "Power Law" (Regressionslinie mit ±2σ-Korridor) einblenden - dieselbe Regression wie auf dem eigenen Power-Law-Chart, hier nur über das Zyklus-Layout gelegt statt in dessen eigenem fixen Log-Log-Raster.</p>
+      <p style="margin:0 0 10px;">Zeigt die echte BTC-Kurshistorie zusammen mit "Regenbogen" (den farbcodierten Power-Law-Bändern) und "Power Law" (der Regressionslinie mit ±2σ-Korridor) - dieselbe Regression wie auf dem eigenständigen Power-Law-Chart, hier nur über dieses Chart's eigenes, flexibles Achsen-Layout gelegt statt in dessen fixem Log-Log-Raster.</p>
+      <p style="margin:0 0 10px;">Die BTC-Kurslinie lässt sich separat ein-/ausblenden ("BTC") und zeigt immer nur die echte Kurshistorie, nie eine Projektion - läuft sie allein, ohne Regenbogen oder Power Law, bekommt sie eine Flächen-Verlaufsfüllung statt einer einfarbigen Linie.</p>
+      <p style="margin:0;">Die Regenbogen-Bänder folgen der Formel des ursprünglichen Bitcoin-Regenbogen-Charts: neun gleich breite Bänder (je 0,3 log-Einheiten) um die Power-Law-Regressionslinie, verifiziert gegen den Quellcode von StephanAkkerman/bitcoin-rainbow-chart (siehe Methodik unten).</p>
     `, {html:true});
     // No separate fullscreen-only .fs-desc paragraph here (unlike heroPanel/the original 4-Jahres-Zyklus
     // chart) - per explicit feedback the description now lives permanently under the chart itself (see
@@ -8683,32 +8726,16 @@
     chartControlsRow.className = "cyc-controls-row";
     const yToggle = buildCycleAxisToggle("cyc-axis-toggle-y", cycleChart2LogY, v=> animateCycleChart2AxisChange(cycleChart2LogX, v), "Y-Achse: Log/Linear umschalten");
     chartControlsRow.appendChild(yToggle);
-    // One compact pill now covers both the bull/bear zone shading AND this chart's halving markers
-    // (previously two separate controls - a rounded "Zyklus-Zonen" chip up here plus a distinct "Zyklen"
-    // button down in the toolbar) - same compact rectangular shape as the time-range buttons rather than
-    // the oval overlay-toggle-chip shape. showHalvings is shared global state (see buildRangeSeg), so
-    // toggling this also affects halving markers on every other chart, same as the toolbar button it
-    // replaces here always did.
-    const zVisible = cycleChart2LayerVisible.zyklus;
-    const zBtn = document.createElement("button");
-    zBtn.type = "button";
-    zBtn.className = "halving-toggle-btn" + (zVisible ? " active" : "");
-    zBtn.title = "Zyklus-Zonen und Halving-Markierungen ein-/ausblenden";
-    zBtn.textContent = "Zyklus";
-    zBtn.addEventListener("click", ()=>{
-      const next = !cycleChart2LayerVisible.zyklus;
-      cycleChart2LayerVisible.zyklus = next;
-      showHalvings = next;
-      renderAll();
-    });
-    chartControlsRow.appendChild(zBtn);
-    // Separate on/off for the price line itself - shown with "Zyklus" so the reader can look at just the
-    // zone/halving/tunnel structure with no price line cluttering it, or vice versa. When it's the ONLY
-    // thing visible (Zyklus off), it has no bull/bear color context left at all, so renderCycleChart2DOM
-    // gives it an area-fill gradient underneath it instead of a flat, contextless line in that case.
-    // Renamed from the earlier generic "Kurs" and given the BTC/price accent color (.cyc-btc-btn, active
-    // state only - see that class) rather than the neutral ink every other toggle here uses, per explicit
-    // feedback that this one specifically names and represents the BTC price line, unlike its siblings.
+    // No "Zyklus" toggle here (unlike the original 4-Jahres-Zyklus chart this one was duplicated from) -
+    // per explicit feedback this chart is meant to stay a clean Powerlaw/Rainbow read with no zone/halving
+    // clutter, so cycleChart2LayerVisible.zyklus just stays permanently false (see its declaration above)
+    // instead of being user-toggleable.
+    // On/off for the price line itself. When it's the ONLY thing visible, it has no bull/bear color context
+    // left at all, so renderCycleChart2DOM gives it an area-fill gradient underneath it instead of a flat,
+    // contextless line in that case (see the price-line block there). Given the BTC/price accent color
+    // (.cyc-btc-btn, active state only - see that class) rather than the neutral ink every other toggle
+    // here uses, per explicit feedback that this one specifically names and represents the BTC price line,
+    // unlike its siblings.
     const btcBtn = document.createElement("button");
     btcBtn.type = "button";
     btcBtn.className = "halving-toggle-btn cyc-btc-btn" + (cycleChart2LayerVisible.price ? " active" : "");
@@ -8749,7 +8776,7 @@
     }
     const chartDesc = document.createElement("p");
     chartDesc.className = "cyc2-chart-desc";
-    chartDesc.textContent = `Bitcoin tickt im Rhythmus des Halvings: alle ~4 Jahre halbiert sich die Blockbelohnung und drosselt den Nachschub an neuen Coins - liegt dabei aber etwa in der Mitte der rund 3-jährigen Aufwärtsphase, nicht an ihrem Anfang. Danach folgt ein kürzerer, steilerer Rückgang von etwa einem Jahr. "Zyklus" blendet Zonen und Halvings ein/aus, "BTC" die Kurslinie selbst. "Regenbogen" und "Power Law" legen dieselbe Regression wie der eigenständige Power-Law-Chart über dieses Zeitfenster - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
+    chartDesc.textContent = `"BTC" blendet die Kurslinie ein/aus, "Regenbogen" und "Power Law" legen dieselbe Regression wie der eigenständige Power-Law-Chart über dieses Zeitfenster - die Log/Linear-Umschalter wechseln die jeweilige Achsenskala.`;
     scrollBody.appendChild(chartDesc);
 
     // renderCycleChart2DOM above just created every axis-label text fresh, at the same fixed
@@ -9488,7 +9515,7 @@
     const sections = [
       {id:"statStrip", label:"Übersicht"},
       {id:"cycleChartPanel", label:"4-Jahres-Zyklus"},
-      {id:"cycleChart2Panel", label:"4-Jahres-Zyklus (Erweitert)"},
+      {id:"cycleChart2Panel", label:"Power Law & Rainbow"},
       {id:"powerLawPanel", label:"Power Law"},
       {id:"overlayPanel", label:"Überlagerung"},
       {id:"heroPanel", label:"MVRV Bands"},
@@ -10751,7 +10778,7 @@
       navList.innerHTML =
         navEntry("statStrip", "Übersicht") +
         navEntry("cycleChartPanel", "4-Jahres-Zyklus") +
-        navEntry("cycleChart2Panel", "4-Jahres-Zyklus (Erweitert)") +
+        navEntry("cycleChart2Panel", "Power Law & Rainbow") +
         navEntry("powerLawPanel", "Power Law") +
         navEntry("overlayPanel", "Überlagerung") +
         navEntry("heroPanel", "MVRV Bands") +
