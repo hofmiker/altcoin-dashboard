@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–81.000</div>
-          <div class="ctx">Erholt sich weiter auf ~$80,3k (+2,6%), gestützt von ETF-Nachfrage und starken Nvidia-Zahlen — bleibt im $78.000–81.000-Band</div>
+          <div class="ctx">Gibt nach auf ~$77,7k (−3,8% laut Tagesberichten) — Rücksetzer nach der Erholung vom Vortag, Gesamtmarkt −2,9%</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">30 / 100</div>
-          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Fear-&-Greed-Index bei 38 (Fear), Kapital bleibt trotz BTC-Erholung vorsichtig verteilt</div>
+          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Rücksetzer betrifft Markt breit, keine erkennbare Rotation in Altcoins</div>
           <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~58,5%</div>
-          <div class="ctx">Laut Marktdaten von heute bei ~58,46% — leicht höher als gestern, Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="value mono">~57,4%</div>
+          <div class="ctx">Sinkt leicht auf ~57,4% (heutige Marktdaten) — von den früher im August kursierenden 60,66% (eigentlich ein Wert vom 24.4.) klar zu unterscheiden</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–28.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–29.8.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "29.08.2026", text: "Bitcoin gibt nach auf ~$77,7k (−3,8% laut Tagesberichten), der Gesamtmarkt verliert 2,9% — ein Rücksetzer nach der Erholung vom Vortag, ohne dass sich eine erkennbare Rotation in Altcoins abzeichnet. BTC-Dominanz sinkt leicht auf ~57,4%. Mehrere vielversprechend wirkende Top-Gainer (GambleFi/BETIFY, Rollbit) blieben ohne belastbares, für heute datiertes Signal — teils reine Kurs-Prognose-Artikel statt Nachrichten. Zwei AI-Presale-Projekte (AsenseAI, IonixAIChain) wurden geprüft, aber verworfen: beide noch nicht handelbar (Presale-Stadium, keine Exchange-Notierung), primär beworben über Presserklärungen. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (HYPE, ZEC) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden — KAITO selbst (bereits auf der Watchlist) verliert weiter, −50% in 7 Tagen." },
     { date: "28.08.2026", text: "Bitcoin erholt sich weiter auf ~$80,3k (+2,6%), gestützt von starker ETF-Nachfrage und positiven Nvidia-Zahlen, die generell Risikoanlagen beflügelten. BTC-Dominanz bleibt bei ~58,5%, der Fear-&-Greed-Index notiert bei 38 (Fear) — Kapital bleibt trotz der BTC-Erholung vorsichtig verteilt, keine breite Altseason-Rotation. Zwei Top-Gainer genauer geprüft und verworfen: Hemi (+97,5%) zeigt ein Volumen von $139,6 Mio. bei nur $8,3 Mio. Market Cap (16,8x-Verhältnis) — klassisches Warnsignal für dünne Liquidität, zudem stammt der eigentliche Katalysator vom April; PumpBTC/PUMP (+79%, +409% im Monat) läuft bereits seit Wochen ohne einen für heute datierten frischen Auslöser. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "27.08.2026", text: "Bitcoin pendelt seitwärts bei ~$78,8k, konsolidiert weiter im $78.000–79.000-Band nach dem RSI-84-Extrem vom 25.8. — 19 der Top-20-Altcoins liefen zuletzt mit dem BTC-Breakout mit, ohne dass sich eine eigenständige Altseason-Rotation abzeichnet. BTC-Dominanz sinkt leicht auf ~57%. Auffälligster Top-Gainer des Tages, Bitlayer (BTR, +278%), wurde verworfen — kein auffindbarer frischer Katalysator, die vermeintlichen Kraken/Bitget-Listings stammen tatsächlich vom 27.8.2025 (ein Jahr alt), zudem ungewöhnlich hohes Volumen im Verhältnis zur Marktkap. (10x). Auch ein Uniswap-Burn-Rekord ($590K UNI) ist mit 6 Tagen zu alt und betrifft ohnehin einen Large-Cap. Sonst keine frischen Tier-1-Listings, Whale-Käufe abseits von Large-Caps (ENA, HYPE, ZEC) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "26.08.2026", text: "Nach dem RSI-84-Extrem vom Vortag konsolidiert Bitcoin bei ~$79,0k (−2,0%), Ethereum −1,6%, XRP −4,5% — eine normale Verschnaufpause nach dem stärksten 3-Tages-Lauf seit 2023. BTC-Dominanz steigt dabei weiter auf ~59,8% (eigene Berechnung), Kapital konzentriert sich noch stärker in Bitcoin statt in Altcoins zu rotieren. DGrid AI (DGAI, gestern neu auf die Watchlist genommen) bestätigte heute in weiteren Presseberichten sein starkes Debüt (>$100 Mio. CEX-Volumen, +$23 Mio. DEX), aber ohne neuen Katalysator gegenüber gestern — Score unverändert bei 3/12. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (ENA) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
