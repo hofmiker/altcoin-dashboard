@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–81.000</div>
-          <div class="ctx">Gibt leicht nach auf ~$77,0k (−1,6% heute) — Inflationssorgen und steigende Fed-Zinserwartungen belasten Risikoanlagen</div>
+          <div class="ctx">Rutscht unter $76,5k — erneute US-Iran-Eskalation (Ölpreis über $93) und steigende Fed-Zinserwartungen belasten Risikoanlagen</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">30 / 100</div>
-          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — vereinzelte Mikro-Cap-Ausreißer (RIPE, GOOSE, MARSCOIN) ohne breite Rotation</div>
+          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Geopolitik-getriebener Risk-off-Tag, keine Rotation in Altcoins erkennbar</div>
           <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~57,4%</div>
-          <div class="ctx">Weiterhin bei ~57,4% — Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="value mono">~59,5%</div>
+          <div class="ctx">Steigt auf ~59,5% (Wochenspanne 59,2–60,3% laut Marktdaten) — Kapital flüchtet in der Unsicherheit stärker in Bitcoin</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–2.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–3.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "03.09.2026", text: "Bitcoin rutscht unter $76,5k, nachdem erneute US-Angriffe auf iranische Ziele den Ölpreis über $93 trieben und Sorgen um eine Eskalation in der Straße von Hormus schürten — zusammen mit steigenden Fed-Zinserwartungen (66% Wahrscheinlichkeit einer Erhöhung) ein klarer Risk-off-Tag. BTC-Dominanz steigt auf ~59,5% (Wochenspanne 59,2–60,3%) — Kapital flüchtet in der Unsicherheit stärker in Bitcoin statt in Altcoins zu rotieren. Zwei Funde geprüft und verworfen: ORCA zeigt zwar +25% Whale-Akkumulation über 10 Wallets, aber ohne Zuordnung zu einem bekannten KOL (kein Hayes/CZ-Signal); Falcon Finance (FF) läuft eine Kaito-Kampagne (Yap2Fly), aber bei $309,8 Mio. Market Cap und nur einem einzigen Score-Signal (+1) bleibt es klar unter der Schwelle. AI-Presale-Projekte (VOIDTRACE AI, ZYRANOR) bleiben nicht handelbar." },
     { date: "02.09.2026", text: "Bitcoin gibt leicht nach auf ~$77,0k (−1,6%), Ethereum −2,4% — Inflationssorgen und steigende Fed-Zinserwartungen (66% Wahrscheinlichkeit einer Zinserhöhung laut CME FedWatch) belasten Risikoanlagen. BTC-Dominanz bleibt bei ~57,4%. Auffällig: Mehrere Mikro-Cap-Ausreißer (RIPE, GOOSE, MARSCOIN) rallyten gegen den Markttrend, blieben aber ohne belastbaren Katalysator oder mit verwirrender Token-Identität (mehrere gleichnamige „Marscoin“-Projekte mit stark abweichenden Marktkapitalisierungen). Ein neuer AI-Infrastruktur-Token (CP, Open Protocol Foundation) startete heute auf OKX — zu früh für eine Bewertung, da noch keine Handelsdaten, Marktkap. oder Audit-Informationen vorliegen, zudem keine Tier-1-Börse. Arthur Hayes' Worldcoin-Position (WLD) ist mit Juni-Aussagen und $1,29 Mrd. Market Cap zu alt bzw. zu groß fürs Scoring. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "01.09.2026", text: "Start in den September: Bitcoin pendelt weiter zwischen $77,7k und $79,2k, Händler bleiben vorsichtig nach dem 24%-Sprung im August. BTC-Dominanz bei ~57,4%, keine erkennbare Rotation in Altcoins. Die erste September-Woche bringt planmäßige Token-Unlocks im Volumen von ~$1,5 Mrd. (u. a. SUI, ENA, HYPE) — Verwässerung statt Kauf-Signal, kein Scoring-relevanter Fund. Ein KI-Presale-Projekt (ZYRANOR) bleibt weiterhin nicht handelbar. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (ETH, ENA, HYPE, ZEC) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "31.08.2026", text: "Bitcoin bleibt stabil bei ~$78,1k, konsolidiert seit Tagen im gleichen Band bei niedrigem Volumen. BTC-Dominanz liegt bei ~58%. Zwei auffällige Top-Gainer genauer geprüft und trotz frischer Katalysatoren verworfen: Seeker (SKR, +166% bis +180%) zeigt einen echten, mehrtägigen Primärquellen-Katalysator (Solana Mobile's eigene Ankündigungen: Summer-Round-4-Airdrop, neuer Bug-Bounty, USDC-Earn-Vault) — scheitert aber am Red-Flag-Check, da Top-10-Halter über 70% des Supply kontrollieren und der Token nicht im offiziellen Solana-Token-Register verifiziert ist. AI XOVIA (AIX, +159%) zeigt wild widersprüchliche Market-Cap-Angaben je nach Quelle ($1,8 Mio. bis $1,29 Mrd.) und keinen bestätigten Audit. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (HYPE, ZEC, ENA) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
