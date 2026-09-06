@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–82.000</div>
-          <div class="ctx">Gibt nach auf ~$76,7k (−1,6%) — Rücksetzer nach dem Iran-Deeskalations-Sprung vom Vortag, Sentiment kühlt von Euphorie auf neutral ab</div>
+          <div class="ctx">Erholt sich auf ~$79,9k (+ca. 4%) — nähert sich der $80k-Marke, nachdem der Rücksetzer vom Vortag ausgebügelt wurde</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">30 / 100</div>
-          <div class="ctx">Exakter Tageswert nicht verlässlich datiert verfügbar — Markt bleibt laut Analysten "rangebound", keine erkennbare Rotation in Altcoins</div>
-          <div class="gauge"><i style="width:30%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">23 / 100</div>
+          <div class="ctx">Fällt auf 23 (Stand 2. Sept.) — klare Bitcoin-Season, nur ~23% der Top-100-Coins schlagen BTC über 90 Tage</div>
+          <div class="gauge"><i style="width:23%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~57,6%</div>
-          <div class="ctx">Weiterhin bei ~57,6% — Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="ctx">Weiterhin bei ~57,6% — Kapital bleibt klar in Bitcoin konzentriert, keine breite Altcoin-Rotation</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–5.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–6.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "06.09.2026", text: "Bitcoin erholt sich kräftig auf ~$79,9k (+ca. 4%), nähert sich damit wieder der $80k-Marke — der Rücksetzer vom Vortag ist ausgebügelt. Der Altcoin Season Index fällt auf 23 (Stand 2. Sept.) — klare Bitcoin-Season, BTC-Dominanz hält bei ~57,6%. Mehrere Funde geprüft und verworfen: Zcash (ZEC, >$1.000, +8–14%) rallyt zwar mit echtem Short-Squeeze-Element und Grayscale-ETF-Zuflüssen, ist aber mit $17 Mrd. Market Cap ein etablierter Large-Cap ohne Watchlist-Relevanz; PONS (Robinhood-Chain-Launchpad) zeigt ein aktives Buyback-&-Burn (~29% Supply verbrannt), aber wild widersprüchliche Market-Cap-Angaben ($392–576 Mio. je nach Tracker) und laut Berichten noch offene v2-Contract-Audits — Red Flag; Arthur Hayes' OTC-Kauf von 244k UNI (~$1,73 Mio.) sowie eine separate Whale-Akkumulation bei UNI/ORCA bleiben Large-Cap- bzw. gemischte Signale (ORCA 7-Tage-Netto-Flow trotz Ein-Tages-Spike weiter negativ) ohne Scoring-Schwelle. Eine Sanctum-Burn-Ankündigung (25% des CLOUD-Supplies) ist bislang nur ein Governance-Vorschlag (CLOUD-008, 2. Sept.), noch nicht umgesetzt. Eine vermeintlich frische Upbit-Vierfach-Listing-Meldung (ETHFI, RESOLV, INIT, SPK) erwies sich als bereits etablierte Token ohne echten Neu-Listing-Charakter. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "05.09.2026", text: "Bitcoin gibt nach auf ~$76,7k (−1,6%), ein Rücksetzer nach dem Iran-Deeskalations-Sprung vom Vortag — Sentiment kühlt laut Analysten von Euphorie auf neutral ab, steigende Anleiherenditen bleiben das Hauptrisiko. BTC-Dominanz bleibt bei ~57,6%. Auffällig: Die SEC kündigt die erste Überarbeitung der Transfer-Agent-Regeln seit 40 Jahren an, mit Fokus auf blockchain-native Agenten — regulatorisch relevant, aber ohne konkreten Einzeltitel-Kandidaten. Ein AI-Agenten-Framework namens „Canopy“ ($8,5 Mio. Funding, starke Testnet-Zahlen) ließ sich keinem verifizierten handelbaren Token zuordnen — mehrere gleichnamige, unabhängige „Canopy“-Projekte sorgen für Verwechslungsgefahr. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (ETH, PENDLE, ETHFI) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "04.09.2026", text: "Kräftige Erholung: Bitcoin springt über $81,2k (+4,0%), höchster Stand seit 11. Mai, nachdem Berichte über ein mögliches Ende des Iran-Kriegs $510 Mio. Short-Positionen liquidierten. Ethereum (+4,2%) und XRP (+5,7%) legen sogar stärker zu, BTC-Dominanz sinkt entsprechend auf ~57,4%. Große Altcoin-Rallyes bei Zcash (ZEC) und Monero (XMR) bleiben Large-Cap-Bewegungen ohne Watchlist-Relevanz. Ein Token-Burn bei Collector Crypt (CARDS, 5,4% des Supplies) stammt bereits vom 29.8. und ist zudem mit widersprüchlichen Market-Cap-Angaben ($53–150 Mio.) behaftet — zu alt und zu unklar für einen Fund. Sleepagotchi (SLEEP) ist noch auf keiner Exchange gelistet. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps (ETH, ENA, ETHFI) oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "03.09.2026", text: "Bitcoin rutscht unter $76,5k, nachdem erneute US-Angriffe auf iranische Ziele den Ölpreis über $93 trieben und Sorgen um eine Eskalation in der Straße von Hormus schürten — zusammen mit steigenden Fed-Zinserwartungen (66% Wahrscheinlichkeit einer Erhöhung) ein klarer Risk-off-Tag. BTC-Dominanz steigt auf ~59,5% (Wochenspanne 59,2–60,3%) — Kapital flüchtet in der Unsicherheit stärker in Bitcoin statt in Altcoins zu rotieren. Zwei Funde geprüft und verworfen: ORCA zeigt zwar +25% Whale-Akkumulation über 10 Wallets, aber ohne Zuordnung zu einem bekannten KOL (kein Hayes/CZ-Signal); Falcon Finance (FF) läuft eine Kaito-Kampagne (Yap2Fly), aber bei $309,8 Mio. Market Cap und nur einem einzigen Score-Signal (+1) bleibt es klar unter der Schwelle. AI-Presale-Projekte (VOIDTRACE AI, ZYRANOR) bleiben nicht handelbar." },
