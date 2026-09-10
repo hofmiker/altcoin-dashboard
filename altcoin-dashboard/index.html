@@ -314,7 +314,7 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–82.000</div>
-          <div class="ctx">Stabil bei ~$79,1k (Spanne $78,9–79,3k) — konsistente Quellenlage, kaum Bewegung seit gestern</div>
+          <div class="ctx">Gibt leicht nach auf ~$78,0k (von ~$79,2k) — moderater Rücksetzer, Gesamtmarkt −0,9% auf $2,76 Bio.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–9.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–10.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "10.09.2026", text: "Bitcoin gibt leicht nach auf ~$78,0k (von ~$79,2k), Gesamtmarkt −0,9% auf $2,76 Bio. — moderater Rücksetzer, Fear &amp; Greed bleibt bei 69 (Greed). BTC-Dominanz (~57,6%) und Altcoin Season Index (23) unverändert übernommen; ein vermeintlich frischer Dominanz-Wert von 60,66% erwies sich beim Nachprüfen als Artikel vom 24. April, nicht September. Cluster Protocol (CP, Score 5/12, seit gestern auf der Watchlist) mit präziseren Zahlen aktualisiert: Market Cap ~$21 Mio., FDV ~$76,6 Mio. bei nur 1,4 von 5 Mrd. Token im Umlauf, 24h-Volumen übersteigt die Market Cap deutlich (frische Multi-Exchange-Listing). Verworfen: GreenHood (HOOD, +930% angeblich, aber nur ~$417K Volumen bei $99 Mio. Market Cap — klassisches Wash-Trading-Muster), ein gemeldetes „BUN +243.000%“ (Ticker-Kollision, nicht verifizierbar), USELESS (etablierter Meme-Coin, $190 Mio. Market Cap, nur Einzelsignal), IOST (87,7%-Rally nach echtem 70-Mio.-Token-Burn, aber nur ein Score-Signal). Arthur Hayes' UNI/ETH-Aktivität bleibt Fortsetzung ohne neue Schwelle, Sanctum-CLOUD-Burn weiterhin nur Vorschlag. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden." },
     { date: "09.09.2026", text: "Bitcoin stabilisiert sich bei ~$79,1k, kaum Bewegung seit gestern. BTC-Dominanz (~57,6%) unverändert, Altcoin Season Index weiter mit widersprüchlichen Werten (23/34/39 je nach Quelle) — letzter verlässlicher Stand übernommen. <b>Neuer Fund:</b> Cluster Protocol (CP) listete am 8. September frisch auf Upbit und sprang intraday über 50% auf ~$0,28 — dezentrales AI-Compute-Netzwerk, aber kein bestätigter Audit und uneinheitliche Market-Cap-Angaben, daher nur Score 5/12 mit Vorsicht auf die Watchlist. Auffällig: Die zeitgleich geplante Upbit-Listing von HEMI (Hemi Network) wurde am selben Tag wegen eines Exploits vom 7.9. (Reentrancy-Lücke, ~124,5 Mio. HEMI erbeutet) gestoppt — kein Bezug zu CP, aber ein Warnsignal für die Listing-Charge. Verworfen: Sophon (SOPH, +55–107% je nach Quelle) zeigt Volumen weit über Market Cap (Wash-Trading-Verdacht) trotz echtem Coinbase-Base-Migrations-Narrativ; DogBull (DOGO, +345%) lief auf nur ~$3 Mio. Volumen; ein gemeldeter „BUN +243.000%“-Wert betrifft vermutlich den falschen von zwei gleichnamigen Token; Router Protocol (ROUTE, 303 Mio. Burn) und PONS (30%-Burn-Meilenstein) sind beides negative Shutdown- bzw. Crash-Begleitereignisse, keine Kaufsignale. Arthur Hayes' UNI-Position bleibt Fortsetzung ohne neue Schwelle. Entfernt aus der Watchlist: BlockDAG (BDAG, Score −1) — niedrigster Score, Praktikabilitäts-Cap erreicht." },
     { date: "08.09.2026", text: "Bitcoin gibt leicht nach auf ~$79,0k (Quellen streuen $78,6–79,6k), belastet von starken US-Jobdaten und steigenden Anleiherenditen. BTC-Dominanz (~57,6%) und Altcoin Season Index (23) bleiben mangels eindeutig datierter neuer Messung unverändert übernommen. Mehrere Funde geprüft und verworfen: DogBull (DOGO) zeigt sich in zwei Quellen vom selben Tag mit gegensätzlichen Vorzeichen (+300% vs. −3,4%) — zu widersprüchlich für einen Fund; GRX Chain (+62,8%, $110,8 Mio. Market Cap) lief ohne erkennbaren Katalysator; Arthur Hayes' UNI-Position wuchs zwar auf ~$2 Mio. (rund 7x seines November-Kaufs), bleibt aber eine Fortsetzung des bereits mehrfach gemeldeten Signals ohne neue Scoring-Schwelle, zumal weitere Berichte über HYPE/NEAR-Verkäufe seines Umfelds widersprüchlich sind; Sanctum-CLOUD-Burn-Vorschlag weiterhin nicht umgesetzt, zudem Market-Cap-Angaben mit über 4x Streuung ($12–54 Mio.) zwischen Quellen; VOIDTRACE AI (AI-Presale) stammt aus einer bezahlten PR-Meldung, keine unabhängige Berichterstattung. Sonst keine frischen Tier-1-Listings (zwei vermeintliche Upbit-Meldungen — BARD, Infinit/IN — stammen jeweils von 2025), KOL-Käufe abseits von Large-Caps oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
     { date: "07.09.2026", text: "Bitcoin pendelt seitwärts bei ~$79,4k, hält sich nahe der $80k-Marke ohne klare Richtung. Markt-Kennzahlen (BTC-Dominanz, Altcoin Season Index) liefern heute nur widersprüchliche, nicht eindeutig datierte Werte über mehrere Quellen — bisherige Stände unverändert übernommen statt unsicherer Zahlen. Mehrere Funde geprüft und verworfen: Arbitrum (ARB, +51,6%/24h laut einer Quelle, an anderer Stelle −17% am selben Tag) und PONS (weiterer Kursanstieg, aber weiterhin offene v2-Audits sowie stark schwankende Market-Cap-Angaben) bleiben dieselben Problemfälle wie gestern; Arthur Hayes' UNI-Position und die UNI/ORCA-Whale-Akkumulation sind eine Fortsetzung des bereits gestern geprüften Signals ohne neue Schwelle; die Sanctum-CLOUD-Burn-Ankündigung (CLOUD-008) bleibt unverändert ein noch nicht umgesetzter Governance-Vorschlag. Monero (XMR) zeigt ein echtes Short-Squeeze-Setup (THORChain-native-Swaps seit 25.8., Open Interest je nach Quelle $278–322 Mio.), ist aber mit stark schwankenden OI-Zahlen und als etablierter Large-Cap ohne klaren Fund. Eine vermeintliche Upbit-Listing-Meldung (ETHFI, RESOLV, INIT, SPK) stammt tatsächlich vom 19.9.2025, nicht 2026. Sonst keine frischen Tier-1-Listings, KOL-Käufe abseits von Large-Caps oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
@@ -873,16 +874,17 @@
         {label:"Intraday-Spitze", value:0.28}
       ],
       stats:[
-        {k:"Market Cap",v:"~$24,5–27,4 Mio. (Quellen uneinheitlich)"},
-        {k:"Exchange",v:"Upbit (KRW/BTC/USDT, 8. Sept.), zusätzlich OKX"},
+        {k:"Market Cap",v:"~$21 Mio. (CoinGecko Rang #833)"},
+        {k:"24h Vol. / FDV",v:"~$36,8 Mio. Vol. / ~$76,6 Mio. FDV (1,4 von 5 Mrd. Token im Umlauf)"},
+        {k:"Exchange",v:"Upbit (KRW/BTC/USDT, 8. Sept.), zusätzlich Coinbase, OKX, KuCoin, Gate"},
         {k:"Whitepaper/Audit",v:"Kein bestätigter Security-Audit gefunden"}
       ],
       signals:[
         ["Frisches Tier-1-Listing (Upbit, 8. Sept.)","+3"],
         ["Aktives KI-Narrativ (dezentrales AI-Compute-Netzwerk)","+2"]
       ],
-      flag:"Kein bestätigter Security-Audit gefunden. Die zeitgleich geplante Upbit-Listing von HEMI wurde am selben Tag wegen eines Exploits vom 7.9. gestoppt (kein direkter Bezug zu CP, aber ein Warnsignal für die Listing-Charge) — Vorsicht bei Positionsgröße.",
-      note:"<b>Neu:</b> Cluster Protocol (CP) listete am 8. September frisch auf Upbit (KRW/BTC/USDT), zusätzlich bereits auf OKX gehandelt. Dezentrales AI-Compute-Netzwerk, Kurs sprang intraday um über 50% auf ~$0,28. Kein bestätigter Security-Audit gefunden, Market-Cap-Angaben zwischen Quellen uneinheitlich (~$24,5–27,4 Mio.) — <b>Score 5/12, Watchlist mit Vorsicht</b>. Entfernt: BlockDAG (BDAG, Score −1, Scam-Verdacht unverändert unbestätigt) — niedrigster Score, Praktikabilitäts-Cap bei ~20 Einträgen erreicht.",
+      flag:"Kein bestätigter Security-Audit gefunden. 24h-Volumen (~$36,8 Mio.) übersteigt die Market Cap deutlich — teils durch die frische Multi-Exchange-Listing erklärbar, aber Vorsicht bei Positionsgröße. Die zeitgleich geplante Upbit-Listing von HEMI wurde am selben Tag wegen eines Exploits vom 7.9. gestoppt (kein direkter Bezug zu CP, aber ein Warnsignal für die Listing-Charge).",
+      note:"Cluster Protocol (CP) listete am 8. September frisch auf Upbit (KRW/BTC/USDT), inzwischen auch auf Coinbase, OKX, KuCoin und Gate gehandelt. Aktuellere Zahlen: Market Cap ~$21 Mio. (CoinGecko Rang #833), FDV ~$76,6 Mio. bei nur 1,4 von 5 Mrd. Token im Umlauf. Dezentrales AI-Compute-Netzwerk, weiterhin kein bestätigter Security-Audit gefunden — <b>Score unverändert bei 5/12, Watchlist mit Vorsicht</b>.",
       sourceRefs:[32]
     }
   ];
