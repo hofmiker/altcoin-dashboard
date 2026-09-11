@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–82.000</div>
-          <div class="ctx">Gibt leicht nach auf ~$78,0k (von ~$79,2k) — moderater Rücksetzer, Gesamtmarkt −0,9% auf $2,76 Bio.</div>
+          <div class="ctx">Rutscht weiter auf ~$77,0k (von ~$78,0k) — heiße US-Erzeugerpreisdaten erhöhen die Zinserhöhungs-Wahrscheinlichkeit auf ~74%</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">23 / 100</div>
-          <div class="ctx">Weiterhin widersprüchliche Werte für Anfang September (23/34/39 je nach Quelle) — zuletzt verlässlicher Stand unverändert übernommen</div>
-          <div class="gauge"><i style="width:23%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">34 / 100</div>
+          <div class="ctx">CoinMarketCap-Stand vom 2. Sept. (mehrfach bestätigt) — klare Bitcoin-Season, deutlich unter der 75er-Altseason-Schwelle</div>
+          <div class="gauge"><i style="width:34%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~57,6%</div>
-          <div class="ctx">Weiterhin bei ~57,6% (Quellen: 56,9–57,4%) — Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="ctx">Weiterhin bei ~57,6% (Quellen: 57,2–58,6%) — Kapital bleibt klar in Bitcoin konzentriert</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–10.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–11.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "11.09.2026", text: "Bitcoin rutscht weiter auf ~$77,0k (von ~$78,0k), nachdem heiße US-Erzeugerpreisdaten die Wahrscheinlichkeit einer Fed-Zinserhöhung auf ~74% treiben. BTC-Dominanz (~57,6%) unverändert, Altcoin Season Index auf den mehrfach bestätigten CoinMarketCap-Stand von 34 (2. Sept.) präzisiert — weiterhin klare Bitcoin-Season. <b>Neuer Fund:</b> Bifrost (BFC) listete am 10. September frisch auf Upbit (KRW/USDT) und sprang binnen 24h um +257,75% auf $0,0375 — allerdings mit ungewöhnlich hohem Volumen (>2,5x Market Cap), ein Muster für dünne Liquidität. Nur Einzelsignal, Score 3/12 mit Vorsicht auf die Watchlist. Verworfen: DogBull/DOGO (+300–345% je nach Quelle auf nur ~$3 Mio. Volumen, in sich widersprüchlich), Initia/INIT (Marktkapitalisierungs- und Volumenangaben zwischen Quellen um Faktor 5+ abweichend), Renzo/REZ (frisches Upbit-Listing, aber Market-Cap-Angaben streuen $12–28 Mio., nur Einzelsignal). Arthur Hayes' UNI/ETH-Position bleibt Fortsetzung, Hyperliquids laufender Buyback-Burn ($1,32 Mio. am 8.9.) ist wiederkehrender Mechanismus ohne neue Schwelle. Entfernt aus der Watchlist: Sahara AI (SAHARA, Score 2) — niedrigster Score, Praktikabilitäts-Cap erreicht." },
     { date: "10.09.2026", text: "Bitcoin gibt leicht nach auf ~$78,0k (von ~$79,2k), Gesamtmarkt −0,9% auf $2,76 Bio. — moderater Rücksetzer, Fear &amp; Greed bleibt bei 69 (Greed). BTC-Dominanz (~57,6%) und Altcoin Season Index (23) unverändert übernommen; ein vermeintlich frischer Dominanz-Wert von 60,66% erwies sich beim Nachprüfen als Artikel vom 24. April, nicht September. Cluster Protocol (CP, Score 5/12, seit gestern auf der Watchlist) mit präziseren Zahlen aktualisiert: Market Cap ~$21 Mio., FDV ~$76,6 Mio. bei nur 1,4 von 5 Mrd. Token im Umlauf, 24h-Volumen übersteigt die Market Cap deutlich (frische Multi-Exchange-Listing). Verworfen: GreenHood (HOOD, +930% angeblich, aber nur ~$417K Volumen bei $99 Mio. Market Cap — klassisches Wash-Trading-Muster), ein gemeldetes „BUN +243.000%“ (Ticker-Kollision, nicht verifizierbar), USELESS (etablierter Meme-Coin, $190 Mio. Market Cap, nur Einzelsignal), IOST (87,7%-Rally nach echtem 70-Mio.-Token-Burn, aber nur ein Score-Signal). Arthur Hayes' UNI/ETH-Aktivität bleibt Fortsetzung ohne neue Schwelle, Sanctum-CLOUD-Burn weiterhin nur Vorschlag. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden." },
     { date: "09.09.2026", text: "Bitcoin stabilisiert sich bei ~$79,1k, kaum Bewegung seit gestern. BTC-Dominanz (~57,6%) unverändert, Altcoin Season Index weiter mit widersprüchlichen Werten (23/34/39 je nach Quelle) — letzter verlässlicher Stand übernommen. <b>Neuer Fund:</b> Cluster Protocol (CP) listete am 8. September frisch auf Upbit und sprang intraday über 50% auf ~$0,28 — dezentrales AI-Compute-Netzwerk, aber kein bestätigter Audit und uneinheitliche Market-Cap-Angaben, daher nur Score 5/12 mit Vorsicht auf die Watchlist. Auffällig: Die zeitgleich geplante Upbit-Listing von HEMI (Hemi Network) wurde am selben Tag wegen eines Exploits vom 7.9. (Reentrancy-Lücke, ~124,5 Mio. HEMI erbeutet) gestoppt — kein Bezug zu CP, aber ein Warnsignal für die Listing-Charge. Verworfen: Sophon (SOPH, +55–107% je nach Quelle) zeigt Volumen weit über Market Cap (Wash-Trading-Verdacht) trotz echtem Coinbase-Base-Migrations-Narrativ; DogBull (DOGO, +345%) lief auf nur ~$3 Mio. Volumen; ein gemeldeter „BUN +243.000%“-Wert betrifft vermutlich den falschen von zwei gleichnamigen Token; Router Protocol (ROUTE, 303 Mio. Burn) und PONS (30%-Burn-Meilenstein) sind beides negative Shutdown- bzw. Crash-Begleitereignisse, keine Kaufsignale. Arthur Hayes' UNI-Position bleibt Fortsetzung ohne neue Schwelle. Entfernt aus der Watchlist: BlockDAG (BDAG, Score −1) — niedrigster Score, Praktikabilitäts-Cap erreicht." },
     { date: "08.09.2026", text: "Bitcoin gibt leicht nach auf ~$79,0k (Quellen streuen $78,6–79,6k), belastet von starken US-Jobdaten und steigenden Anleiherenditen. BTC-Dominanz (~57,6%) und Altcoin Season Index (23) bleiben mangels eindeutig datierter neuer Messung unverändert übernommen. Mehrere Funde geprüft und verworfen: DogBull (DOGO) zeigt sich in zwei Quellen vom selben Tag mit gegensätzlichen Vorzeichen (+300% vs. −3,4%) — zu widersprüchlich für einen Fund; GRX Chain (+62,8%, $110,8 Mio. Market Cap) lief ohne erkennbaren Katalysator; Arthur Hayes' UNI-Position wuchs zwar auf ~$2 Mio. (rund 7x seines November-Kaufs), bleibt aber eine Fortsetzung des bereits mehrfach gemeldeten Signals ohne neue Scoring-Schwelle, zumal weitere Berichte über HYPE/NEAR-Verkäufe seines Umfelds widersprüchlich sind; Sanctum-CLOUD-Burn-Vorschlag weiterhin nicht umgesetzt, zudem Market-Cap-Angaben mit über 4x Streuung ($12–54 Mio.) zwischen Quellen; VOIDTRACE AI (AI-Presale) stammt aus einer bezahlten PR-Meldung, keine unabhängige Berichterstattung. Sonst keine frischen Tier-1-Listings (zwei vermeintliche Upbit-Meldungen — BARD, Infinit/IN — stammen jeweils von 2025), KOL-Käufe abseits von Large-Caps oder neue Kaito-Kampagnen für einzelne Altcoins gefunden." },
@@ -528,28 +529,6 @@
       flag:"Parabolischer Anstieg (+1.000% im Juni) — wahrscheinlich stark überkauft, kein Audit auffindbar. Rally laut Analysten narrativ-, nicht fundamentalgetrieben. Bestätigt: Kurs ist seit Ende Juni bereits &gt;55% gefallen.",
       note:"<b>Update:</b> Der Überkauft-Verdacht hat sich bestätigt — SYN ist seit Ende Juni bereits &gt;55% gefallen, Hayes' Position liegt ~28% im Minus. Interessante KOL-Story, aber <b>Score bleibt unter Watchlist-Schwelle</b> — als Warnbeispiel, nicht als Trade-Idee zu sehen.",
       sourceRefs:[9]
-    },
-    {
-      ticker:"SAHARA", name:"Sahara AI", status:"neutral", statusLabel:"Verblasster Hype", score:2, firstSeen:"07.07.2026",
-      chartType:"line", unit:"$", logo:null, coingeckoId:"sahara-ai", link:null,
-      series:[
-        {label:"ATH '25", value:0.1605},
-        {label:"Q4 '25", value:0.090},
-        {label:"Q1 '26", value:0.050},
-        {label:"Q2 '26", value:0.025},
-        {label:"6. Jul '26", value:0.0103}
-      ],
-      stats:[
-        {k:"Market Cap",v:"$36,1 Mio."},
-        {k:"Vom ATH",v:"−92,7%"},
-        {k:"Narrativ",v:"AI-Copilot / DeFi"}
-      ],
-      signals:[
-        ["Aktives KI-Narrativ (Sorin AI Copilot)","+2"]
-      ],
-      flag:null,
-      note:"AI-Narrativ vorhanden, aber <b>Abwärtstrend dominiert</b> — kein Pump-Signal, allenfalls Boden-Beobachtung.",
-      sourceRefs:[]
     },
     {
       ticker:"GAL", name:"Galxe (migriert zu Gravity)", status:"caution", statusLabel:"Unter Schwelle / Migrations-Unsicherheit", score:3, firstSeen:"09.07.2026",
@@ -886,6 +865,25 @@
       flag:"Kein bestätigter Security-Audit gefunden. 24h-Volumen (~$36,8 Mio.) übersteigt die Market Cap deutlich — teils durch die frische Multi-Exchange-Listing erklärbar, aber Vorsicht bei Positionsgröße. Die zeitgleich geplante Upbit-Listing von HEMI wurde am selben Tag wegen eines Exploits vom 7.9. gestoppt (kein direkter Bezug zu CP, aber ein Warnsignal für die Listing-Charge).",
       note:"Cluster Protocol (CP) listete am 8. September frisch auf Upbit (KRW/BTC/USDT), inzwischen auch auf Coinbase, OKX, KuCoin und Gate gehandelt. Aktuellere Zahlen: Market Cap ~$21 Mio. (CoinGecko Rang #833), FDV ~$76,6 Mio. bei nur 1,4 von 5 Mrd. Token im Umlauf. Dezentrales AI-Compute-Netzwerk, weiterhin kein bestätigter Security-Audit gefunden — <b>Score unverändert bei 5/12, Watchlist mit Vorsicht</b>.",
       sourceRefs:[32]
+    },
+    {
+      ticker:"BFC", name:"Bifrost", status:"caution", statusLabel:"Unter Schwelle / ungewöhnliches Volumen-Verhältnis", score:3, firstSeen:"11.09.2026",
+      chartType:"line", unit:"$", logo:null, coingeckoId:null, link:"https://crypto.news/upbit-lists-bfc-in-krw-and-usdt-markets/",
+      series:[
+        {label:"vor Listing (10. Sept, geschätzt)", value:0.0105},
+        {label:"jetzt", value:0.03754}
+      ],
+      stats:[
+        {k:"Market Cap",v:"~$53,5 Mio."},
+        {k:"24h Vol.",v:"~$137,9 Mio. (>2,5x Market Cap — ungewöhnlich hoch)"},
+        {k:"Whitepaper/Audit",v:"Kein Audit-Nachweis in dieser Recherche gefunden"}
+      ],
+      signals:[
+        ["Frisches Upbit-Listing (10. Sept., KRW/USDT)","+3"]
+      ],
+      flag:"24h-Volumen übersteigt die Market Cap um mehr als das 2,5-fache — Muster für dünne Liquidität bei frischen Listings, hohes Rückschlagrisiko. Kein Audit-Nachweis gefunden.",
+      note:"<b>Neu:</b> Bifrost (BFC) listete am 10. September frisch auf Upbit (KRW/USDT) und sprang binnen 24h um +257,75% auf $0,0375. Ungewöhnlich hohes Volumen (>2,5x Market Cap) deutet auf dünne Liquidität hin — hohes Rückschlagrisiko nach dem Sprung. Nur Einzelsignal — <b>Score 3/12, Watchlist mit Vorsicht</b>. Entfernt: Sahara AI (SAHARA, Score 2, „Verblasster Hype“) — niedrigster Score, Praktikabilitäts-Cap bei ~20 Einträgen erreicht.",
+      sourceRefs:[33]
     }
   ];
 
@@ -922,7 +920,8 @@
     {n:29, label:"Cysic (CYS) Skyrockets to New All-Time High on Upbit Listing, 10. Aug 2026 — CryptoPotato", url:"https://cryptopotato.com/cysic-cys-skyrockets-to-new-all-time-high-on-upbit-listing-details/"},
     {n:30, label:"6 New Upbit Listings Fuel 30% Moves for Select Altcoins, 10. Aug 2026 — BeInCrypto", url:"https://beincrypto.com/upbit-listings-fuel-upside-select-altcoins/"},
     {n:31, label:"DGrid AI Listing on KuCoin: DGAI Token Trading and Market Details, 24. Aug 2026 — CoinGabbar", url:"https://www.coingabbar.com/en/crypto-listings/dgrid-ai-listing-on-kucoin-exchange"},
-    {n:32, label:"Upbit Drops HEMI After Exploit, Lists CP and USELESS, 9. Sept 2026 — crypto.news", url:"https://crypto.news/upbit-drops-hemi-after-exploit-lists-cp-and-useless/"}
+    {n:32, label:"Upbit Drops HEMI After Exploit, Lists CP and USELESS, 9. Sept 2026 — crypto.news", url:"https://crypto.news/upbit-drops-hemi-after-exploit-lists-cp-and-useless/"},
+    {n:33, label:"Upbit Lists BFC in KRW and USDT Markets, 10. Sept 2026 — crypto.news", url:"https://crypto.news/upbit-lists-bfc-in-krw-and-usdt-markets/"}
   ];
 
   const NS = "http://www.w3.org/2000/svg";
