@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–82.000</div>
-          <div class="ctx">Klettert leicht auf ~$77,8k — die FOMC-Entscheidung fällt erst morgen (16.9., 14 Uhr ET), Zinserhöhungs-Odds vorab uneinheitlich (60–91% je nach Quelle)</div>
+          <div class="ctx">Volatil vor der FOMC-Entscheidung heute (16.9., 14 Uhr ET) — Quellen streuen zwischen $75,6k und $79,6k, Ergebnis noch offen</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">34 / 100</div>
-          <div class="ctx">CoinMarketCap-Stand vom 2. Sept. — Quellenlage zuletzt zunehmend widersprüchlich (23/34/43 je nach Quelle), bislang verlässlichster Wert beibehalten</div>
+          <div class="ctx">CoinMarketCap-Stand vom 2. Sept. — Quellenlage weiterhin uneinheitlich je nach Methodik (34–57 je nach Anbieter), bislang verlässlichster Wert beibehalten</div>
           <div class="gauge"><i style="width:34%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~57,6%</div>
-          <div class="ctx">Weiterhin bei ~57,6% (Quellen: 57,2–58,6%) — Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="value mono">~59%</div>
+          <div class="ctx">Leicht angehoben auf ~59% (Quellen zuletzt mehrfach 59–60%) — Kapital bleibt klar in Bitcoin konzentriert</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–15.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–16.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "16.09.2026", text: "Bitcoin bleibt volatil vor der heutigen FOMC-Entscheidung (14 Uhr ET) — Quellen streuen zwischen $75,6k und $79,6k, das Ergebnis ist zum Zeitpunkt dieses Scans noch nicht bekannt (Zinserhöhungs-Odds vorab je nach Quelle 30–100%, keine Einigkeit). BTC-Dominanz auf ~59% angehoben (mehrere Quellen zuletzt konsistent bei 59–60%). Lisk (LSK) zeigt einen handfesten Short-Squeeze (~$42 Mio. Liquidationen, überwiegend Shorts), ausgelöst durch die bereits bekannte Chain-Abschaltung — bleibt aber ein spekulativer Bounce auf einem sterbenden Netzwerk, kein Kaufsignal. Zwei echte bullische Burns geprüft und wegen Einzelsignal verworfen: Sky Protocol (SKY, erster Burn 2,86 Mio. Token) und Venice (VVV, Burn + Emissions-Kürzung, +48% in 7 Tagen) — beide nur ein Score-Punkt, reichen nicht. PONS bleibt mit widersprüchlichen Kurs- und Market-Cap-Angaben ein Problemfall. Bifrost (BFC) und Arthur Hayes' UNI-Position bleiben Fortsetzungen ohne neue Schwelle. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden." },
     { date: "15.09.2026", text: "Bitcoin klettert leicht auf ~$77,8k — die FOMC-Entscheidung fällt erst morgen (16.9., 14 Uhr ET), die Zinserhöhungs-Odds streuen je nach Quelle zwischen 60% und 91%, keine verlässliche Konsens-Zahl. BTC-Dominanz und Altcoin Season Index unverändert übernommen. Verworfen: BLORB (+952–958% angeblich) lässt sich nicht sauber einem einzelnen Token zuordnen — Quellen beschreiben sowohl eine Robinhood-Chain- als auch eine unabhängige Solana-Version unter demselben Ticker; Lisk (LSK, +734%/7d) ist ein spekulativer „letzter Aufbäumer“ vor der bestätigten Chain-Abschaltung (31.10.) — ein negatives Wind-down-Ereignis, kein Kaufsignal, analog zum Router-Protocol-Fall. Eine vermeintliche Upbit-Listing-Welle (ETHFI, RESOLV, INIT, SPK) stammt tatsächlich vom 19.9.2025. Arthur Hayes' UNI-Position bleibt Fortsetzung. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
     { date: "14.09.2026", text: "Bitcoin spitzte am 12.9. auf ~$79,9k, ist seitdem aber wieder auf ~$77,2k zurückgefallen — die Zinserhöhungs-Wahrscheinlichkeit für die FOMC-Sitzung diese Woche (15.–16.9.) steigt auf ~87%, der Markt bleibt defensiv. BTC-Dominanz (~57,6%) beibehalten; beim Altcoin Season Index wird die Quellenlage zunehmend widersprüchlich (23/34/43 je nach Quelle für denselben Stichtag) — der bislang mehrfach bestätigte Wert 34 bleibt vorerst bestehen, sollte aber mit Vorsicht behandelt werden. Verworfen: eine vermeintliche Arthur-Hayes-Rotation in ENA/ETHFI/PENDLE/LDO zeigt über die Quellen hinweg Beträge zwischen $2–6 Mio. und ein Datumshinweis lässt vermuten, dass es sich um recycelte Berichterstattung von Ende Dezember 2025 handelt statt um ein frisches September-Ereignis; eine „Infinit (IN) +121%“-Upbit-Meldung stammt tatsächlich vom 10.10.2025. Bifrost (BFC), Aerodrome (AERO) und Renzo (REZ) bleiben Fortsetzungen ohne neue Scoring-Schwelle. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
     { date: "13.09.2026", text: "Bitcoin hält sich bei ~$77,2k — der Markt positioniert sich defensiv vor der FOMC-Sitzung am 15.–16.9., die Zinserhöhungs-Wahrscheinlichkeit steigt im Wochenverlauf (Quellen streuen 68–87%). BTC-Dominanz (~57,6%) und Altcoin Season Index (34) unverändert übernommen — ein BTC-Dominanz-Ausreißer von 64,4% in einer Quelle ließ sich nicht datiert verifizieren, daher verworfen. Bifrost (BFC, bereits auf der Watchlist) und Aerodrome (AERO, bereits auf der Watchlist) bleiben Fortsetzungen ohne neue Scoring-Schwelle — bei BFC bestätigt sich zudem das gestern vermutete Volumen/Market-Cap-Missverhältnis (~2,6x). Verworfen: Renzo (REZ) erneut nur Einzelsignal mit schwacher Kursreaktion (+2,2%); eine vermeintliche Coinbase-Roadmap-Aufnahme von REZ ließ sich nicht sauber auf 2026 datieren. Arthur Hayes' UNI/ETH-Position bleibt Fortsetzung, Router-Protocol-Burn weiterhin nur negatives Shutdown-Ereignis. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
