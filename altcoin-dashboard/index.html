@@ -313,19 +313,19 @@
       <section class="strip">
         <div class="stat">
           <div class="label">Bitcoin</div>
-          <div class="value mono">$76.000–82.000</div>
-          <div class="ctx">Hält sich über $81k, konsolidiert nach der Rallye der letzten Woche</div>
+          <div class="value mono">$76.000–88.000</div>
+          <div class="ctx">Bricht weiter aus auf ~$85–87k (Achtmonatshoch touched) — $449 Mio. Short-Liquidationen befeuern die Rallye weiter</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">34 / 100</div>
-          <div class="ctx">CoinMarketCap-Stand vom 2. Sept. — mit 19 Tagen inzwischen veraltet angesichts der jüngsten Rallye, aber keine neuere verlässliche Messung verfügbar</div>
+          <div class="ctx">CoinMarketCap-Stand vom 2. Sept. — weiterhin veraltet angesichts der Rallye, aber keine neuere vergleichbare Messung verfügbar</div>
           <div class="gauge"><i style="width:34%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~59%</div>
-          <div class="ctx">Leicht nach unten korrigiert auf ~59% (58,8–59,2% je nach Quelle) — ein zuvor zitierter 60,66%-Wert erwies sich als Artikel vom April</div>
+          <div class="ctx">Bleibt bei ~59%, Anbieter streuen heute deutlich (56,9–59,6%) — Kapital bleibt klar in Bitcoin konzentriert</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–21.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–22.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "22.09.2026", text: "Bitcoin bricht weiter aus, erreicht kurzzeitig ein Achtmonatshoch von ~$87k, pendelt sich bei ~$85,3k ein — getrieben von $1 Mrd. ETF-Zuflüssen und $449 Mio. Short-Liquidationen. BTC-Dominanz bleibt bei ~59% (Anbieter streuen heute stark, 56,9–59,6%), Altcoin Season Index (34) weiterhin ohne frischere vergleichbare Messung. Die Rallye erfasst breit den Markt: PEPE (+23–28%) und AIOZ Network (+54,67%) unter den Topgewinnern, aber beide ohne erkennbaren projektspezifischen Katalysator — reine Marktrotation im Zuge der BTC-Short-Eindeckung. XRP-Whales kauften binnen 96 Stunden ~1,54 Mrd. XRP (~$2,2 Mrd.) — real und mehrfach unabhängig bestätigt, aber XRP bleibt ein Mega-Cap ohne Watchlist-Relevanz. Eine Upbit-Listing von Lombard (BARD, 18.9.) bleibt trotz neuer Quellen weiterhin mit widersprüchlichen Jahresangaben behaftet (2025 vs. 2026) — wie bereits an früheren Tagen vermerkt, hier weiterhin keine Aufnahme ohne eindeutige Klärung. Eine Coinbase-Listing von Brevis (BREV) zeigt ebenfalls widersprüchliche Daten (Januar vs. September). Weiterhin Vorsicht bei Pepeto (bestätigte bezahlte PR, keine echte Binance-Bestätigung). Sonst keine frischen KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
     { date: "21.09.2026", text: "Bitcoin hält sich über $81k, konsolidiert nach der starken Rallye der letzten Woche. BTC-Dominanz leicht nach unten korrigiert auf ~59% — ein zuvor zitierter Wert von 60,66% erwies sich beim Nachprüfen als Artikel vom 24. April, nicht September. Altcoin Season Index (34) bleibt mangels frischerer vergleichbarer CoinMarketCap-Messung unverändert. Verworfen: ZetaChain (ZETA, +54–65%/24h) nach einer Abstimmung (99,4%), die eigene Cosmos-L1-Chain abzuschalten und zu Solana zu migrieren mit Fokus auf die AI-App „Anuma“ — reales Ereignis, aber Score bleibt mit AI-Narrativ- und Feature-Signalen unter der Schwelle; FTX Token (FTT, +42%) ohne erkennbaren Katalysator, wirkt wie ein Datenartefakt; Saga (+32,6%) ebenfalls ohne belastbaren Auslöser. Upbit listete am 19.9. tatsächlich frisch ETHFI, RESOLV, INIT und SPK (diesmal korrekt datiert, anders als eine frühere gleichlautende Meldung von 2025) — aber nur moderate Kursreaktionen (+2,5 bis +6%) auf bereits etablierten Token, nur Einzelsignal. Polygon-Burn (POL) und Arthur Hayes' ENA-Position bleiben Fortsetzungen ohne neue Schwelle. Weiterhin Vorsicht bei Pepeto (bezahlte PR, keine echte Binance-Bestätigung)." },
     { date: "20.09.2026", text: "Bitcoin setzt seine Rallye fort auf ~$81,3k (+5,3% in 7 Tagen) — die Erholung von der Fed-Zinserhöhung beschleunigt sich weiter. BTC-Dominanz bleibt über 60%, der Altcoin Season Index (34) ist mit 18 Tagen inzwischen veraltet angesichts der jüngsten Rallye, aber es gibt keine neuere verlässliche Messung. Auffällig: Arthur Hayes kaufte 25,33 Mio. ENA (Ethena) bei $0,09 und ruft heute nach 146% Gewinn ein Kursziel von $0,50 aus — zeitgleich genehmigte Ethenas Governance eine 95%-Umsatz-Buyback-Regelung, ENA sprang daraufhin um über 24% intraday. Echtes, frisches KOL-Signal (+2) plus Buyback-Katalysator (+1), aber mit $2,1 Mrd. Market Cap (CoinGecko-Rang #46) bereits ein etablierter Large-Cap — Score bleibt unter der Watchlist-Schwelle, interessante Story zum Beobachten. Zcash (ZEC, +8,82%) bleibt Fortsetzung der bekannten Large-Cap-Rallye. Polygon (POL) kündigte einen wiederkehrenden quartalsweisen Burn (100 Mio. Token, ~1% Supply) an — echtes bullisches Signal, aber nur Einzelpunkt, reicht nicht. Verworfen: Pepeto (angebliche Binance-Listing) ist bezahlte PR mit mehrfachen Scam-Warnzeichen (anonymes Team, kein Audit, kein Produkt). Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden." },
     { date: "19.09.2026", text: "Bitcoin springt auf über $80k (mehrfach bestätigt für den 18.9.) — eine kräftige Erholung von ~$76,6k, angeführt von einer breiten Altcoin-Rallye. BTC-Dominanz bleibt über 60%, Altcoin Season Index unverändert bei 34. Zcash (ZEC) bricht dabei über $1.400 (+2.496% im Jahresverlauf), getrieben vom ZCSH-ETF-Listing (24. Aug.) — bleibt aber etablierter Large-Cap ohne Watchlist-Relevanz, zudem warnen Analysten selbst vor Short-Squeeze-Überhitzung bei nur $230 Mio. offenem Futures-Interesse. Verworfen: „ZECFORGE.tech“ (angeblich +2.610%/24h auf CoinGecko-Trending) lässt sich durch keine unabhängige Quelle bestätigen — wirkt wie ein Ticker-Trittbrettfahrer auf die ZEC-Rallye; eine vermeintliche Upbit-Listing von Lombard (BARD) stammt tatsächlich vom 18.9.2025; „Bitcoin Hyper“ ($HYPER) bleibt im Presale-Stadium, keine echte Binance-Listing bestätigt; eine CZ/ASTER-Kaufmeldung ist wahrscheinlich recycelte Berichterstattung von November 2025. Router-Protocol-Burn weiterhin nur negatives Shutdown-Ereignis. Arthur Hayes' Position bleibt Fortsetzung. Sonst keine frischen KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
