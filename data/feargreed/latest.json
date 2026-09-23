@@ -1,8 +1,8 @@
 {
-  "fetchedAt": "2026-09-22T12:00:55Z",
+  "fetchedAt": "2026-09-23T12:03:50Z",
   "source": "https://api.alternative.me/fng/?limit=0&format=json",
-  "asOf": "2026-09-22",
-  "rowCount": 3152,
+  "asOf": "2026-09-23",
+  "rowCount": 3153,
   "data": [
     {
       "value": "30",
@@ -15762,8 +15762,13 @@
     {
       "value": "78",
       "value_classification": "Extreme Greed",
-      "timestamp": "1790035200",
-      "time_until_update": "43145"
+      "timestamp": "1790035200"
+    },
+    {
+      "value": "71",
+      "value_classification": "Greed",
+      "timestamp": "1790121600",
+      "time_until_update": "42970"
     }
   ]
 }
