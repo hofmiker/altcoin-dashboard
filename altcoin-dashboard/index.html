@@ -314,13 +314,13 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Stabilisiert sich bei ~$84,3k nach dem Rücksetzer vom 23.9. — ruhiger Handelstag</div>
+          <div class="ctx">Pendelt seitwärts bei ~$84k, ruhiger Samstagshandel</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
-          <div class="value mono">41 / 100</div>
-          <div class="ctx">Auf den bislang frischesten datierten Stand (20. Sept.) aktualisiert — Quellen bleiben uneinheitlich (23/34/41), weiterhin klar unter der Altseason-Schwelle</div>
-          <div class="gauge"><i style="width:41%"></i><span class="thresh" style="left:75%"></span></div>
+          <div class="value mono">56 / 100</div>
+          <div class="ctx">Laut jüngster Quelle (~25. Sept.) von 48 auf 56 gestiegen — Anbieter streuen weiterhin stark (39–56), aber Aufwärtstrend über mehrere Quellen hinweg konsistent</div>
+          <div class="gauge"><i style="width:56%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–25.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–26.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "26.09.2026", text: "Bitcoin pendelt seitwärts bei ~$84k, ruhiger Samstagshandel. BTC-Dominanz bleibt bei ~59%, der Altcoin Season Index stieg laut jüngster Quelle von 48 auf 56 (Anbieter streuen weiterhin stark, 39–56, aber der Aufwärtstrend ist über mehrere Quellen konsistent). Update: Aerodrome (AERO, bereits auf der Watchlist) springt um +25,4% im Zuge eines Protocol-28-Upgrade-Votums (Slipstream V3, MEV-Auktionen, dynamische Gebühren laut Marktberichten) — Score auf 5/12 angehoben. Verworfen: Ethena (ENA, +21–23,6%) bleibt Fortsetzung der bereits bekannten Hayes-Story und Large-Cap; Pump.fun (PUMP, +16,8%, $433 Mio. Buyback-Burn) ohne neue Schwelle; SEI und Jito (JTO) ohne belastbaren Katalysator, eher Wochenend-Beta. Hyperliquid (HYPE) bleibt trotz weiterer Whale-Käufe ($45,8 Mio.) zu groß. Ein „COCOAI“-Burn ließ sich nicht von der bestätigten Scam-Coin „ChainOpera AI/COAI“ unterscheiden — Ticker-Verwechslungsgefahr, daher gemieden. Polygon-Burn (POL) bleibt bestätigt, aber Einzelsignal." },
     { date: "25.09.2026", text: "Bitcoin stabilisiert sich bei ~$84,3k nach dem Rücksetzer vom 23.9. — ruhiger Handelstag. BTC-Dominanz und Altcoin Season Index (41) unverändert übernommen. Verworfen: Quant (QNT, +27–40%) rallyt auf einem echten Katalysator (The Clearing House wählt Quants Overledger-Technologie für ein tokenisiertes Bankeinlagen-Netzwerk), bleibt aber etablierter Large-Cap; Ondo Finance (+12%) ebenfalls echter RWA-Katalysator, aber Large-Cap; Plasma (XPL, +17–30%) läuft nicht organisch, sondern auf einem Token-Unlock mit widersprüchlichen Angaben (18% vs. 63% des Supplies); FET/ASI Alliance (+41%/7d) zeigt gemischtes Bild — Rally, aber zeitgleich ein $1,56 Mio. Bridge-Exploit ungelöst; Hyperliquid (HYPE) listete frisch auf Binance, ist mit $21 Mrd. Market Cap aber viel zu groß und fiel nach dem Listing direkt um 4,6%. Polygon-Burn (POL) wurde am 23.9. offiziell bestätigt/ausgeführt — weiterhin nur Einzelsignal. Arthur Hayes' Positionen bleiben Fortsetzung. Sonst keine frischen Tier-1-Listings für Small-/Mid-Caps oder neuen Kaito-Kampagnen gefunden." },
     { date: "24.09.2026", text: "Bitcoin toppte am 23.9. bei ~$87k, dann scharfer Rücksetzer auf ~$83–84k durch Long-Liquidationen — ein breiter Short-Squeeze am 21.9. ($648 Mio. gewischte Shorts) hatte die Rallye erst befeuert. BTC-Dominanz bleibt bei ~59%. Altcoin Season Index auf den frischesten datierten Stand (41, 20. Sept.) aktualisiert — Quellen bleiben uneinheitlich (23/34/41), aber klar unter der Altseason-Schwelle. Verworfen: Raydium (RAY) mit mehreren echten Katalysatoren (StonkFun-Integration, tokenisierte AMD-Aktien, Rekord-Buyback) rallyt, bleibt aber mit $450–535 Mio. Market Cap bereits etabliert; Lisk (LSK) zeigt einen handfesten Short-Squeeze ($41 Mio. Liquidationen), aber weiterhin als spekulativer Bounce vor der Chain-Abschaltung am 31.10. eingestuft — dasselbe negative Wind-down-Muster wie zuvor; Venice (VVV, AI-Narrativ, $65 Mio. Series A) ist inzwischen mit $1,55 Mrd. Market Cap zu groß und zeigt zudem ein verdächtig dünnes Volumen/Market-Cap-Verhältnis. UNI-Whale-Akkumulation und Arthur Hayes' Positionen bleiben Fortsetzung. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden — mehrere vermeintliche Binance/Coinbase-Listings (BIO Protocol, Brevis) erwiesen sich erneut als Monate alt." },
     { date: "23.09.2026", text: "Bitcoin klettert weiter auf ~$86,7k, setzt den Ausbruch vom Vortag fort. BTC-Dominanz bleibt bei ~59%, Altcoin Season Index (34) weiterhin ohne frischere vergleichbare Messung trotz wochenlanger Suche. Aufgelöst: Die seit Wochen wiederkehrende, widersprüchlich datierte „Lombard (BARD) Upbit-Listing“-Meldung ist jetzt eindeutig geklärt — die MEXC-eigene Ankündigung datiert das Ereignis zweifelsfrei auf den 18.9.<b>2025</b>, ein Jahr alt. Wird ab jetzt nicht mehr als potenzieller Kandidat geprüft. Verworfen: Bitcoin Cash (BCH, +21–30%) rallyt auf einem echten Katalysator (CME-Futures-Start am 19.10., plus Short-Squeeze), bleibt aber etablierter Large-Cap; AIOZ Network (+54,67%, zweiter Tag in Folge) weiterhin ohne konkreten Auslöser; PEPE/DOGE/SHIB/TAO-Rallye bestätigt als reine Markt-Beta ohne Projekt-Katalysator. CZ reagierte mit einem Klatsch-Emoji auf den Launch von genius.fun (BNB Chain), der GENIUS-Token sprang daraufhin — aber kein echter On-Chain-Kauf, Launch inzwischen 5 Tage alt, und mindestens vier gleichnamige „Genius“-Token auf CoinGecko machen die Daten unzuverlässig. Arthur Hayes' Positionen (ENA, UNI) bleiben Fortsetzung." },
@@ -568,26 +569,28 @@
       sourceRefs:[4,5]
     },
     {
-      ticker:"AERO", name:"Aerodrome Finance", status:"good", statusLabel:"Watchlist", score:4, firstSeen:"22.07.2026",
+      ticker:"AERO", name:"Aerodrome Finance", status:"good", statusLabel:"Watchlist", score:5, firstSeen:"22.07.2026",
       chartType:"line", unit:"$", logo:null, coingeckoId:"aerodrome-finance", link:"https://blockchainreporter.net/binance-lists-aerodromes-aero-token-with-seed-tag-unlocking-base-defi-for-global-traders/",
       series:[
         {label:"16. Jul", value:0.40},
         {label:"17. Jul", value:0.525},
         {label:"19. Jul", value:0.45},
-        {label:"21. Jul", value:0.45}
+        {label:"21. Jul", value:0.45},
+        {label:"26. Sept", value:0.65}
       ],
       stats:[
-        {k:"Market Cap",v:"$433,7 Mio."},
+        {k:"Market Cap",v:"~$781 Mio. (26. Sept, Quellen streuen)"},
         {k:"TVL",v:"&gt;$1 Mrd."},
         {k:"Holder",v:"740.000+"},
-        {k:"Seit Listing-Peak",v:"−14%"}
+        {k:"24h",v:"+25,4%"}
       ],
       signals:[
         ["Frisches Binance-Listing mit Seed Tag (17. Jul, AERO/USDT+USDC+TRY)","+3"],
-        ["Laufendes Buyback-Programm (Protocol Growth Fund, &gt;190 Mio. AERO gesamt gelockt)","+1"]
+        ["Laufendes Buyback-Programm (Protocol Growth Fund, &gt;190 Mio. AERO gesamt gelockt)","+1"],
+        ["Update: +25,4% am 26. Sept. im Zuge eines Protocol-28-Upgrade-Votums/Slipstream V3 (MEV-Auktionen, dynamische Gebühren) laut mehreren Marktberichten — keine primäre Quelle direkt verifiziert","+1"]
       ],
       flag:null,
-      note:"<b>Neu:</b> Binance listete AERO am 17. Jul mit Seed Tag (erhöhtes Volatilitätsrisiko) — Kurs spitzte auf $0,525, fiel binnen 36h um 14% auf ~$0,45. Aerodrome ist mit &gt;$1 Mrd. TVL die führende Base-DEX, TVL übersteigt die Market Cap deutlich (kein Red-Flag-Verhältnis), Holder breit gestreut (740.000+). Laufendes Buyback-Programm stützt den Token. <b>Nachkaufrisiko nach dem Pop beachten</b> — Seed Tag signalisiert bewusst hohe Schwankungsbreite.",
+      note:"<b>Update 26. Sept:</b> AERO springt um +25,4% im Zuge eines Protocol-28-Upgrade-Votums (Slipstream V3, MEV-Auktionen, dynamische Gebühren) — Katalysator laut mehreren Marktberichten, aber keine primäre Ankündigung direkt verifizierbar. Aerodrome bleibt mit &gt;$1 Mrd. TVL die führende Base-DEX, Holder breit gestreut (740.000+). Laufendes Buyback-Programm stützt weiterhin den Token. <b>Nachkaufrisiko nach dem Sprung beachten.</b>",
       sourceRefs:[10,11]
     },
     {
