@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Pendelt seitwärts bei ~$84k, ruhiger Samstagshandel</div>
+          <div class="ctx">Pendelt weiter seitwärts bei ~$84,5k, ruhiges Wochenende</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">56 / 100</div>
-          <div class="ctx">Laut jüngster Quelle (~25. Sept.) von 48 auf 56 gestiegen — Anbieter streuen weiterhin stark (39–56), aber Aufwärtstrend über mehrere Quellen hinweg konsistent</div>
+          <div class="ctx">Weiterhin uneinheitliche Quellenlage (34–56 je nach Anbieter/Datum) — letzter Stand beibehalten, klar unter der Altseason-Schwelle</div>
           <div class="gauge"><i style="width:56%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~59%</div>
-          <div class="ctx">Bleibt bei ~59%, Anbieter streuen heute deutlich (56,9–59,6%) — Kapital bleibt klar in Bitcoin konzentriert</div>
+          <div class="value mono">~58,6%</div>
+          <div class="ctx">Erstmals seit Wochen wieder unter 60% gefallen (58,5–58,7%) — leichte Rotation in Altcoins erkennbar</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–26.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–27.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "27.09.2026", text: "Bitcoin pendelt weiter seitwärts bei ~$84,5k, ein ruhiges Wochenende. BTC-Dominanz ist erstmals seit Wochen wieder unter 60% gefallen (~58,6%) — ein Hinweis auf leichte Rotation in Altcoins. Der Altcoin Season Index bleibt bei 56, die Quellenlage weiterhin uneinheitlich (34–56). Verworfen: Quant (QNT, +72–83%/24h) rallyt auf einem echten Katalysator (The Clearing House wählt Quants Overledger für ein Interop-Netzwerk mit 25 US-Banken), bleibt aber Large-Cap (Market Cap $1,4–2,5 Mrd., Quellen streuen) — zudem hält eine einzelne Treasury-Adresse ~65% des Supplies, was unser Konzentrations-Red-Flag berühren würde; SOON (+47%) läuft ohne klaren Katalysator, zeitgleich ein Token-Unlock; eine „Wormhole +32%“-Meldung stammt tatsächlich aus einem 2025 datierten Artikel. Pump.fun (PUMP) und Polygon-Burn (POL) bleiben Fortsetzungen ohne neue Schwelle. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
     { date: "26.09.2026", text: "Bitcoin pendelt seitwärts bei ~$84k, ruhiger Samstagshandel. BTC-Dominanz bleibt bei ~59%, der Altcoin Season Index stieg laut jüngster Quelle von 48 auf 56 (Anbieter streuen weiterhin stark, 39–56, aber der Aufwärtstrend ist über mehrere Quellen konsistent). Update: Aerodrome (AERO, bereits auf der Watchlist) springt um +25,4% im Zuge eines Protocol-28-Upgrade-Votums (Slipstream V3, MEV-Auktionen, dynamische Gebühren laut Marktberichten) — Score auf 5/12 angehoben. Verworfen: Ethena (ENA, +21–23,6%) bleibt Fortsetzung der bereits bekannten Hayes-Story und Large-Cap; Pump.fun (PUMP, +16,8%, $433 Mio. Buyback-Burn) ohne neue Schwelle; SEI und Jito (JTO) ohne belastbaren Katalysator, eher Wochenend-Beta. Hyperliquid (HYPE) bleibt trotz weiterer Whale-Käufe ($45,8 Mio.) zu groß. Ein „COCOAI“-Burn ließ sich nicht von der bestätigten Scam-Coin „ChainOpera AI/COAI“ unterscheiden — Ticker-Verwechslungsgefahr, daher gemieden. Polygon-Burn (POL) bleibt bestätigt, aber Einzelsignal." },
     { date: "25.09.2026", text: "Bitcoin stabilisiert sich bei ~$84,3k nach dem Rücksetzer vom 23.9. — ruhiger Handelstag. BTC-Dominanz und Altcoin Season Index (41) unverändert übernommen. Verworfen: Quant (QNT, +27–40%) rallyt auf einem echten Katalysator (The Clearing House wählt Quants Overledger-Technologie für ein tokenisiertes Bankeinlagen-Netzwerk), bleibt aber etablierter Large-Cap; Ondo Finance (+12%) ebenfalls echter RWA-Katalysator, aber Large-Cap; Plasma (XPL, +17–30%) läuft nicht organisch, sondern auf einem Token-Unlock mit widersprüchlichen Angaben (18% vs. 63% des Supplies); FET/ASI Alliance (+41%/7d) zeigt gemischtes Bild — Rally, aber zeitgleich ein $1,56 Mio. Bridge-Exploit ungelöst; Hyperliquid (HYPE) listete frisch auf Binance, ist mit $21 Mrd. Market Cap aber viel zu groß und fiel nach dem Listing direkt um 4,6%. Polygon-Burn (POL) wurde am 23.9. offiziell bestätigt/ausgeführt — weiterhin nur Einzelsignal. Arthur Hayes' Positionen bleiben Fortsetzung. Sonst keine frischen Tier-1-Listings für Small-/Mid-Caps oder neuen Kaito-Kampagnen gefunden." },
     { date: "24.09.2026", text: "Bitcoin toppte am 23.9. bei ~$87k, dann scharfer Rücksetzer auf ~$83–84k durch Long-Liquidationen — ein breiter Short-Squeeze am 21.9. ($648 Mio. gewischte Shorts) hatte die Rallye erst befeuert. BTC-Dominanz bleibt bei ~59%. Altcoin Season Index auf den frischesten datierten Stand (41, 20. Sept.) aktualisiert — Quellen bleiben uneinheitlich (23/34/41), aber klar unter der Altseason-Schwelle. Verworfen: Raydium (RAY) mit mehreren echten Katalysatoren (StonkFun-Integration, tokenisierte AMD-Aktien, Rekord-Buyback) rallyt, bleibt aber mit $450–535 Mio. Market Cap bereits etabliert; Lisk (LSK) zeigt einen handfesten Short-Squeeze ($41 Mio. Liquidationen), aber weiterhin als spekulativer Bounce vor der Chain-Abschaltung am 31.10. eingestuft — dasselbe negative Wind-down-Muster wie zuvor; Venice (VVV, AI-Narrativ, $65 Mio. Series A) ist inzwischen mit $1,55 Mrd. Market Cap zu groß und zeigt zudem ein verdächtig dünnes Volumen/Market-Cap-Verhältnis. UNI-Whale-Akkumulation und Arthur Hayes' Positionen bleiben Fortsetzung. Sonst keine frischen Tier-1-Listings oder neuen Kaito-Kampagnen gefunden — mehrere vermeintliche Binance/Coinbase-Listings (BIO Protocol, Brevis) erwiesen sich erneut als Monate alt." },
