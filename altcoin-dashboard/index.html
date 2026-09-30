@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Stabil im Band $83–85k, ruhiger Handel (Quellen streuen weiterhin)</div>
+          <div class="ctx">Weiterhin stabil bei ~$83,4–83,5k, enger Handel</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">56 / 100</div>
-          <div class="ctx">Quellenlage jetzt noch widersprüchlicher (einzelne Quellen nennen 57–70 oder sogar 64, andere weiterhin 34–56) — letzter belastbarer Stand vorsichtshalber beibehalten</div>
+          <div class="ctx">Quellenlage bleibt gespalten — inzwischen ein Dreiklang aus 30–40, 34–57 und 57–70 je nach Anbieter; letzter belastbarer Stand vorsichtshalber beibehalten, Zahl mit größter Vorsicht zu lesen</div>
           <div class="gauge"><i style="width:56%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
-          <div class="value mono">~58,6%</div>
-          <div class="ctx">Weiterhin unter 60% (~58,5%) — leichte Rotation in Altcoins hält an</div>
+          <div class="value mono">~58,3%</div>
+          <div class="ctx">Bestätigt bei 58,3% (Stand 28. Sept.) — weiterhin unter 60%, leichte Rotation in Altcoins hält an</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–29.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–30.9.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "30.09.2026", text: "Bitcoin weiterhin stabil bei ~$83,4–83,5k, enger Handel. BTC-Dominanz bei 58,3% bestätigt (Stand 28. Sept.), bleibt unter 60%. Der Altcoin Season Index zeigt jetzt sogar einen Dreiklang widersprüchlicher Quellen (30–40 laut einem Anbieter-Deskriptor, 34–57 nach anderen, 57–70 nach wieder anderen) — der bisherige Stand von 56 wird mit größter Vorsicht beibehalten. Verworfen: SOON (+46,64%) lässt sich nicht eindeutig einem Token zuordnen — mindestens drei verschiedene CoinGecko-Einträge mit demselben Ticker und über 4x streuenden Market-Cap-Angaben; Zebec Network (ZBCN, +29,85%) nur einzelquellig (CoinCodex) belegt, zudem mit stark konzentrierten Holdern (Top-100 halten 72,3%); ein KuCoin-eigenes Gewinner-Ranking (STAY, NAKA, RMV, POND) blieb ohne unabhängige Bestätigung. CZs Markt-Kommentar auf X war reines Stimmungssignal, kein on-chain-Kauf. Der für heute geplante Router-Protocol-Burn (303 Mio. ROUTE, Shutdown) ließ sich nicht als bereits ausgeführt bestätigen — eine vermeintliche Bestätigung erwies sich als 2024 datierter Tweet. Arthur Hayes' Positionen und die UNI/LINK/LIT/ONDO/ENA-Wal-Akkumulation bleiben Fortsetzungen ohne neue Schwelle. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder Kaito-Kampagnen gefunden — die Watchlist bleibt heute unverändert." },
     { date: "29.09.2026", text: "Bitcoin stabil im Band $83–85k, ruhiger Handel. BTC-Dominanz bleibt unter 60% (~58,5%), leichte Rotation in Altcoins hält an. Der Altcoin Season Index wird noch widersprüchlicher gemeldet als zuvor (einzelne Quellen nennen 57–70 oder sogar 64, andere weiterhin 34–56 je nach Methodik) — letzter belastbarer Stand von 56 vorsichtshalber beibehalten. Verworfen: Numeraire (NMR, +33–48%/24h) ist ein reales, mehrfach bestätigtes Kursplus, aber ohne aktuellen Katalysator — der zitierte J.P.-Morgan-Auftrag stammt aus 2025, kein frisches Scoring-Signal erfüllt; Hedera (HBAR, +21–27%) mit echten, datierten Katalysatoren (IBM-Cloud-Catalog-Aufnahme 23. Sept., NVIDIA-Agent-Safety-Plattform-Beteiligung 27./28. Sept.), bleibt aber etablierter Large-Cap (~$4–5 Mrd.). Cash Cat (CASHCAT) listete frisch auf Upbit (28. Sept.), zeigt aber mehrere Rugpull-typische Warnsignale (anonymes Team, kein Audit, stark konzentrierte Holder, verdächtiges Insider-Timing bei Wal-Verkäufen laut Marktbeobachtern) — trotz frischem Tier-1-Listing disqualifiziert. Kite AI bleibt weiterhin ohne datierten Katalysator außen vor. Eine vermeintliche Infinit (IN)-Upbit-Listing erwies sich erneut als Jahr-alte Meldung (Okt. 2025). Polygon-Burn (POL) und Pump.fun (PUMP) bleiben Fortsetzungen ohne neue Schwelle. Sonst keine frischen KOL-Käufe oder neuen Kaito-Kampagnen gefunden — die Watchlist bleibt heute unverändert." },
     { date: "28.09.2026", text: "Bitcoin gibt leicht nach auf ~$83–85k (Quellen streuen um bis zu $1.600) nach dem ruhigen Wochenende. BTC-Dominanz bestätigt unter 60% (~58,6%, Stand 25. Sept.), der Altcoin Season Index bleibt bei 56, die Quellenlage aber noch breiter uneinheitlich als bisher gedacht (34–57 je nach Methodik) — letzter Stand vorsichtshalber beibehalten. Verworfen: Quant (QNT, +45–54%/24h) rallyt auf einem weiteren echten Katalysator (UK-Finance-Pilot für tokenisiertes Pfund mit Barclays/HSBC/Lloyds u.a.), bleibt aber Large-Cap (~$3,7 Mrd.) mit einem Wash-Trading-Warnhinweis (77% eines Volumen-Tages als verdächtig markiert); The Graph (GRT, +31,7%) mit echtem Katalysator (on-chain geroutete Subgraph-Studio-Anfragen), aber etablierter Large-Cap und zeitgleich von Coinbase vom GRT-BTC-Paar delistet; MultiversX (EGLD, angeblich +39%) lässt sich nur mit dem 18 Tage alten Supernova-Fork verknüpfen — Verdacht auf Datenartefakt; ein „Arthur Hayes verkauft HYPE/NEAR“-Fund stammt tatsächlich vom 4. Juni. Kite AI (KITE, AI-Agenten-Layer) bleibt ohne datierten 48h-Katalysator und mit Slug-Verwechslungsgefahr (zwei verschiedene CoinGecko-Einträge) außen vor. Polygon-Burn (POL) und Pump.fun (PUMP) bleiben Fortsetzungen ohne neue Schwelle, Router-Protocol-Burn (ROUTE) weiterhin nur negatives Shutdown-Ereignis vor der Abschaltung am 30.9. Sonst keine frischen Tier-1-Listings, neuen KOL-Käufe oder Kaito-Kampagnen gefunden — die Watchlist bleibt heute unverändert." },
     { date: "27.09.2026", text: "Bitcoin pendelt weiter seitwärts bei ~$84,5k, ein ruhiges Wochenende. BTC-Dominanz ist erstmals seit Wochen wieder unter 60% gefallen (~58,6%) — ein Hinweis auf leichte Rotation in Altcoins. Der Altcoin Season Index bleibt bei 56, die Quellenlage weiterhin uneinheitlich (34–56). Verworfen: Quant (QNT, +72–83%/24h) rallyt auf einem echten Katalysator (The Clearing House wählt Quants Overledger für ein Interop-Netzwerk mit 25 US-Banken), bleibt aber Large-Cap (Market Cap $1,4–2,5 Mrd., Quellen streuen) — zudem hält eine einzelne Treasury-Adresse ~65% des Supplies, was unser Konzentrations-Red-Flag berühren würde; SOON (+47%) läuft ohne klaren Katalysator, zeitgleich ein Token-Unlock; eine „Wormhole +32%“-Meldung stammt tatsächlich aus einem 2025 datierten Artikel. Pump.fun (PUMP) und Polygon-Burn (POL) bleiben Fortsetzungen ohne neue Schwelle. Sonst keine frischen Tier-1-Listings, KOL-Käufe oder neuen Kaito-Kampagnen gefunden." },
