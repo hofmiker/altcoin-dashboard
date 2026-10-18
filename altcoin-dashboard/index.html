@@ -314,7 +314,7 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Stabilisiert sich bei ~$82.000 (16. Okt., mehrfach bestätigt) nach dem CPI/PPI-Doppelschlag — zweite Woche in Folge mit Netto-ETF-Abflüssen</div>
+          <div class="ctx">Letzter belastbarer Stand ~$82.000 (16. Okt.) beibehalten — am Wochenende keine neuere, verlässlich datierte Quelle gefunden</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -325,7 +325,7 @@
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~59%</div>
-          <div class="ctx">Weiterhin im Band 58–59,3%, keine eindeutige Einzelquelle für heute</div>
+          <div class="ctx">Zwei auf 14. Okt. datierte Quellen widersprechen sich deutlich (55–60% vs. 60,4%) — Stand mit erhöhter Vorsicht beibehalten</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–17.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–18.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "18.10.2026", text: "Siebzehnter Tag in Folge ohne neuen Kandidaten, erneut dünne Wochenend-Datenlage. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren, keine neuere verlässlich datierte Quelle gefunden. Zwei auf den 14. Okt. datierte Quellen zur BTC-Dominanz widersprechen sich deutlich (55–60% vs. 60,4%) — Stand mit erhöhter Vorsicht beibehalten. Eine vermeintliche Upbit-Listing (Infinit, angeblich 10. Okt.) entpuppte sich erneut als Material aus Okt. 2025. Gewinner-Listen (COTI/Orochi erneut, dazu Story/Monero/Render/Stellar auf einer undatierten CMC-Seite) ließen sich keiner verlässlichen Tagesangabe zuordnen. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "17.10.2026", text: "Sechzehnter Tag in Folge ohne neuen Kandidaten, am Wochenende erwartungsgemäß wieder dünne Datenlage. Bitcoin stabilisiert sich bei ~$82.000 (mehrfach für den 16. Okt. bestätigt) nach dem CPI/PPI-Doppelschlag der Vortage — zweite Woche in Folge mit Netto-ETF-Abflüssen. Ein einzelquellig belegter Gewinner-Hinweis (TIA +18,4%, INJ +13,9%, FIL +9,2%) ließ sich nicht unabhängig bestätigen und wird nur mit geringer Zuversicht vermerkt, nicht als Kandidat übernommen. Mehrere vermeintliche Binance-Alpha-Listings (Derive, NeoSoul) stammen aus einer bezahlten PR-Wire-Quelle (OpenPR) statt unabhängiger Berichterstattung — verworfen. Echte, aber nur sektorweite AI-Krypto-Infrastruktur-Nachrichten (138 Mio.+ AI-Agenten-Mikrozahlungen über Coinbases x402-Protokoll auf Base, mehrfach unabhängig bestätigt für 14./15. Okt.) benennen keinen handelbaren Einzeltoken und zählen daher nicht als Kandidat. Keine frischen Tier-1-Listings mit unabhängiger Bestätigung, KOL-Käufe, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups gefunden — die Watchlist bleibt heute unverändert." },
     { date: "16.10.2026", text: "Fünfzehnter Tag in Folge ohne neuen Kandidaten. Bitcoin erholt sich nach dem CPI-Rutsch vom 14. Okt. (unter $81k) wieder auf ~$80–83k (Quellen streuen deutlich), ETF-Zuflüsse bleiben jedoch nahe null — der Oktober bleibt insgesamt ein Netto-Abfluss-Monat für Bitcoin-ETFs. Ein auf 16. Okt. datierter, aber nur einzelquellig belegter Artikel nennt Injective (INJ, +25%) und einen Zcash-Rebound (ZEC) — beide bereits etablierte Large-/Mid-Caps, zudem nicht unabhängig verifizierbar (Fetch blockiert); verworfen. Gitcoin (GTC) bleibt endgültig ungeklärt: drei erneut widersprüchliche Kursangaben ($1,14 CoinGecko, $1,31 CoinMarketCap mit Preishistorie nur bis Mai 2024, $0,0998 an einem dünnen Arbitrum-DEX-Pool mit nur $19,51 Tagesvolumen) — wirkt wie veraltete/zwischengespeicherte Seiten plus ein Liquiditäts-Ausreißer, kein echtes Signal, wird ab jetzt nicht mehr aktiv weiterverfolgt. Keine frischen Tier-1-Listings, KOL-Käufe (auch kein bestätigter CPI-Dip-Kauf einer bekannten Figur), AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "15.10.2026", text: "Vierzehnter Tag in Folge ohne neuen Kandidaten. Die US-CPI-Daten für September (14. Okt. veröffentlicht) kamen heißer als erwartet (3,7% YoY statt der erwarteten 3,6%, haupsächlich getrieben von Benzinpreisen +9,1% MoM) — Bitcoin rutschte daraufhin von ~$83,8k auf unter $81k, mit rund $1 Mrd. Liquidationen binnen 24h; die Wahrscheinlichkeit einer Fed-Zinserhöhung im Oktober stieg laut Marktberichten auf ~48%. Keine altcoin-spezifischen CPI-Reaktionen in der Berichterstattung gefunden. Gitcoin (GTC) bleibt weiterhin ungeklärt — heute kursierten drei weitere, sich widersprechende Kursangaben ($0,083/$0,21/$1,14), keine neue Klärung, weiterhin kein Kandidat. Der alte Gewinner-Listen-Loop (COTI/Orochi/DeXe/SOON) tauchte heute interessanterweise gar nicht auf, allerdings auch sonst keine datierbaren frischen Gewinner-Daten gefunden. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
