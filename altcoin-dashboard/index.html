@@ -314,7 +314,7 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Letzter belastbarer Stand ~$82.000 (16. Okt.) beibehalten — am Wochenende keine neuere, verlässlich datierte Quelle gefunden</div>
+          <div class="ctx">Letzter belastbarer Stand ~$82.000 (16. Okt.) beibehalten — ETF-Abflüsse laufen weiter (−$681 Mio. in der Woche zum 9. Okt., −$125–145 Mio. zum 16. Okt.), nächster Katalysator: Fed-Sitzung 27./28. Okt.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
@@ -325,7 +325,7 @@
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~59%</div>
-          <div class="ctx">Zwei auf 14. Okt. datierte Quellen widersprechen sich deutlich (55–60% vs. 60,4%) — Stand mit erhöhter Vorsicht beibehalten</div>
+          <div class="ctx">Weiterhin ungeklärt widersprüchlich (55–60% vs. 60,4%, beide 14. Okt.) — eine Quelle mit irreführender Schlagzeile entlarvt, Stand mit erhöhter Vorsicht beibehalten</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–18.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–19.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "19.10.2026", text: "Achtzehnter Tag in Folge ohne neuen Kandidaten, auch der Wochenbeginn brachte keine Besserung. Bitcoin-ETF-Abflüsse laufen weiter (−$681 Mio. in der Woche zum 9. Okt., gemildert auf −$125–145 Mio. zum 16. Okt.) — nächster möglicher Katalysator ist die Fed-Sitzung am 27./28. Okt. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren. Die BTC-Dominanz-Widersprüchlichkeit vom 14. Okt. (55–60% vs. 60,4%) bleibt ungelöst — eine der beiden Quellen zeigte sich bei genauerem Hinsehen als irreführende Schlagzeile, deren eigener Artikeltext die 60%-Behauptung gar nicht stützt. Richard Heart (HEX/PulseChain-Gründer) wurde laut türkischen Medienberichten (14. Okt.) in Istanbul auf Basis einer Interpol-Meldung festgenommen — eine rechtliche, keine Markt-Nachricht, ohne Watchlist-Relevanz. Mehrere vermeintliche Binance/Upbit-Listings sowie ein \"DeFi Agents AI\"-Token erwiesen sich als PR-Wire-Inhalte bzw. fehldatiertes Material aus früheren Jahren. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "18.10.2026", text: "Siebzehnter Tag in Folge ohne neuen Kandidaten, erneut dünne Wochenend-Datenlage. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren, keine neuere verlässlich datierte Quelle gefunden. Zwei auf den 14. Okt. datierte Quellen zur BTC-Dominanz widersprechen sich deutlich (55–60% vs. 60,4%) — Stand mit erhöhter Vorsicht beibehalten. Eine vermeintliche Upbit-Listing (Infinit, angeblich 10. Okt.) entpuppte sich erneut als Material aus Okt. 2025. Gewinner-Listen (COTI/Orochi erneut, dazu Story/Monero/Render/Stellar auf einer undatierten CMC-Seite) ließen sich keiner verlässlichen Tagesangabe zuordnen. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "17.10.2026", text: "Sechzehnter Tag in Folge ohne neuen Kandidaten, am Wochenende erwartungsgemäß wieder dünne Datenlage. Bitcoin stabilisiert sich bei ~$82.000 (mehrfach für den 16. Okt. bestätigt) nach dem CPI/PPI-Doppelschlag der Vortage — zweite Woche in Folge mit Netto-ETF-Abflüssen. Ein einzelquellig belegter Gewinner-Hinweis (TIA +18,4%, INJ +13,9%, FIL +9,2%) ließ sich nicht unabhängig bestätigen und wird nur mit geringer Zuversicht vermerkt, nicht als Kandidat übernommen. Mehrere vermeintliche Binance-Alpha-Listings (Derive, NeoSoul) stammen aus einer bezahlten PR-Wire-Quelle (OpenPR) statt unabhängiger Berichterstattung — verworfen. Echte, aber nur sektorweite AI-Krypto-Infrastruktur-Nachrichten (138 Mio.+ AI-Agenten-Mikrozahlungen über Coinbases x402-Protokoll auf Base, mehrfach unabhängig bestätigt für 14./15. Okt.) benennen keinen handelbaren Einzeltoken und zählen daher nicht als Kandidat. Keine frischen Tier-1-Listings mit unabhängiger Bestätigung, KOL-Käufe, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups gefunden — die Watchlist bleibt heute unverändert." },
     { date: "16.10.2026", text: "Fünfzehnter Tag in Folge ohne neuen Kandidaten. Bitcoin erholt sich nach dem CPI-Rutsch vom 14. Okt. (unter $81k) wieder auf ~$80–83k (Quellen streuen deutlich), ETF-Zuflüsse bleiben jedoch nahe null — der Oktober bleibt insgesamt ein Netto-Abfluss-Monat für Bitcoin-ETFs. Ein auf 16. Okt. datierter, aber nur einzelquellig belegter Artikel nennt Injective (INJ, +25%) und einen Zcash-Rebound (ZEC) — beide bereits etablierte Large-/Mid-Caps, zudem nicht unabhängig verifizierbar (Fetch blockiert); verworfen. Gitcoin (GTC) bleibt endgültig ungeklärt: drei erneut widersprüchliche Kursangaben ($1,14 CoinGecko, $1,31 CoinMarketCap mit Preishistorie nur bis Mai 2024, $0,0998 an einem dünnen Arbitrum-DEX-Pool mit nur $19,51 Tagesvolumen) — wirkt wie veraltete/zwischengespeicherte Seiten plus ein Liquiditäts-Ausreißer, kein echtes Signal, wird ab jetzt nicht mehr aktiv weiterverfolgt. Keine frischen Tier-1-Listings, KOL-Käufe (auch kein bestätigter CPI-Dip-Kauf einer bekannten Figur), AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
