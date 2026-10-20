@@ -101,6 +101,7 @@
     {"date": "2026-10-16", "file": "scans/2026-10-16.json", "version": 124},
     {"date": "2026-10-17", "file": "scans/2026-10-17.json", "version": 125},
     {"date": "2026-10-18", "file": "scans/2026-10-18.json", "version": 126},
-    {"date": "2026-10-19", "file": "scans/2026-10-19.json", "version": 127}
+    {"date": "2026-10-19", "file": "scans/2026-10-19.json", "version": 127},
+    {"date": "2026-10-20", "file": "scans/2026-10-20.json", "version": 128}
   ]
 }
