@@ -314,18 +314,18 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Letzter belastbarer Stand ~$82.000 (16. Okt.) beibehalten — kumulierte Oktober-ETF-Abflüsse bei ~$535 Mio. (u.a. $485 Mio. an einem einzigen Tag, 7. Okt.), nächster Katalysator: Fed-Sitzung 27./28. Okt.</div>
+          <div class="ctx">Weiterhin keine neuere datierte Quelle als der 16. Okt. (~$82.000) gefunden — Stand beibehalten. Kumulierte Oktober-ETF-Abflüsse bei ~$535 Mio. (u.a. $485 Mio. an einem einzigen Tag, 7. Okt.), nächster Katalysator: Fed-Sitzung 27./28. Okt.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">59 / 100</div>
-          <div class="ctx">Weiterhin keine Messung nach dem 12. Okt. gefunden — Stand beibehalten, weiterhin klar unter der Altseason-Schwelle</div>
+          <div class="ctx">Weiterhin keine Messung nach dem 12. Okt. gefunden — Stand seit über einer Woche eingefroren, weiterhin klar unter der Altseason-Schwelle</div>
           <div class="gauge"><i style="width:59%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
           <div class="label">BTC-Dominanz</div>
           <div class="value mono">~59%</div>
-          <div class="ctx">Seit fast einer Woche ungeklärt widersprüchlich (55–60% vs. 60,4%) — auch heute keine neue datierte Quelle zur Auflösung gefunden, Stand mit erhöhter Vorsicht beibehalten</div>
+          <div class="ctx">Seit mehr als einer Woche ungeklärt widersprüchlich (55–60% vs. 60,4%) — auch heute keine neue datierte Quelle zur Auflösung gefunden, Stand mit erhöhter Vorsicht beibehalten</div>
         </div>
         <div class="stat" id="statFearGreed">
           <div class="label">Fear &amp; Greed Index</div>
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–20.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–21.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "21.10.2026", text: "Zwanzigster Tag in Folge ohne neuen Kandidaten. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren, keine neuere datierte Quelle gefunden; kumulierte Oktober-ETF-Abflüsse weiter bei ~$535 Mio., nächster Katalysator bleibt die Fed-Sitzung am 27./28. Okt. Die BTC-Dominanz-Widersprüchlichkeit (55–60% vs. 60,4%) ist nun seit mehr als einer Woche ungelöst, der Altcoin Season Index seit über einer Woche bei 59 eingefroren. Verworfen: Sanctum (SANC, ex-CLOUD) verbrannte zwar am 6./7. Okt. 259 Mio. Tokens, doch das Signal ist bereits zwei Wochen alt, die Marktkapitalisierung nicht CoinGecko-verifiziert und laufende Insider-Vesting-Freischaltungen bis Juli 2027 konterkarieren den Supply-Shock. Coinbase setzte am 19. Okt. Axis Labs (AXIS), Pearl (PEARL) und Stable (STABLE) auf die Listing-Roadmap — jedoch ohne Handelstermin; PEARL ist ohnehin das bereits seit April auf Upbit gelistete, etablierte Pearl-Layer-1-Token (PRL) und damit kein frischer Micro-Cap-Fund, AXIS/STABLE liefern mangels Handelsstart keine prüfbaren Markt-Kennzahlen. Keine verifizierbaren KOL-/Whale-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups gefunden — die Watchlist bleibt heute unverändert." },
     { date: "20.10.2026", text: "Neunzehnter Tag in Folge ohne neuen Kandidaten. Die kumulierten Oktober-ETF-Abflüsse liegen bei ~$535 Mio. (darunter ein Einzeltag von $485 Mio. am 7. Okt.) — nächster möglicher Katalysator bleibt die Fed-Sitzung am 27./28. Okt. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren, keine neuere datierte Quelle gefunden. Die BTC-Dominanz-Widersprüchlichkeit (55–60% vs. 60,4%) bleibt nun seit fast einer Woche ungelöst. Verworfen: Basic Attention Token (BAT, +95% über eine Woche laut einer auf 16. Okt. datierten Quelle) zeigt zwar Short-Squeeze-Mechanik (negative Funding-Rate, &gt;$1,2 Mio. Short-Liquidationen), aber ohne erkennbaren spezifischen Auslöser laut der Quelle selbst, zudem bereits 4 Tage alt und als etabliertes $190-200-Mio.-Projekt kein frischer Fund. Eine vermeintliche Concrete (CT)-Listing auf Upbit erwies sich bei genauerer Prüfung als wahrscheinliche Ticker-Verwechslung mit dem unverwandten Citrea-Token (CTR) — verworfen, nicht übernommen. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten oder Kaito-Kampagnen verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "19.10.2026", text: "Achtzehnter Tag in Folge ohne neuen Kandidaten, auch der Wochenbeginn brachte keine Besserung. Bitcoin-ETF-Abflüsse laufen weiter (−$681 Mio. in der Woche zum 9. Okt., gemildert auf −$125–145 Mio. zum 16. Okt.) — nächster möglicher Katalysator ist die Fed-Sitzung am 27./28. Okt. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren. Die BTC-Dominanz-Widersprüchlichkeit vom 14. Okt. (55–60% vs. 60,4%) bleibt ungelöst — eine der beiden Quellen zeigte sich bei genauerem Hinsehen als irreführende Schlagzeile, deren eigener Artikeltext die 60%-Behauptung gar nicht stützt. Richard Heart (HEX/PulseChain-Gründer) wurde laut türkischen Medienberichten (14. Okt.) in Istanbul auf Basis einer Interpol-Meldung festgenommen — eine rechtliche, keine Markt-Nachricht, ohne Watchlist-Relevanz. Mehrere vermeintliche Binance/Upbit-Listings sowie ein \"DeFi Agents AI\"-Token erwiesen sich als PR-Wire-Inhalte bzw. fehldatiertes Material aus früheren Jahren. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
     { date: "18.10.2026", text: "Siebzehnter Tag in Folge ohne neuen Kandidaten, erneut dünne Wochenend-Datenlage. Letzter belastbarer Bitcoin-Stand von ~$82.000 (16. Okt.) bleibt eingefroren, keine neuere verlässlich datierte Quelle gefunden. Zwei auf den 14. Okt. datierte Quellen zur BTC-Dominanz widersprechen sich deutlich (55–60% vs. 60,4%) — Stand mit erhöhter Vorsicht beibehalten. Eine vermeintliche Upbit-Listing (Infinit, angeblich 10. Okt.) entpuppte sich erneut als Material aus Okt. 2025. Gewinner-Listen (COTI/Orochi erneut, dazu Story/Monero/Render/Stellar auf einer undatierten CMC-Seite) ließen sich keiner verlässlichen Tagesangabe zuordnen. Keine frischen Tier-1-Listings, KOL-Käufe, AI-Krypto-Einzelkandidaten, Kaito-Kampagnen oder aktuellen Short-Squeeze-Setups verifizierbar gefunden — die Watchlist bleibt heute unverändert." },
