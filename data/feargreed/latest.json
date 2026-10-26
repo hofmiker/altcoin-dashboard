@@ -1,8 +1,8 @@
 {
-  "fetchedAt": "2026-10-25T11:56:57Z",
+  "fetchedAt": "2026-10-26T13:29:32Z",
   "source": "https://api.alternative.me/fng/?limit=0&format=json",
-  "asOf": "2026-10-25",
-  "rowCount": 3185,
+  "asOf": "2026-10-26",
+  "rowCount": 3186,
   "data": [
     {
       "value": "30",
@@ -15927,8 +15927,13 @@
     {
       "value": "54",
       "value_classification": "Neutral",
-      "timestamp": "1792886400",
-      "time_until_update": "43383"
+      "timestamp": "1792886400"
+    },
+    {
+      "value": "50",
+      "value_classification": "Neutral",
+      "timestamp": "1792972800",
+      "time_until_update": "37829"
     }
   ]
 }
