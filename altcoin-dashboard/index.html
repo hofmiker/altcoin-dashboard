@@ -314,12 +314,12 @@
         <div class="stat">
           <div class="label">Bitcoin</div>
           <div class="value mono">$76.000–88.000</div>
-          <div class="ctx">Keine neuere saubere Quelle als der 20. Okt. (~$82.000) gefunden — Stand beibehalten. Fed-Sitzung läuft heute und morgen (27./28. Okt.), Zinsentscheid erst morgen 14:00 ET — Markt dürfte in Erwartungshaltung sein.</div>
+          <div class="ctx">Zwei unabhängige, auf 28. Okt. datierte Quellen nennen ~$80.000–81.000 kurz vor dem Fed-Zinsentscheid (14:00 ET) — etwas schwächer als der vorherige Stand (~$82.000, 20. Okt.). Reaktion auf die Entscheidung selbst noch nicht verifizierbar.</div>
         </div>
         <div class="stat">
           <div class="label">Altcoin Season Index</div>
           <div class="value mono">59 / 100</div>
-          <div class="ctx">Weiterhin keine Messung nach dem 12. Okt. gefunden — Stand seit 15 Tagen eingefroren, weiterhin klar unter der Altseason-Schwelle</div>
+          <div class="ctx">Weiterhin keine Messung nach dem 12. Okt. gefunden — Stand seit 16 Tagen eingefroren. Ein älterer, auf 11. Sept. datierter Wert (~33-37) widerspricht dem 59er-Stand, ist aber selbst vordatiert und nicht aktueller — nicht übernommen, weiterhin klar unter der Altseason-Schwelle</div>
           <div class="gauge"><i style="width:59%"></i><span class="thresh" style="left:75%"></span></div>
         </div>
         <div class="stat">
@@ -398,7 +398,7 @@
     </section>
 
     <footer>
-      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–27.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
+      Datenbasis: Nachrichten-Snapshots (CoinGecko, CryptoBriefing, CoinGabbar, ChainWard-On-Chain-Analyse, Presseberichte) vom 1.7.–28.10.2026, ergänzt um Live-Kurse via CoinGecko-API wo verfügbar. Das Scoring-Framework bewertet Hype-Signale (Listings, Whale-Käufe, bezahlte Kampagnen) — das ist hochspekulatives Momentum-Trading, keine Fundamentalanalyse. Positionsgrößen klein halten, Stop-Loss setzen, nie mehr riskieren als der Totalverlust verkraftbar wäre.
     </footer>
 
   </div>
@@ -411,6 +411,7 @@
   // as the coins watchlist below). Rendered in the News tab: newest entry large, older ones as a
   // chronological list underneath.
   const MARKET_NEWS = [
+    { date: "28.10.2026", text: "Siebenundzwanzigster Tag in Folge ohne neuen Kandidaten. Zwei unabhängige, auf 28. Okt. datierte Quellen nennen Bitcoin bei ~$80.000–81.000 kurz vor dem Fed-Zinsentscheid (14:00 ET), etwas schwächer als zuvor (~$82.000, 20. Okt.) — die Markt-Reaktion auf den Entscheid selbst war zum Recherchezeitpunkt noch nicht verifizierbar. Ein widersprüchlicher Altcoin-Season-Index-Wert (~33-37) erwies sich bei näherer Prüfung als auf 11. Sept. vordatiert und damit älter als der bestehende 59er-Stand — nicht übernommen. Geprüft, aber verworfen: LAPTOP (Hunter-Biden-Memecoin, &gt;99% Crash nach Launch, kein Audit, hohe Founder-Allokation — klare Red-Flag-Disqualifikation); BlockchainFX/BFX (angekündigter Burn für 31. Okt., aber noch keine verifizierbaren Fakten); Virtuals/VIRTUAL (bereits etabliertes Mid-Cap-Projekt, Jahr der Quelle zudem unsicher). Keine verifizierbaren frischen Tier-1-Listings, Kaito-Kampagnen, AI-Launches oder Short-Squeeze-Setups gefunden — die Watchlist bleibt heute unverändert." },
     { date: "27.10.2026", text: "Sechsundzwanzigster Tag in Folge ohne neuen Kandidaten. Die Fed tagt heute und morgen, Zinsentscheid erst morgen (28. Okt., 14:00 ET) — Markt dürfte in Erwartungshaltung sein, keine neue saubere Bitcoin-Quelle (Stand weiterhin ~$82.000, 20. Okt.). Altcoin Season Index seit 15 Tagen bei 59 eingefroren. Geprüft, aber verworfen: Recall Network/RECALL (AI-Agent-Launch, aber MCap zwischen Quellen stark widersprüchlich, kein Audit, Listing bereits 12 Tage alt); DeAgentAI/AIA (MCap-Angaben extrem widersprüchlich von $5 Mio. bis angeblich $2,4 Mrd., kein Audit — Disqualifikation). AXIS/PEARL/STABLE (Coinbase-Roadmap) weiterhin ohne Handelstermin, PEARL/STABLE zudem mit Ticker-Kollisionsrisiko. Ein mutmaßlicher ZAMA-Kauf von Arthur Hayes ohne Markt-Kennzahlen, nicht scorebar. Keine verifizierbaren frischen Tier-1-Listings, Kaito-Kampagnen oder Short-Squeeze-Setups gefunden — die Watchlist bleibt heute unverändert." },
     { date: "26.10.2026", text: "Fünfundzwanzigster Tag in Folge ohne neuen Kandidaten. Ein auf 20. Okt. datierter CoinGecko-Wert bestätigt erneut ~$82.000, keine neuere saubere Quelle gefunden. Altcoin Season Index seit 14 Tagen bei 59 eingefroren. Fed-Sitzung in 1-2 Tagen (27./28. Okt.). Coinbase-Roadmap-Kandidat AXIS weiterhin nur ein Roadmap-Eintrag ohne Handelstermin, keine neue Entwicklung. Eine Wallet-Bewegung von Arthur Hayes (24. Okt., ~$28,8 Mio.) wurde als Verkaufs-/Transfer-Signal identifiziert, nicht als Kauf — explizit kein KOL-Buy-Punkt vergeben. Keine verifizierbaren frischen Tier-1-Listings, Kaito-Kampagnen, AI-Launches oder Short-Squeeze-Setups mit Datum gefunden — die Watchlist bleibt heute unverändert." },
     { date: "25.10.2026", text: "Vierundzwanzigster Tag in Folge ohne neuen Kandidaten. Keine neue belastbare Bitcoin-Quelle, zuletzt (24. Okt.) unbestätigte Hinweise auf ~$80.000–80.800. Altcoin Season Index seit 13 Tagen bei 59 eingefroren, BTC-Dominanz-Widerspruch bleibt resolved-by-silence. Die heutige Recherche lieferte keine neuen, hinreichend konkreten Kandidaten-Funde — die Watchlist bleibt unverändert." },
