@@ -1,7 +1,7 @@
 {
-  "fetchedAt": "2026-10-27T12:23:55Z",
+  "fetchedAt": "2026-10-28T13:10:20Z",
   "source": "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&frequency=1d&metrics=PriceUSD,CapMVRVCur,SplyCur,CapMrktCurUSD,AdrActCnt,ROI30d,ROI1yr&page_size=10000",
-  "asOf": "2026-10-26",
+  "asOf": "2026-10-27",
   "metricsAvailable": [
     "PriceUSD",
     "CapMVRVCur",
@@ -11,7 +11,7 @@
     "ROI30d",
     "ROI1yr"
   ],
-  "rowCount": 6506,
+  "rowCount": 6507,
   "data": [
     {
       "asset": "btc",
@@ -71578,6 +71578,17 @@
       "ROI1yr": "-30.209533928656448",
       "ROI30d": "-5.2574309779488075",
       "SplyCur": "20103988.6178558"
+    },
+    {
+      "asset": "btc",
+      "time": "2026-10-27T00:00:00.000000000Z",
+      "AdrActCnt": "616836",
+      "CapMVRVCur": "1.494075737394342315",
+      "CapMrktCurUSD": "1624452978878.587474040586825964",
+      "PriceUSD": "80800.5373719316",
+      "ROI1yr": "-29.17686560351637",
+      "ROI30d": "-4.2562267801988245",
+      "SplyCur": "20104482.36750079"
     }
   ]
 }
